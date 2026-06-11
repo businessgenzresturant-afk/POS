@@ -1,0 +1,113 @@
+{
+  "competitor_analysis": {
+    "genz-restaurant-pos competitors 2025": [
+      {
+        "title": "Result 1 for genz-restaurant-pos competitors 2025",
+        "url": "https://example0.com"
+      },
+      {
+        "title": "Result 2 for genz-restaurant-pos competitors 2025",
+        "url": "https://example1.com"
+      },
+      {
+        "title": "Result 3 for genz-restaurant-pos competitors 2025",
+        "url": "https://example2.com"
+      },
+      {
+        "title": "Result 4 for genz-restaurant-pos competitors 2025",
+        "url": "https://example3.com"
+      },
+      {
+        "title": "Result 5 for genz-restaurant-pos competitors 2025",
+        "url": "https://example4.com"
+      }
+    ],
+    "best saas products design 2025": [
+      {
+        "title": "Result 1 for best saas products design 2025",
+        "url": "https://example0.com"
+      },
+      {
+        "title": "Result 2 for best saas products design 2025",
+        "url": "https://example1.com"
+      },
+      {
+        "title": "Result 3 for best saas products design 2025",
+        "url": "https://example2.com"
+      },
+      {
+        "title": "Result 4 for best saas products design 2025",
+        "url": "https://example3.com"
+      },
+      {
+        "title": "Result 5 for best saas products design 2025",
+        "url": "https://example4.com"
+      }
+    ],
+    "top saas landing pages examples": [
+      {
+        "title": "Result 1 for top saas landing pages examples",
+        "url": "https://example0.com"
+      },
+      {
+        "title": "Result 2 for top saas landing pages examples",
+        "url": "https://example1.com"
+      },
+      {
+        "title": "Result 3 for top saas landing pages examples",
+        "url": "https://example2.com"
+      },
+      {
+        "title": "Result 4 for top saas landing pages examples",
+        "url": "https://example3.com"
+      },
+      {
+        "title": "Result 5 for top saas landing pages examples",
+        "url": "https://example4.com"
+      }
+    ]
+  },
+  "design_patterns": [
+    "Minimalist landing with clear CTA",
+    "Dashboard with sidebar navigation",
+    "Card-based content layout",
+    "Dark mode toggle",
+    "Progressive disclosure for complex forms"
+  ],
+  "tech_stack": {
+    "frontend": "Next.js 14 + TypeScript + Tailwind CSS",
+    "backend": "Next.js API routes + Prisma",
+    "database": "PostgreSQL (via Supabase or Railway)",
+    "auth": "NextAuth.js v5",
+    "deployment": "Vercel (frontend) + Railway/Render (DB)"
+  },
+  "target_audience": "B2B SaaS founders and developers",
+  "pricing_strategy": [
+    {
+      "tier": "Free",
+      "price": "$0",
+      "features": [
+        "Core features",
+        "Community support"
+      ]
+    },
+    {
+      "tier": "Pro",
+      "price": "$29/mo",
+      "features": [
+        "Advanced features",
+        "Priority support",
+        "Analytics"
+      ]
+    },
+    {
+      "tier": "Enterprise",
+      "price": "Custom",
+      "features": [
+        "White-label",
+        "SLA",
+        "Dedicated support"
+      ]
+    }
+  ]
+}

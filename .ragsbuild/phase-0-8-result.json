@@ -1,0 +1,19 @@
+{
+  "phase": "0.8",
+  "version": "3.0",
+  "status": "completed",
+  "selected": [
+    "scroll/lenis-provider",
+    "scroll/icon-marquee"
+  ],
+  "dependencies": [
+    "@studio-freight/lenis",
+    "gsap",
+    "@gsap/react",
+    "framer-motion"
+  ],
+  "copied": 2,
+  "skipped": 0,
+  "install_status": "error",
+  "usage_example": ".ragsbuild/component-usage.tsx"
+}

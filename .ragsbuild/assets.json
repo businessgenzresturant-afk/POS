@@ -1,0 +1,46 @@
+{
+  "images": {
+    "background": {
+      "type": "css",
+      "value": "radial-gradient(ellipse at top, var(--primary) 0%, transparent 50%)"
+    }
+  },
+  "illustrations": {
+    "analytics": {
+      "type": "undraw",
+      "url": "https://undraw.co/illustrations/data_trends.svg",
+      "local": "/images/analytics.svg"
+    },
+    "collaboration": {
+      "type": "undraw",
+      "url": "https://undraw.co/illustrations/team_collaboration.svg",
+      "local": "/images/collaboration.svg"
+    },
+    "security": {
+      "type": "undraw",
+      "url": "https://undraw.co/illustrations/secure_data.svg",
+      "local": "/images/security.svg"
+    },
+    "growth": {
+      "type": "undraw",
+      "url": "https://undraw.co/illustrations/growth_chart.svg",
+      "local": "/images/growth.svg"
+    }
+  },
+  "three_d": {
+    "scene-1": {
+      "type": "spline",
+      "url": "https://prod.spline.design/abstract-orb.splinecode",
+      "component": "<Spline scene='https://prod.spline.design/abstract-orb.splinecode' />"
+    },
+    "scene-2": {
+      "type": "spline",
+      "url": "https://prod.spline.design/floating-phone.splinecode",
+      "component": "<Spline scene='https://prod.spline.design/floating-phone.splinecode' />"
+    }
+  },
+  "videos": {},
+  "placeholders": [
+    "hero.jpg"
+  ]
+}

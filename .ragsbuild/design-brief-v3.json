@@ -1,0 +1,121 @@
+{
+  "project": {
+    "name": "genz-restaurant-pos",
+    "industry": "food",
+    "intensity": "medium",
+    "style": "taste"
+  },
+  "design_system": {
+    "name": "Taste (Premium)",
+    "description": "Soft shadows, gradients, spring animations",
+    "best_for": [
+      "saas",
+      "ai",
+      "modern products"
+    ]
+  },
+  "colors": {
+    "primary": "oklch(65% 0.2 50)",
+    "accent": "oklch(75% 0.15 70)",
+    "neutrals": {
+      "neutral-50": "oklch(98% 0.025 50)",
+      "neutral-100": "oklch(95% 0.023000000000000003 50)",
+      "neutral-200": "oklch(88% 0.021 50)",
+      "neutral-300": "oklch(75% 0.019 50)",
+      "neutral-400": "oklch(60% 0.017 50)",
+      "neutral-500": "oklch(50% 0.015 50)",
+      "neutral-600": "oklch(40% 0.013000000000000001 50)",
+      "neutral-700": "oklch(30% 0.011 50)",
+      "neutral-800": "oklch(20% 0.009000000000000001 50)",
+      "neutral-900": "oklch(15% 0.007 50)"
+    },
+    "background": "oklch(15% 0.007 50)",
+    "surface": "oklch(20% 0.009000000000000001 50)",
+    "text": "oklch(98% 0.025 50)",
+    "text-secondary": "oklch(75% 0.019 50)"
+  },
+  "typography": {
+    "fonts": {
+      "display": "Space Grotesk",
+      "body": "Inter",
+      "mono": "JetBrains Mono"
+    },
+    "scale": {
+      "xs": "12px",
+      "sm": "14px",
+      "base": "16px",
+      "lg": "20px",
+      "xl": "25px",
+      "2xl": "31px",
+      "3xl": "39px",
+      "4xl": "48px",
+      "5xl": "61px",
+      "6xl": "96px"
+    },
+    "line_heights": {
+      "heading": "1.1",
+      "body": "1.5",
+      "tight": "1.25"
+    },
+    "letter_spacing": {
+      "heading": "-0.02em",
+      "body": "0",
+      "wide": "0.05em"
+    },
+    "font_features": "\"ss01\", \"ss02\", \"ss03\", \"cv01\""
+  },
+  "spacing": {
+    "xs": "4px",
+    "sm": "8px",
+    "md": "16px",
+    "lg": "24px",
+    "xl": "32px",
+    "2xl": "48px",
+    "3xl": "64px",
+    "4xl": "96px",
+    "5xl": "128px"
+  },
+  "shadows": {
+    "sm": "0 1px 2px oklch(0% 0 0 / 0.05)",
+    "md": "0 4px 12px oklch(0% 0 0 / 0.08)",
+    "lg": "0 8px 32px oklch(0% 0 0 / 0.12)",
+    "glow": "0 0 40px oklch(60% 0.2 250 / 0.2)"
+  },
+  "animation": {
+    "duration": "0.5s",
+    "easing": "cubic-bezier(0.34, 1.56, 0.64, 1)",
+    "stagger": "0.1s"
+  },
+  "border_radius": {
+    "sm": "8px",
+    "md": "12px",
+    "lg": "16px",
+    "xl": "24px",
+    "full": "9999px"
+  },
+  "rules": {
+    "max_fonts": 2,
+    "line_height_heading": "1.1",
+    "line_height_body": "1.5",
+    "letter_spacing_heading": "-0.02em",
+    "grid": "8-point",
+    "container_max": "1280px"
+  },
+  "anti_patterns": [
+    "Pure black (#000000)",
+    "Pure white (#ffffff)",
+    "Default system fonts",
+    "Box shadows without blur",
+    "Center-aligned long text",
+    "Animations > 1s",
+    "Placeholder content"
+  ],
+  "quality_checklist": [
+    "Typography: Max 2 fonts, proper scale",
+    "Colors: OKLCH space, tinted neutrals",
+    "Spacing: 8-point grid consistent",
+    "Motion: prefers-reduced-motion respected",
+    "Contrast: WCAG AA compliant",
+    "Responsive: Mobile, tablet, desktop"
+  ]
+}
