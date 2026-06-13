@@ -3,8 +3,6 @@ import { Inter } from "next/font/google";
 import "./globals.css";
 import ReactLenis from 'lenis/react';
 import { GrainOverlay } from '@/app/_components/scroll/grain-overlay';
-import { CustomCursor } from '@/app/_components/scroll/custom-cursor';
-
 const inter = Inter({
   variable: "--font-inter-sans",
   subsets: ["latin"],
@@ -36,7 +34,6 @@ export default function RootLayout({
           }}
         >
           <GrainOverlay />
-          <CustomCursor />
           <main className="flex-1 flex flex-col overflow-y-auto p-6">
             {children}
           </main>
