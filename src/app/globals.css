@@ -3,20 +3,20 @@
 @tailwind utilities;
 
 :root {
-  --foreground-rgb: 0, 0, 0;
-  --background-start-rgb: 214, 219, 220;
-  --background-end-rgb: 255, 255, 255;
-  --bg-base: #000000;
-  --accent: #a3e635;
-  --radius-card: 20px;
-  --shadow-glow: 0 0 40px rgba(163,230,53,0.15);
+  --foreground-rgb: 15, 23, 42;
+  --background-start-rgb: 248, 250, 252;
+  --background-end-rgb: 241, 245, 249;
+  --bg-base: #f8fafc;
+  --primary: #10b981;
+  --radius-card: 24px;
+  --shadow-glow: 0 0 40px rgba(16, 185, 129, 0.15);
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --foreground-rgb: 255, 255, 255;
-    --background-start-rgb: 0, 0, 0;
-    --background-end-rgb: 0, 0, 0;
+    --foreground-rgb: 248, 250, 252;
+    --background-start-rgb: 15, 23, 42;
+    --background-end-rgb: 2, 6, 23;
   }
 }
 
@@ -24,11 +24,12 @@ body {
   color: rgb(var(--foreground-rgb));
   background: var(--background-start-rgb);
   background: linear-gradient(
-      to bottom,
-      var(--background-start-rgb),
-      var(--background-end-rgb)
+      135deg,
+      rgb(var(--background-start-rgb)),
+      rgb(var(--background-end-rgb))
     );
-  @apply bg-gray-50 antialiased;
+  min-height: 100vh;
+  @apply text-slate-900 antialiased selection:bg-emerald-500/30 selection:text-emerald-900;
 }
 
 /* Mobile touch target optimization */
@@ -37,7 +38,6 @@ body {
     @apply min-h-[48px] min-w-[48px];
   }
 
-  /* Increase hit area for interactive elements on touch devices */
   button,
   [role="button"],
   input[type="button"],
@@ -49,17 +49,14 @@ body {
   }
 }
 
-/* Smooth scrolling */
 html {
   scroll-behavior: smooth;
 }
 
-/* Improved focus visibility for accessibility */
 :focus-visible {
-  @apply outline-none ring-2 ring-primary ring-offset-2;
+  @apply outline-none ring-2 ring-emerald-500/50 ring-offset-2 ring-offset-slate-50 transition-shadow duration-200;
 }
 
-/* Prevent text selection on interactive elements */
 button,
 input,
 select,
@@ -68,50 +65,47 @@ textarea,
   user-select: none;
 }
 
-/* Subtle animations for better UX */
+/* Modern smooth animations */
 * {
   transition-property: color, background-color, border-color, text-decoration-color, fill, stroke, opacity, box-shadow, transform, filter, backdrop-filter;
-  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
-  transition-duration: 150ms;
+  transition-timing-function: cubic-bezier(0.16, 1, 0.3, 1); /* Custom spring-like easing */
+  transition-duration: 300ms;
 }
 
-/* Override transition duration for specific cases where we want it faster */
+/* Base overrides for speed */
 input, textarea {
   transition-duration: 200ms;
 }
 
-/* Card enhancements for better depth */
+/* Modern Card depth */
 .card-enhanced {
-  @apply bg-white border border-gray-200 rounded-lg shadow-sm hover:shadow-md transition-shadow duration-200;
+  @apply bg-white/90 backdrop-blur-md border border-slate-200/60 rounded-2xl shadow-[0_4px_20px_rgb(0,0,0,0.03)] hover:shadow-[0_8px_30px_rgb(0,0,0,0.08)] transition-all duration-300 ease-out;
 }
 
 /* Enhanced form fields */
 .input-enhanced {
-  @apply focus:ring-2 focus:ring-primary focus:ring-offset-2;
+  @apply rounded-xl bg-slate-50/50 border-slate-200 hover:border-slate-300 focus:bg-white focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500 shadow-[inset_0_2px_4px_rgba(0,0,0,0.02)];
 }
 
-/* Button enhancements */
+/* Sleek button base */
 .button-enhanced {
-  @apply transition-all duration-200 ease-in-out shadow-sm hover:shadow-md active:shadow-lg;
+  @apply rounded-xl transition-all duration-300 ease-out active:scale-[0.97];
 }
 
-/* Dark mode improvements */
-.dark {
-  --background-start-rgb: 0, 0, 0;
-  --background-end-rgb: 0, 0, 0;
+/* Custom scrollbar for modern feel */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  @apply bg-slate-300 rounded-full hover:bg-slate-400 transition-colors;
 }
 
-/* Mobile-first spacing */
 @media (max-width: 640px) {
-  .p-mobile {
-    @apply p-4;
-  }
-
-  .gap-mobile {
-    @apply gap-4;
-  }
-
-  .text-mobile {
-    @apply text-base;
-  }
+  .p-mobile { @apply p-4; }
+  .gap-mobile { @apply gap-4; }
+  .text-mobile { @apply text-base; }
 }

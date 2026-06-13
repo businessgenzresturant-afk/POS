@@ -1,8 +1,11 @@
 import { NextResponse } from 'next/server';
-import { cookies, headers } from 'next/headers';
+import { cookies } from 'next/headers';
 import { getToken } from 'next-auth/jwt';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth-config';
+
+// Force dynamic route to avoid build-time pre-rendering
+export const dynamic = 'force-dynamic';
 
 export async function GET(req: Request) {
   const cookieStore = await cookies();
@@ -14,14 +17,13 @@ export async function GET(req: Request) {
   try {
     session = await getServerSession(authOptions);
   } catch(e) {
-    console.error(e);
+    console.error('Auth check error:', e);
   }
 
   return NextResponse.json({
     hasTokenWithReq: !!tokenWithReq,
     hasSession: !!session,
     cookies: allCookies.map(c => c.name),
-    headers: Object.fromEntries(req.headers.entries()),
     env: {
       hasUrl: !!process.env.NEXTAUTH_URL,
       hasSecret: !!process.env.NEXTAUTH_SECRET,
