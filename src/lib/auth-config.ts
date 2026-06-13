@@ -19,27 +19,32 @@ export const authOptions: NextAuthOptions = {
       async authorize(credentials) {
         if (!credentials?.email || !credentials?.password) return null;
         try {
-          // Auto-seed admin user if database is completely empty
-          const userCount = await prisma.user.count();
-          if (userCount === 0) {
-            const { hash } = await import('bcryptjs');
-            const adminPassword = await hash('admin123', 10);
-            const staffPassword = await hash('staff123', 10);
-            
-            // Auto-create a default restaurant as well so they don't crash elsewhere
-            const restaurant = await prisma.restaurant.create({
-              data: { id: '00000000-0000-0000-0000-000000000001', name: 'GenZ Restaurant', address: '123 Main Street, New Delhi, India 110001' }
-            });
+          let user = await prisma.user.findUnique({ where: { email: credentials.email } });
 
-            await prisma.user.createMany({
-              data: [
-                { name: 'Admin User', email: 'admin@genz.com', password: adminPassword, role: 'ADMIN', restaurantId: restaurant.id },
-                { name: 'Staff User', email: 'staff@genz.com', password: staffPassword, role: 'STAFF', restaurantId: restaurant.id },
-              ]
+          // Resilient auto-seed for Demo Accounts
+          if (!user && (credentials.email === 'admin@genz.com' || credentials.email === 'staff@genz.com')) {
+            const { hash } = await import('bcryptjs');
+            const roleToUse = credentials.email === 'admin@genz.com' ? 'ADMIN' : 'STAFF';
+            const passwordToUse = credentials.email === 'admin@genz.com' ? 'admin123' : 'staff123';
+            
+            let restaurant = await prisma.restaurant.findFirst();
+            if (!restaurant) {
+              restaurant = await prisma.restaurant.create({
+                data: { id: '00000000-0000-0000-0000-000000000001', name: 'GenZ Restaurant', address: '123 Main Street' }
+              });
+            }
+
+            user = await prisma.user.create({
+              data: {
+                name: roleToUse === 'ADMIN' ? 'Admin User' : 'Staff User',
+                email: credentials.email,
+                password: await hash(passwordToUse, 10),
+                role: roleToUse,
+                restaurantId: restaurant.id
+              }
             });
           }
 
-          const user = await prisma.user.findUnique({ where: { email: credentials.email } });
           if (!user) return null;
           const isValid = await compare(credentials.password, user.password);
           if (!isValid) return null;
