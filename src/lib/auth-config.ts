@@ -49,8 +49,9 @@ export const authOptions: NextAuthOptions = {
           const isValid = await compare(credentials.password, user.password);
           if (!isValid) return null;
           return { id: user.id, email: user.email, name: user.name, role: user.role } as ExtendedUser;
-        } catch (error) { 
-          console.error("Auth error:", error);
+        } catch (error: any) { 
+          console.error("Auth error:", error?.message || error);
+          console.error("Auth error stack:", error?.stack);
           return null; 
         }
       }
