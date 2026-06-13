@@ -2,34 +2,64 @@
 @tailwind components;
 @tailwind utilities;
 
-:root {
-  --foreground-rgb: 15, 23, 42;
-  --background-start-rgb: 248, 250, 252;
-  --background-end-rgb: 241, 245, 249;
-  --bg-base: #f8fafc;
-  --primary: #10b981;
-  --radius-card: 24px;
-  --shadow-glow: 0 0 40px rgba(16, 185, 129, 0.15);
-}
-
-@media (prefers-color-scheme: dark) {
+@layer base {
   :root {
-    --foreground-rgb: 248, 250, 252;
-    --background-start-rgb: 15, 23, 42;
-    --background-end-rgb: 2, 6, 23;
+    --background: 0 0% 100%;
+    --foreground: 222.2 84% 4.9%;
+    --card: 0 0% 100%;
+    --card-foreground: 222.2 84% 4.9%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 222.2 84% 4.9%;
+    --primary: 158.1 76.5% 36.7%; /* Emerald 600 */
+    --primary-foreground: 210 40% 98%;
+    --secondary: 210 40% 96.1%;
+    --secondary-foreground: 222.2 47.4% 11.2%;
+    --muted: 210 40% 96.1%;
+    --muted-foreground: 215.4 16.3% 46.9%;
+    --accent: 210 40% 96.1%;
+    --accent-foreground: 222.2 47.4% 11.2%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 214.3 31.8% 91.4%;
+    --input: 214.3 31.8% 91.4%;
+    --ring: 158.1 76.5% 36.7%;
+    --radius: 1rem;
+    --shadow-glow: 0 0 40px rgba(16, 185, 129, 0.15);
+  }
+
+  .dark {
+    --background: 222.2 84% 4.9%;
+    --foreground: 210 40% 98%;
+    --card: 222.2 84% 4.9%;
+    --card-foreground: 210 40% 98%;
+    --popover: 222.2 84% 4.9%;
+    --popover-foreground: 210 40% 98%;
+    --primary: 158.1 76.5% 36.7%; /* Emerald 600 */
+    --primary-foreground: 222.2 47.4% 11.2%;
+    --secondary: 217.2 32.6% 17.5%;
+    --secondary-foreground: 210 40% 98%;
+    --muted: 217.2 32.6% 17.5%;
+    --muted-foreground: 215 20.2% 65.1%;
+    --accent: 217.2 32.6% 17.5%;
+    --accent-foreground: 210 40% 98%;
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 217.2 32.6% 17.5%;
+    --input: 217.2 32.6% 17.5%;
+    --ring: 158.1 76.5% 36.7%;
   }
 }
 
-body {
-  color: rgb(var(--foreground-rgb));
-  background: var(--background-start-rgb);
-  background: linear-gradient(
-      135deg,
-      rgb(var(--background-start-rgb)),
-      rgb(var(--background-end-rgb))
-    );
-  min-height: 100vh;
-  @apply text-slate-900 antialiased selection:bg-emerald-500/30 selection:text-emerald-900;
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground antialiased selection:bg-emerald-500/30 selection:text-emerald-900;
+  }
+  html {
+    scroll-behavior: smooth;
+  }
 }
 
 /* Mobile touch target optimization */
@@ -49,12 +79,8 @@ body {
   }
 }
 
-html {
-  scroll-behavior: smooth;
-}
-
 :focus-visible {
-  @apply outline-none ring-2 ring-emerald-500/50 ring-offset-2 ring-offset-slate-50 transition-shadow duration-200;
+  @apply outline-none ring-2 ring-ring ring-offset-2 ring-offset-background transition-shadow duration-200;
 }
 
 button,
@@ -68,7 +94,7 @@ textarea,
 /* Modern smooth animations */
 * {
   transition-property: color, background-color, border-color, text-decoration-color, fill, stroke, opacity, box-shadow, transform, filter, backdrop-filter;
-  transition-timing-function: cubic-bezier(0.16, 1, 0.3, 1); /* Custom spring-like easing */
+  transition-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
   transition-duration: 300ms;
 }
 
@@ -79,12 +105,12 @@ input, textarea {
 
 /* Modern Card depth */
 .card-enhanced {
-  @apply bg-white/90 backdrop-blur-md border border-slate-200/60 rounded-2xl shadow-[0_4px_20px_rgb(0,0,0,0.03)] hover:shadow-[0_8px_30px_rgb(0,0,0,0.08)] transition-all duration-300 ease-out;
+  @apply bg-card text-card-foreground border border-border/60 rounded-2xl shadow-sm hover:shadow-md transition-all duration-300 ease-out;
 }
 
 /* Enhanced form fields */
 .input-enhanced {
-  @apply rounded-xl bg-slate-50/50 border-slate-200 hover:border-slate-300 focus:bg-white focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500 shadow-[inset_0_2px_4px_rgba(0,0,0,0.02)];
+  @apply rounded-xl bg-background border border-input hover:border-ring/50 focus:bg-background focus:ring-2 focus:ring-ring/30 focus:border-ring shadow-sm;
 }
 
 /* Sleek button base */
@@ -101,7 +127,7 @@ input, textarea {
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  @apply bg-slate-300 rounded-full hover:bg-slate-400 transition-colors;
+  @apply bg-muted-foreground/30 rounded-full hover:bg-muted-foreground/50 transition-colors;
 }
 
 @media (max-width: 640px) {

@@ -1,6 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -12,50 +9,44 @@ datasource db {
 }
 
 model Restaurant {
-  id        String   @id @default(uuid())
+  id        String     @id @default(dbgenerated("(gen_random_uuid())::text"))
   name      String
   address   String
-  createdAt DateTime @default(now())
-  tables    Table[]
+  createdAt DateTime   @default(now())
   menuItems MenuItem[]
+  tables    Table[]
   users     User[]
 }
 
 model Table {
-  id        String   @id @default(uuid())
-  number    Int
-  capacity  Int
-  status    TableStatus @default(AVAILABLE)
+  id           String      @id @default(dbgenerated("(gen_random_uuid())::text"))
+  number       Int
+  capacity     Int
+  status       TableStatus @default(AVAILABLE)
   restaurantId String
-  restaurant  Restaurant @relation(fields: [restaurantId], references: [id])
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  orders    Order[]
-  bills     Bill[]
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @default(now()) @updatedAt
+  bills        Bill[]
+  orders       Order[]
+  restaurant   Restaurant  @relation(fields: [restaurantId], references: [id])
 
+  @@unique([restaurantId, number])
   @@index([restaurantId])
   @@index([status])
-  @@unique([restaurantId, number])
-}
-
-enum TableStatus {
-  AVAILABLE
-  OCCUPIED
-  RESERVED
 }
 
 model MenuItem {
-  id        String   @id @default(uuid())
-  name      String
-  category  String
-  price     Float
-  imageUrl  String
-  available Boolean @default(true)
+  id           String      @id @default(dbgenerated("(gen_random_uuid())::text"))
+  name         String
+  category     String
+  price        Float
+  imageUrl     String
+  available    Boolean     @default(true)
   restaurantId String
-  restaurant  Restaurant @relation(fields: [restaurantId], references: [id])
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  orderItems OrderItem[]
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @default(now()) @updatedAt
+  restaurant   Restaurant  @relation(fields: [restaurantId], references: [id])
+  orderItems   OrderItem[]
 
   @@index([restaurantId])
   @@index([category])
@@ -63,22 +54,72 @@ model MenuItem {
 }
 
 model Order {
-  id        String   @id @default(uuid())
-  tableId   String
-  table     Table    @relation(fields: [tableId], references: [id])
-  status    OrderStatus @default(PENDING)
-  totalAmount Float  @default(0)
+  id            String        @id @default(dbgenerated("(gen_random_uuid())::text"))
+  tableId       String
+  status        OrderStatus   @default(PENDING)
+  totalAmount   Float         @default(0)
   paymentStatus PaymentStatus @default(PENDING)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  customerName String?
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @default(now()) @updatedAt
+  customerName  String?
   customerPhone String?
-  items OrderItem[]
-  bill      Bill?
+  bill          Bill?
+  table         Table         @relation(fields: [tableId], references: [id])
+  items         OrderItem[]
 
   @@index([tableId])
   @@index([status])
   @@index([paymentStatus])
+}
+
+model OrderItem {
+  id                  String   @id @default(dbgenerated("(gen_random_uuid())::text"))
+  orderId             String
+  menuItemId          String
+  quantity            Int
+  price               Float
+  specialInstructions String?
+  menuItem            MenuItem @relation(fields: [menuItemId], references: [id])
+  order               Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@index([orderId])
+  @@index([menuItemId])
+}
+
+model Bill {
+  id            String     @id @default(dbgenerated("(gen_random_uuid())::text"))
+  orderId       String     @unique
+  tableId       String
+  subtotal      Float
+  tax           Float
+  discount      Float      @default(0)
+  total         Float
+  status        BillStatus @default(PENDING)
+  paymentMethod String?
+  createdAt     DateTime   @default(now())
+  paidAt        DateTime?
+  order         Order      @relation(fields: [orderId], references: [id])
+  table         Table      @relation(fields: [tableId], references: [id])
+
+  @@index([status])
+  @@index([createdAt])
+}
+
+model User {
+  id           String      @id @default(dbgenerated("(gen_random_uuid())::text"))
+  email        String      @unique
+  password     String
+  name         String
+  role         Role        @default(STAFF)
+  restaurantId String?
+  createdAt    DateTime    @default(now())
+  restaurant   Restaurant? @relation(fields: [restaurantId], references: [id])
+}
+
+enum TableStatus {
+  AVAILABLE
+  OCCUPIED
+  RESERVED
 }
 
 enum OrderStatus {
@@ -95,54 +136,10 @@ enum PaymentStatus {
   REFUNDED
 }
 
-model OrderItem {
-  id        String   @id @default(uuid())
-  orderId   String
-  order     Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  menuItemId String
-  menuItem  MenuItem @relation(fields: [menuItemId], references: [id])
-  quantity  Int
-  price     Float    // Price at time of order
-  specialInstructions String?
-
-  @@index([orderId])
-  @@index([menuItemId])
-}
-
-model Bill {
-  id        String   @id @default(uuid())
-  orderId   String   @unique
-  order     Order    @relation(fields: [orderId], references: [id])
-  tableId   String
-  table     Table    @relation(fields: [tableId], references: [id])
-  subtotal  Float
-  tax       Float
-  discount  Float    @default(0)
-  total     Float
-  status    BillStatus @default(PENDING)
-  paymentMethod String?
-  createdAt DateTime @default(now())
-  paidAt    DateTime?
-
-  @@index([status])
-  @@index([createdAt])
-}
-
 enum BillStatus {
   PENDING
   PAID
   CANCELLED
-}
-
-model User {
-  id        String   @id @default(uuid())
-  email     String   @unique
-  password  String
-  name      String
-  role      Role     @default(STAFF)
-  restaurantId String?
-  restaurant   Restaurant? @relation(fields: [restaurantId], references: [id])
-  createdAt DateTime @default(now())
 }
 
 enum Role {
