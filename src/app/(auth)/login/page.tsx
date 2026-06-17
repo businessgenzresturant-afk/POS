@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { signIn } from 'next-auth/react';
+import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
@@ -17,6 +18,7 @@ type LoginForm = z.infer<typeof loginSchema>;
 
 export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false);
+  const router = useRouter();
 
   const {
     register,
@@ -33,18 +35,23 @@ export default function LoginPage() {
     try {
       const result = await signIn('credentials', {
         redirect: false,
-        ...data,
+        email: data.email,
+        password: data.password,
       });
 
       if (result?.error) {
         toast.error('Invalid email or password. Please try again.');
-      } else {
+        setIsLoading(false);
+      } else if (result?.ok) {
         toast.success('Welcome back! 🍽️');
-        window.location.href = '/dashboard';
+        router.push('/dashboard');
+        router.refresh();
+      } else {
+        toast.error('Login failed. Please try again.');
+        setIsLoading(false);
       }
     } catch {
       toast.error('Something went wrong. Please try again.');
-    } finally {
       setIsLoading(false);
     }
   };
