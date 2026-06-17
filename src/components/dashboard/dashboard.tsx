@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState, useCallback } from 'react';
+import Link from 'next/link';
 import { Card } from '@/components/ui/card';
 import { 
   Users, 
@@ -10,7 +11,9 @@ import {
   ShoppingBag,
   Package,
   Bike,
-  Loader2
+  Loader2,
+  Receipt,
+  BarChart3
 } from 'lucide-react';
 import { TableDrawer } from './TableDrawer';
 import { MenuDrawer } from './MenuDrawer';
@@ -311,6 +314,70 @@ export function Dashboard() {
               </div>
               <p className="font-black text-lg text-foreground mt-4">Delivery</p>
             </button>
+
+          </div>
+        </div>
+
+        {/* System Modules Grid */}
+        <div className="space-y-4 pt-6 border-t border-border/50">
+          <h2 className="text-sm font-bold text-muted-foreground uppercase tracking-widest">System Modules</h2>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            
+            {/* KDS Card */}
+            <Link 
+              href="/kds"
+              className="p-5 rounded-2xl border border-border bg-card flex flex-col justify-between items-start cursor-pointer hover:border-orange-500/50 hover:bg-orange-500/[0.02] hover:shadow-lg hover:shadow-orange-500/5 transition-all group min-h-[130px]"
+            >
+              <div className="flex items-center gap-3">
+                <div className="p-2.5 bg-orange-500/10 text-orange-500 rounded-xl group-hover:scale-110 transition-transform">
+                  <ChefHat className="w-5 h-5" />
+                </div>
+                <h3 className="font-bold text-foreground group-hover:text-orange-500 transition-colors">Kitchen Display (KDS)</h3>
+              </div>
+              <p className="text-xs text-muted-foreground mt-3 leading-relaxed">Monitor and process kitchen orders in real-time</p>
+            </Link>
+
+            {/* Bills Card */}
+            <Link 
+              href="/bills"
+              className="p-5 rounded-2xl border border-border bg-card flex flex-col justify-between items-start cursor-pointer hover:border-indigo-500/50 hover:bg-indigo-500/[0.02] hover:shadow-lg hover:shadow-indigo-500/5 transition-all group min-h-[130px]"
+            >
+              <div className="flex items-center gap-3">
+                <div className="p-2.5 bg-indigo-500/10 text-indigo-500 rounded-xl group-hover:scale-110 transition-transform">
+                  <Receipt className="w-5 h-5" />
+                </div>
+                <h3 className="font-bold text-foreground group-hover:text-indigo-500 transition-colors">Bills & Receipts</h3>
+              </div>
+              <p className="text-xs text-muted-foreground mt-3 leading-relaxed">Generate guest invoices and track payments</p>
+            </Link>
+
+            {/* Orders Card */}
+            <Link 
+              href="/orders"
+              className="p-5 rounded-2xl border border-border bg-card flex flex-col justify-between items-start cursor-pointer hover:border-blue-500/50 hover:bg-blue-500/[0.02] hover:shadow-lg hover:shadow-blue-500/5 transition-all group min-h-[130px]"
+            >
+              <div className="flex items-center gap-3">
+                <div className="p-2.5 bg-blue-500/10 text-blue-500 rounded-xl group-hover:scale-110 transition-transform">
+                  <ClipboardList className="w-5 h-5" />
+                </div>
+                <h3 className="font-bold text-foreground group-hover:text-blue-500 transition-colors">Order History</h3>
+              </div>
+              <p className="text-xs text-muted-foreground mt-3 leading-relaxed">View, edit, and track active and past orders</p>
+            </Link>
+
+            {/* Reports Card */}
+            <Link 
+              href="/reports"
+              className="p-5 rounded-2xl border border-border bg-card flex flex-col justify-between items-start cursor-pointer hover:border-emerald-500/50 hover:bg-emerald-500/[0.02] hover:shadow-lg hover:shadow-emerald-500/5 transition-all group min-h-[130px]"
+            >
+              <div className="flex items-center gap-3">
+                <div className="p-2.5 bg-emerald-500/10 text-emerald-500 rounded-xl group-hover:scale-110 transition-transform">
+                  <BarChart3 className="w-5 h-5" />
+                </div>
+                <h3 className="font-bold text-foreground group-hover:text-emerald-500 transition-colors">Reports & Analytics</h3>
+              </div>
+              <p className="text-xs text-muted-foreground mt-3 leading-relaxed">Analyze restaurant performance and revenue metrics</p>
+            </Link>
 
           </div>
         </div>
