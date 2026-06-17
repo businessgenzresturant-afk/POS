@@ -24,10 +24,10 @@ export async function middleware(req: NextRequest) {
     return NextResponse.redirect(url);
   }
 
-  // Redirect authenticated users away from login page
+  // Redirect authenticated users away from login page to dashboard
   if (pathname === '/login' && token) {
     const url = req.nextUrl.clone();
-    url.pathname = '/';
+    url.pathname = '/dashboard';
     return NextResponse.redirect(url);
   }
 

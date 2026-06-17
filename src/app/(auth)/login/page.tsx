@@ -2,44 +2,33 @@
 
 import { useState } from 'react';
 import { signIn } from 'next-auth/react';
-import Link from 'next/link';
+import Image from 'next/image';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
-import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
 
 const loginSchema = z.object({
-  email: z.string().email('Invalid email address'),
-  password: z.string().min(6, 'Password must be at least 6 characters'),
+  email: z.string().email('Valid email required'),
+  password: z.string().min(6, 'Min 6 characters'),
 });
 
-const DEMO_ACCOUNTS = [
-  { role: 'Admin', email: 'admin@genz.com', password: 'admin123' },
-  { role: 'Staff', email: 'staff@genz.com', password: 'staff123' },
-];
+type LoginForm = z.infer<typeof loginSchema>;
 
 export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false);
+
   const {
     register,
     handleSubmit,
     setValue,
     formState: { errors },
-  } = useForm({
+  } = useForm<LoginForm>({
     resolver: zodResolver(loginSchema),
     mode: 'onChange',
   });
 
-  const fillDemoCredentials = (email: string, password: string) => {
-    setValue('email', email);
-    setValue('password', password);
-    onSubmit({ email, password }); // Auto-submit when clicking demo accounts
-  };
-
-  const onSubmit = async (data: z.infer<typeof loginSchema>) => {
+  const onSubmit = async (data: LoginForm) => {
     setIsLoading(true);
     try {
       const result = await signIn('credentials', {
@@ -48,133 +37,213 @@ export default function LoginPage() {
       });
 
       if (result?.error) {
-        toast.error('Invalid credentials. Please try again.');
+        toast.error('Invalid email or password. Please try again.');
       } else {
-        toast.success('Welcome back!');
-        window.location.href = '/';
+        toast.success('Welcome back! 🍽️');
+        window.location.href = '/dashboard';
       }
-    } catch (error) {
-      toast.error('An error occurred during login');
+    } catch {
+      toast.error('Something went wrong. Please try again.');
     } finally {
       setIsLoading(false);
     }
   };
 
+  const quickLogin = (email: string, password: string) => {
+    setValue('email', email);
+    setValue('password', password);
+    onSubmit({ email, password });
+  };
+
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-orange-50 via-amber-50 to-yellow-50">
-      <Card className="w-full max-w-md p-8 space-y-6 shadow-xl border-0 bg-white/90 backdrop-blur-sm">
-        <div className="text-center space-y-2">
-          <div className="mx-auto flex items-center justify-center w-16 h-16 rounded-full bg-orange-500 bg-gradient-to-r from-orange-500 to-amber-500 mb-4 shadow-lg shadow-orange-500/30">
-            <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 7h6m0 36v-3m-3 3h.01M9 17h.01M9 21h.01M15 17h.01M15 21h.01M5.01 17h.01M5.01 21h.01" />
-            </svg>
-          </div>
-          <h2 className="text-2xl font-bold text-foreground">Gen-Z POS</h2>
-          <p className="text-sm text-gray-600">Sign in to continue</p>
-        </div>
+    <div className="min-h-screen flex">
+      {/* LEFT — Restaurant Image Panel */}
+      <div className="hidden lg:flex lg:w-1/2 relative overflow-hidden">
+        <Image
+          src="/images/restaurant-bg.jpg"
+          alt="Gen-Z Restaurant"
+          fill
+          className="object-cover"
+          priority
+        />
+        {/* Dark overlay */}
+        <div className="absolute inset-0 bg-gradient-to-br from-black/70 via-black/40 to-orange-900/50" />
 
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-          <div>
-            <label htmlFor="email" className="mb-2 block font-medium text-gray-700">
-              Email Address
-            </label>
-            <Input
-              id="email"
-              {...register('email')}
-              className={`${errors.email ? 'border-red-500 focus:ring-red-500' : 'focus:ring-orange-500'} w-full`}
-              placeholder="Enter your email"
-            />
-            {errors.email && (
-              <p className="text-sm text-red-500 mt-1">{errors.email.message}</p>
-            )}
+        {/* Branding on image */}
+        <div className="absolute inset-0 flex flex-col justify-between p-12">
+          {/* Top badge */}
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-orange-500 to-amber-400 flex items-center justify-center shadow-lg">
+              <span className="text-white font-black text-lg">Z</span>
+            </div>
+            <div>
+              <p className="text-white font-black text-lg tracking-tight leading-none">Gen-Z Restaurant</p>
+              <p className="text-orange-300 text-xs font-semibold tracking-widest uppercase">Point of Sale</p>
+            </div>
           </div>
-          <div>
-            <label htmlFor="password" className="mb-2 block font-medium text-gray-700">
-              Password
-            </label>
-            <Input
-              id="password"
-              type="password"
-              {...register('password')}
-              className={`${errors.password ? 'border-red-500 focus:ring-red-500' : 'focus:ring-orange-500'} w-full`}
-              placeholder="Enter your password"
-            />
-            {errors.password && (
-              <p className="text-sm text-red-500 mt-1">{errors.password.message}</p>
-            )}
-          </div>
-          <Button
-            type="submit"
-            className="w-full bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white font-semibold py-2.5"
-            disabled={isLoading}
-          >
-            {isLoading ? (
-              <span className="flex items-center justify-center gap-2">
-                <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-                </svg>
-                Signing in...
+
+          {/* Center quote */}
+          <div className="space-y-6">
+            <div className="w-12 h-1 bg-orange-500 rounded-full" />
+            <h1 className="text-4xl font-black text-white leading-tight">
+              Great Food.<br />
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-orange-400 to-amber-300">
+                Faster Service.
               </span>
-            ) : (
-              'Sign In'
-            )}
-          </Button>
-        </form>
+            </h1>
+            <p className="text-white/70 text-lg leading-relaxed max-w-sm">
+              Manage tables, orders, kitchen & billing — all from one powerful dashboard designed for modern restaurants.
+            </p>
+          </div>
 
-        <div className="text-center">
-          <p className="text-sm text-gray-600">
-            Don&apos;t have an account?{' '}
-            <Link href="/register" className="font-semibold text-orange-600 hover:text-orange-500">
-              Create one
-            </Link>
-          </p>
-        </div>
-
-        {/* Demo Accounts Section */}
-        <div className="pt-4 border-t border-gray-200">
-          <p className="text-sm font-medium text-gray-700 mb-3 flex items-center gap-2">
-            <svg className="w-4 h-4 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-            Demo Accounts (Click to auto-login):
-          </p>
-          <div className="space-y-2">
-            {DEMO_ACCOUNTS.map((account) => (
-              <button
-                key={account.email}
-                type="button"
-                disabled={isLoading}
-                onClick={() => fillDemoCredentials(account.email, account.password)}
-                className="w-full text-left p-3 rounded-lg bg-gray-50 hover:bg-orange-50 border border-gray-200 hover:border-orange-300 transition-all duration-200 group disabled:opacity-50"
-              >
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-semibold text-foreground group-hover:text-orange-900">
-                      {account.role}
-                    </p>
-                    <p className="text-xs text-gray-600 group-hover:text-orange-600">{account.email}</p>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-xs font-mono text-gray-500 group-hover:text-orange-500 bg-white px-2 py-1 rounded">
-                      {account.password}
-                    </p>
-                  </div>
-                </div>
-              </button>
-            ))}
+          {/* Bottom credit */}
+          <div className="flex items-center justify-between">
+            <p className="text-white/40 text-xs">
+              © {new Date().getFullYear()} Gen-Z Restaurant. All rights reserved.
+            </p>
+            <span className="text-white/40 text-xs font-semibold tracking-wider">
+              Built by RAGSPRO
+            </span>
           </div>
         </div>
+      </div>
 
-        <div className="pt-4 border-t border-gray-200 text-center">
-          <p className="text-xs text-gray-500">
-            Powered by{' '}
-            <span className="font-semibold text-orange-500">
-              Gen-Z
-            </span>
-          </p>
+      {/* RIGHT — Login Form Panel */}
+      <div className="w-full lg:w-1/2 flex items-center justify-center bg-zinc-950 px-6 py-12">
+        <div className="w-full max-w-md space-y-8">
+
+          {/* Mobile Logo */}
+          <div className="lg:hidden flex items-center gap-3 mb-8">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-orange-500 to-amber-400 flex items-center justify-center">
+              <span className="text-white font-black text-lg">Z</span>
+            </div>
+            <div>
+              <p className="text-white font-black text-lg leading-none">Gen-Z Restaurant</p>
+              <p className="text-orange-400 text-xs font-semibold tracking-widest uppercase">Point of Sale</p>
+            </div>
+          </div>
+
+          {/* Heading */}
+          <div className="space-y-2">
+            <h2 className="text-3xl font-black text-white tracking-tight">
+              Welcome back 👋
+            </h2>
+            <p className="text-zinc-400 text-base">
+              Sign in to your restaurant dashboard
+            </p>
+          </div>
+
+          {/* Form */}
+          <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
+            <div className="space-y-1.5">
+              <label htmlFor="email" className="text-sm font-semibold text-zinc-300 block">
+                Email Address
+              </label>
+              <input
+                id="email"
+                type="email"
+                {...register('email')}
+                placeholder="admin@genzcafe.com"
+                className="w-full px-4 py-3.5 rounded-xl bg-zinc-900 border border-zinc-800 text-white placeholder-zinc-600 focus:outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 transition-all text-sm"
+              />
+              {errors.email && (
+                <p className="text-red-400 text-xs mt-1">{errors.email.message}</p>
+              )}
+            </div>
+
+            <div className="space-y-1.5">
+              <label htmlFor="password" className="text-sm font-semibold text-zinc-300 block">
+                Password
+              </label>
+              <input
+                id="password"
+                type="password"
+                {...register('password')}
+                placeholder="••••••••"
+                className="w-full px-4 py-3.5 rounded-xl bg-zinc-900 border border-zinc-800 text-white placeholder-zinc-600 focus:outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 transition-all text-sm"
+              />
+              {errors.password && (
+                <p className="text-red-400 text-xs mt-1">{errors.password.message}</p>
+              )}
+            </div>
+
+            <button
+              type="submit"
+              disabled={isLoading}
+              className="w-full py-4 rounded-xl bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white font-bold text-base tracking-wide transition-all duration-200 shadow-lg shadow-orange-500/25 hover:shadow-orange-500/40 hover:scale-[1.01] active:scale-[0.99] disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:scale-100 flex items-center justify-center gap-2"
+            >
+              {isLoading ? (
+                <>
+                  <svg className="animate-spin h-5 w-5 text-white" viewBox="0 0 24 24" fill="none">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                  </svg>
+                  Signing in...
+                </>
+              ) : (
+                <>
+                  Sign In
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                  </svg>
+                </>
+              )}
+            </button>
+          </form>
+
+          {/* Divider */}
+          <div className="flex items-center gap-4">
+            <div className="flex-1 h-px bg-zinc-800" />
+            <span className="text-zinc-600 text-xs font-semibold uppercase tracking-wider">Quick Access</span>
+            <div className="flex-1 h-px bg-zinc-800" />
+          </div>
+
+          {/* Quick Login Cards */}
+          <div className="grid grid-cols-2 gap-3">
+            <button
+              type="button"
+              disabled={isLoading}
+              onClick={() => quickLogin('admin@genz.com', 'admin123')}
+              className="p-4 rounded-xl bg-zinc-900 border border-zinc-800 hover:border-orange-500/50 hover:bg-orange-500/5 transition-all group text-left disabled:opacity-50"
+            >
+              <div className="w-8 h-8 rounded-lg bg-orange-500/20 flex items-center justify-center mb-3 group-hover:bg-orange-500/30 transition-colors">
+                <svg className="w-4 h-4 text-orange-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                </svg>
+              </div>
+              <p className="text-white font-bold text-sm">Admin</p>
+              <p className="text-zinc-500 text-xs mt-0.5">Full access</p>
+            </button>
+
+            <button
+              type="button"
+              disabled={isLoading}
+              onClick={() => quickLogin('staff@genz.com', 'staff123')}
+              className="p-4 rounded-xl bg-zinc-900 border border-zinc-800 hover:border-blue-500/50 hover:bg-blue-500/5 transition-all group text-left disabled:opacity-50"
+            >
+              <div className="w-8 h-8 rounded-lg bg-blue-500/20 flex items-center justify-center mb-3 group-hover:bg-blue-500/30 transition-colors">
+                <svg className="w-4 h-4 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                </svg>
+              </div>
+              <p className="text-white font-bold text-sm">Staff</p>
+              <p className="text-zinc-500 text-xs mt-0.5">POS access</p>
+            </button>
+          </div>
+
+          {/* Footer */}
+          <div className="pt-4 border-t border-zinc-800 flex items-center justify-between">
+            <p className="text-zinc-600 text-xs">
+              Powered by{' '}
+              <span className="text-orange-500 font-bold">RAGSPRO Agency</span>
+            </p>
+            <div className="flex items-center gap-1.5">
+              <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
+              <span className="text-zinc-500 text-xs font-medium">System Online</span>
+            </div>
+          </div>
         </div>
-      </Card>
+      </div>
     </div>
   );
 }
