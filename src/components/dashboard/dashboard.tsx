@@ -2,12 +2,10 @@
 
 import { useEffect, useState, useCallback } from 'react';
 import { Card } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
 import { 
   Users, 
   UtensilsCrossed, 
   ClipboardList, 
-  IndianRupee, 
   ChefHat, 
   ShoppingBag,
   Package,
@@ -15,8 +13,10 @@ import {
   Loader2
 } from 'lucide-react';
 import { TableDrawer } from './TableDrawer';
-import { OrderModal } from './OrderModal';
 import { MenuDrawer } from './MenuDrawer';
+import { TableSelectModal } from './TableSelectModal';
+import { GuestCountModal } from './GuestCountModal';
+import { CustomerDetailsModal } from './CustomerDetailsModal';
 import { toast } from 'sonner';
 
 export function Dashboard() {
@@ -26,9 +26,12 @@ export function Dashboard() {
   const [revenue, setRevenue] = useState(0);
   const [loading, setLoading] = useState(true);
 
-  // Drawer States
+  // Modal / Drawer States
+  const [isTableSelectModalOpen, setTableSelectModalOpen] = useState(false);
+  const [isGuestCountModalOpen, setGuestCountModalOpen] = useState(false);
+  const [isCustomerDetailsModalOpen, setCustomerDetailsModalOpen] = useState(false);
+  
   const [isTableDrawerOpen, setTableDrawerOpen] = useState(false);
-  const [isOrderModalOpen, setOrderModalOpen] = useState(false);
   const [isMenuDrawerOpen, setMenuDrawerOpen] = useState(false);
 
   // Selected state
@@ -74,14 +77,18 @@ export function Dashboard() {
 
   useEffect(() => {
     fetchData();
-    // Poll every 5 seconds for live updates
-    const interval = setInterval(fetchData, 5000);
+    // Poll every 3 seconds for live updates as requested by user
+    const interval = setInterval(fetchData, 3000);
     return () => clearInterval(interval);
   }, [fetchData]);
 
   const physicalTables = tables.filter(t => t.number < 1000).sort((a, b) => a.number - b.number);
   
-  const occupiedTables = physicalTables.filter(t => t.status === 'OCCUPIED').length;
+  const occupiedTables = physicalTables.filter(t => {
+    const hasOrder = activeOrders.some(o => o.tableId === t.id);
+    return t.status === 'OCCUPIED' || hasOrder;
+  }).length;
+  
   const kitchenQueue = activeOrders.filter(o => ['PENDING', 'PREPARING'].includes(o.status)).length;
   
   const dineInOrders = activeOrders.filter(o => o.orderType === 'DINE_IN').length;
@@ -89,43 +96,41 @@ export function Dashboard() {
   const parcelOrders = activeOrders.filter(o => o.orderType === 'PARCEL').length;
   const deliveryOrders = activeOrders.filter(o => o.orderType === 'DELIVERY').length;
 
-  const handleTableClick = (table: any) => {
+  const handleSelectTable = (table: any, isOccupied: boolean) => {
+    setTableSelectModalOpen(false);
     setSelectedTable(table);
-    setSelectedActiveOrder(null);
-    setTableDrawerOpen(true);
-  };
-  
-  const handleViewOrder = (order: any) => {
-    if (order.table) {
-      setSelectedTable(order.table);
-    } else {
-      setSelectedTable(null);
-    }
-    setSelectedActiveOrder(order);
-    setTableDrawerOpen(true);
-  };
-
-  const handleNewOrderClick = () => {
-    setOrderModalOpen(true);
-  };
-
-  const handleSelectOrderType = (type: string, details?: any) => {
-    setSelectedOrderType(type);
-    setCustomerDetails(details);
-    setOrderModalOpen(false);
     
-    if (type === 'DINE_IN') {
-      toast.info('Please select a table from the dashboard to start Dine In.');
-    } else {
-      setSelectedTable(null);
+    if (isOccupied) {
       setSelectedActiveOrder(null);
-      setMenuDrawerOpen(true);
+      setTableDrawerOpen(true);
+    } else {
+      setSelectedActiveOrder(null);
+      setGuestCountModalOpen(true);
     }
+  };
+
+  const handleGuestCountContinue = (details: any) => {
+    setCustomerDetails(details);
+    setGuestCountModalOpen(false);
+    setSelectedOrderType('DINE_IN');
+    setMenuDrawerOpen(true);
+  };
+
+  const handleOrderTypeCardClick = (type: 'TAKEAWAY' | 'PARCEL' | 'DELIVERY') => {
+    setSelectedOrderType(type);
+    setSelectedTable(null);
+    setSelectedActiveOrder(null);
+    setCustomerDetails(null);
+    setCustomerDetailsModalOpen(true);
+  };
+
+  const handleCustomerDetailsContinue = (details: any) => {
+    setCustomerDetails(details);
+    setCustomerDetailsModalOpen(false);
+    setMenuDrawerOpen(true);
   };
 
   const handlePlaceOrder = async (items: any[]) => {
-    // Determine if we're appending or creating
-    // If selectedTable is set, we might be appending, API handles this.
     try {
       const response = await fetch('/api/orders', {
         method: 'POST',
@@ -164,14 +169,6 @@ export function Dashboard() {
       toast.error('Failed to generate bill');
     }
   };
-
-  if (loading && tables.length === 0) {
-    return (
-      <div className="min-h-[600px] flex items-center justify-center">
-        <Loader2 className="h-10 w-10 animate-spin text-primary" />
-      </div>
-    );
-  }
 
   const handleQuickReorder = async (menuItemId: string, specialInstructions: string) => {
     if (!selectedActiveOrder && !selectedTable) return;
@@ -212,131 +209,144 @@ export function Dashboard() {
     }
   };
 
+  if (loading && tables.length === 0) {
+    return (
+      <div className="min-h-[600px] flex items-center justify-center">
+        <Loader2 className="h-10 w-10 animate-spin text-primary" />
+      </div>
+    );
+  }
+
   const activeOrderForSelectedTable = selectedActiveOrder 
     ? selectedActiveOrder 
     : (selectedTable ? activeOrders.find(o => o.tableId === selectedTable.id) : null);
 
   return (
-    <div className="space-y-8 animate-fade-in pb-12">
-      {/* Header & Live Stats */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <Card className="p-4 bg-blue-500/10 border-blue-500/20 text-blue-700 dark:text-blue-400">
-          <p className="text-sm font-bold opacity-80 uppercase">Tables Occupied</p>
-          <p className="text-3xl font-black mt-1">{occupiedTables}/{physicalTables.length}</p>
-        </Card>
-        <Card className="p-4 bg-orange-500/10 border-orange-500/20 text-orange-700 dark:text-orange-400">
-          <p className="text-sm font-bold opacity-80 uppercase">Kitchen Queue</p>
-          <p className="text-3xl font-black mt-1">{kitchenQueue}</p>
-        </Card>
-        <Card className="p-4 bg-emerald-500/10 border-emerald-500/20 text-emerald-700 dark:text-emerald-400">
-          <p className="text-sm font-bold opacity-80 uppercase">Today&apos;s Revenue</p>
-          <p className="text-3xl font-black mt-1">₹{revenue.toLocaleString()}</p>
-        </Card>
-        <Button 
-          variant="gradient" 
-          className="h-full text-lg shadow-lg hover:scale-[1.02] transition-transform"
-          onClick={handleNewOrderClick}
-        >
-          <ClipboardList className="mr-2 h-6 w-6" /> NEW ORDER
-        </Button>
-      </div>
+    <div className="space-y-8 animate-fade-in pb-12 min-h-[75vh] flex flex-col justify-between">
+      <div className="space-y-8">
+        {/* Live Stats Row */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <Card className="p-6 bg-gradient-to-br from-blue-500/10 to-blue-500/5 border-blue-500/20 shadow-md shadow-blue-500/5">
+            <div className="flex items-center justify-between">
+              <p className="text-sm font-bold text-blue-700 dark:text-blue-400 opacity-90 uppercase tracking-wider">Tables Occupied</p>
+              <Users className="w-5 h-5 text-blue-500" />
+            </div>
+            <p className="text-4xl font-black text-blue-900 dark:text-blue-300 mt-2">{occupiedTables}/{physicalTables.length}</p>
+          </Card>
+          
+          <Card className="p-6 bg-gradient-to-br from-orange-500/10 to-orange-500/5 border-orange-500/20 shadow-md shadow-orange-500/5">
+            <div className="flex items-center justify-between">
+              <p className="text-sm font-bold text-orange-700 dark:text-orange-400 opacity-90 uppercase tracking-wider">Kitchen Queue</p>
+              <ChefHat className="w-5 h-5 text-orange-500" />
+            </div>
+            <p className="text-4xl font-black text-orange-900 dark:text-orange-300 mt-2">{kitchenQueue}</p>
+          </Card>
+          
+          <Card className="p-6 bg-gradient-to-br from-emerald-500/10 to-emerald-500/5 border-emerald-500/20 shadow-md shadow-emerald-500/5">
+            <div className="flex items-center justify-between">
+              <p className="text-sm font-bold text-emerald-700 dark:text-emerald-400 opacity-90 uppercase tracking-wider">Today&apos;s Revenue</p>
+              <span className="text-xl font-black text-emerald-500">₹</span>
+            </div>
+            <p className="text-4xl font-black text-emerald-900 dark:text-emerald-300 mt-2">₹{revenue.toLocaleString()}</p>
+          </Card>
+        </div>
 
-      {/* Order Type Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <div className="p-4 rounded-xl border border-border bg-card flex justify-between items-center cursor-pointer hover:border-primary/50" onClick={() => toast.info('Click a table below')}>
-          <div className="flex items-center gap-3">
-            <div className="p-2 bg-blue-500/10 text-blue-500 rounded-lg"><UtensilsCrossed /></div>
-            <p className="font-bold">Dine In</p>
-          </div>
-          <span className="font-black text-xl">{dineInOrders}</span>
-        </div>
-        <div className="p-4 rounded-xl border border-border bg-card flex justify-between items-center cursor-pointer hover:border-amber-500/50" onClick={() => handleSelectOrderType('TAKEAWAY')}>
-          <div className="flex items-center gap-3">
-            <div className="p-2 bg-amber-500/10 text-amber-500 rounded-lg"><ShoppingBag /></div>
-            <p className="font-bold">Takeaway</p>
-          </div>
-          <span className="font-black text-xl">{takeawayOrders}</span>
-        </div>
-        <div className="p-4 rounded-xl border border-border bg-card flex justify-between items-center cursor-pointer hover:border-emerald-500/50" onClick={() => handleSelectOrderType('PARCEL')}>
-          <div className="flex items-center gap-3">
-            <div className="p-2 bg-emerald-500/10 text-emerald-500 rounded-lg"><Package /></div>
-            <p className="font-bold">Parcel</p>
-          </div>
-          <span className="font-black text-xl">{parcelOrders}</span>
-        </div>
-        <div className="p-4 rounded-xl border border-border bg-card flex justify-between items-center cursor-pointer hover:border-rose-500/50" onClick={() => handleSelectOrderType('DELIVERY')}>
-          <div className="flex items-center gap-3">
-            <div className="p-2 bg-rose-500/10 text-rose-500 rounded-lg"><Bike /></div>
-            <p className="font-bold">Delivery</p>
-          </div>
-          <span className="font-black text-xl">{deliveryOrders}</span>
-        </div>
-      </div>
-
-      {/* Recent Orders Widget */}
-      {activeOrders.length > 0 && (
-        <div className="bg-muted/10 border border-border rounded-xl p-4">
-          <h3 className="text-sm font-bold opacity-80 uppercase mb-3 flex items-center gap-2">
-            <ClipboardList className="w-4 h-4" /> Recent Active Orders
-          </h3>
-          <div className="flex gap-3 overflow-x-auto pb-2 custom-scrollbar">
-            {activeOrders.slice(0, 5).map(order => (
-              <button 
-                key={order.id} 
-                onClick={() => handleViewOrder(order)}
-                className="flex-shrink-0 bg-background border border-border p-3 rounded-lg flex flex-col gap-1 min-w-[140px] hover:border-primary/50 text-left transition-colors"
-              >
-                <div className="flex justify-between items-center w-full">
-                  <span className="font-bold text-sm">
-                    {order.table ? `T${order.table.number}` : order.orderType}
-                  </span>
-                  <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold ${
-                    order.status === 'PENDING' ? 'bg-rose-500/10 text-rose-500' :
-                    order.status === 'PREPARING' ? 'bg-amber-500/10 text-amber-500' :
-                    order.status === 'READY' ? 'bg-emerald-500/10 text-emerald-500' :
-                    'bg-blue-500/10 text-blue-500'
-                  }`}>
-                    {order.status}
-                  </span>
-                </div>
-                <span className="font-black text-primary">₹{order.totalAmount?.toFixed(2)}</span>
-                {order.customerName && <span className="text-xs text-muted-foreground truncate w-full">{order.customerName}</span>}
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* Visual Table Grid */}
-      <div>
-        <h2 className="text-xl font-black mb-4 flex items-center gap-2">
-          <span>Dine-In Tables</span>
-        </h2>
-        <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-3">
-          {physicalTables.map(table => {
-            const hasOrder = activeOrders.some(o => o.tableId === table.id);
-            // Yellow if we want to show Bill pending, for now Red is occupied
-            const isOccupied = table.status === 'OCCUPIED' || hasOrder;
+        {/* Order Type Cards */}
+        <div className="space-y-4">
+          <h2 className="text-sm font-bold text-muted-foreground uppercase tracking-widest">Select Order Type</h2>
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6">
             
-            return (
-              <button
-                key={table.id}
-                onClick={() => handleTableClick(table)}
-                className={`aspect-square rounded-2xl border-2 flex flex-col items-center justify-center transition-all duration-200 transform hover:scale-105 shadow-sm ${
-                  isOccupied
-                    ? 'bg-red-500/10 border-red-500/30 text-red-600 dark:text-red-400'
-                    : 'bg-green-500/10 border-green-500/30 text-green-600 dark:text-green-400'
-                }`}
-              >
-                <span className="text-2xl font-black mb-1">T{table.number}</span>
-                <span className="text-xs font-bold uppercase tracking-wider opacity-80">
-                  {isOccupied ? 'Occupied' : 'Available'}
-                </span>
-              </button>
-            );
-          })}
+            {/* Dine In Card */}
+            <button 
+              onClick={() => setTableSelectModalOpen(true)}
+              className="p-6 rounded-2xl border-2 border-border/80 bg-card flex flex-col justify-between items-start cursor-pointer hover:border-blue-500/60 hover:bg-blue-500/5 hover:shadow-lg hover:shadow-blue-500/5 transition-all text-left group min-h-[140px]"
+            >
+              <div className="flex justify-between items-center w-full">
+                <div className="p-3 bg-blue-500/10 text-blue-500 rounded-xl group-hover:scale-110 transition-transform">
+                  <UtensilsCrossed className="w-6 h-6" />
+                </div>
+                <span className="font-black text-3xl text-foreground group-hover:text-blue-500 transition-colors">{dineInOrders}</span>
+              </div>
+              <p className="font-black text-lg text-foreground mt-4">Dine In</p>
+            </button>
+
+            {/* Takeaway Card */}
+            <button 
+              onClick={() => handleOrderTypeCardClick('TAKEAWAY')}
+              className="p-6 rounded-2xl border-2 border-border/80 bg-card flex flex-col justify-between items-start cursor-pointer hover:border-amber-500/60 hover:bg-amber-500/5 hover:shadow-lg hover:shadow-amber-500/5 transition-all text-left group min-h-[140px]"
+            >
+              <div className="flex justify-between items-center w-full">
+                <div className="p-3 bg-amber-500/10 text-amber-500 rounded-xl group-hover:scale-110 transition-transform">
+                  <ShoppingBag className="w-6 h-6" />
+                </div>
+                <span className="font-black text-3xl text-foreground group-hover:text-amber-500 transition-colors">{takeawayOrders}</span>
+              </div>
+              <p className="font-black text-lg text-foreground mt-4">Takeaway</p>
+            </button>
+
+            {/* Parcel Card */}
+            <button 
+              onClick={() => handleOrderTypeCardClick('PARCEL')}
+              className="p-6 rounded-2xl border-2 border-border/80 bg-card flex flex-col justify-between items-start cursor-pointer hover:border-emerald-500/60 hover:bg-emerald-500/5 hover:shadow-lg hover:shadow-emerald-500/5 transition-all text-left group min-h-[140px]"
+            >
+              <div className="flex justify-between items-center w-full">
+                <div className="p-3 bg-emerald-500/10 text-emerald-500 rounded-xl group-hover:scale-110 transition-transform">
+                  <Package className="w-6 h-6" />
+                </div>
+                <span className="font-black text-3xl text-foreground group-hover:text-emerald-500 transition-colors">{parcelOrders}</span>
+              </div>
+              <p className="font-black text-lg text-foreground mt-4">Parcel</p>
+            </button>
+
+            {/* Delivery Card */}
+            <button 
+              onClick={() => handleOrderTypeCardClick('DELIVERY')}
+              className="p-6 rounded-2xl border-2 border-border/80 bg-card flex flex-col justify-between items-start cursor-pointer hover:border-rose-500/60 hover:bg-rose-500/5 hover:shadow-lg hover:shadow-rose-500/5 transition-all text-left group min-h-[140px]"
+            >
+              <div className="flex justify-between items-center w-full">
+                <div className="p-3 bg-rose-500/10 text-rose-500 rounded-xl group-hover:scale-110 transition-transform">
+                  <Bike className="w-6 h-6" />
+                </div>
+                <span className="font-black text-3xl text-foreground group-hover:text-rose-500 transition-colors">{deliveryOrders}</span>
+              </div>
+              <p className="font-black text-lg text-foreground mt-4">Delivery</p>
+            </button>
+
+          </div>
         </div>
       </div>
+
+      {/* RAGSPRO Footer Branding */}
+      <footer className="pt-8 mt-12 border-t border-border/60 text-center text-xs text-muted-foreground/60">
+        <p>Gen-Z Restaurant POS • Private Software designed & developed by RAGSPRO Agency</p>
+      </footer>
+
+      {/* Modals & Drawers */}
+      <TableSelectModal
+        isOpen={isTableSelectModalOpen}
+        onClose={() => setTableSelectModalOpen(false)}
+        tables={tables}
+        activeOrders={activeOrders}
+        onSelectTable={handleSelectTable}
+      />
+
+      <GuestCountModal
+        isOpen={isGuestCountModalOpen}
+        onClose={() => setGuestCountModalOpen(false)}
+        onBack={() => {
+          setGuestCountModalOpen(false);
+          setTableSelectModalOpen(true);
+        }}
+        tableNumber={selectedTable?.number || null}
+        onContinue={handleGuestCountContinue}
+      />
+
+      <CustomerDetailsModal
+        isOpen={isCustomerDetailsModalOpen}
+        onClose={() => setCustomerDetailsModalOpen(false)}
+        orderType={selectedOrderType as any}
+        onContinue={handleCustomerDetailsContinue}
+      />
 
       <TableDrawer 
         isOpen={isTableDrawerOpen} 
@@ -350,12 +360,6 @@ export function Dashboard() {
         onGenerateBill={handleGenerateBill}
         onQuickReorder={handleQuickReorder}
         onMarkAsServed={handleMarkAsServed}
-      />
-
-      <OrderModal
-        isOpen={isOrderModalOpen}
-        onClose={() => setOrderModalOpen(false)}
-        onSelectOrderType={handleSelectOrderType}
       />
 
       <MenuDrawer
