@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "RAGSPRO POS - Auth",
+  title: "Gen-Z POS - Auth",
   description: "Authentication for Restaurant POS System",
 };
 

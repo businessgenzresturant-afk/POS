@@ -210,13 +210,13 @@ export async function seedMenuItems() {
 
     // Get or create default restaurant
     let restaurant = await prisma.restaurant.findFirst({
-      where: { name: 'RAGSPRO POS' },
+      where: { name: 'Gen-Z POS' },
     });
 
     if (!restaurant) {
       restaurant = await prisma.restaurant.create({
         data: {
-          name: 'RAGSPRO POS',
+          name: 'Gen-Z POS',
           address: '123 Main Street, New Delhi, India',
         },
       });

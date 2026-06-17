@@ -36,7 +36,7 @@ export default function Sidebar() {
             <span className="text-primary-foreground font-black text-xl">Z</span>
           </div>
           <div>
-            <h1 className="font-black text-xl text-foreground leading-tight tracking-tight">RAGSPRO POS</h1>
+            <h1 className="font-black text-xl text-foreground leading-tight tracking-tight">Gen-Z POS</h1>
             <p className="text-xs font-bold text-primary uppercase tracking-widest">Premium</p>
           </div>
         </Link>
@@ -74,7 +74,7 @@ export default function Sidebar() {
         <div className="bg-card rounded-2xl p-4 shadow-sm border border-border/50 flex items-center justify-between">
           <div>
             <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-0.5">Powered by</p>
-            <p className="text-sm font-black text-transparent bg-clip-text bg-gradient-to-r from-primary to-primary/80">RagsPro™</p>
+            <p className="text-sm font-black text-transparent bg-clip-text bg-gradient-to-r from-primary to-primary/80">Gen-Z™</p>
           </div>
           <div className="flex items-center gap-2">
             <ThemeToggle />

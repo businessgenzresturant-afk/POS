@@ -152,7 +152,7 @@ export default function BillsPage() {
   // UPI QR Code payload format: upi://pay?pa=ADDRESS&pn=NAME&am=AMOUNT&cu=INR
   const generateUPIPayload = (bill: any) => {
     const upiId = process.env.NEXT_PUBLIC_UPI_ID || 'restaurant@upi';
-    const merchantName = 'RAGSPRO POS';
+    const merchantName = 'Gen-Z POS';
     const amount = bill.total.toFixed(2);
     return `upi://pay?pa=${upiId}&pn=${encodeURIComponent(merchantName)}&am=${amount}&cu=INR&tn=Bill_${bill.id}`;
   };
@@ -389,10 +389,10 @@ export default function BillsPage() {
               <div className="text-center mb-4">
                 <div className="flex justify-center mb-3">
                   <div className="w-32 rounded-lg overflow-hidden bg-white p-2">
-                    <Image src="/logo.svg" alt="RAGSPRO POS" width={128} height={128} className="w-full" />
+                    <Image src="/logo.svg" alt="Gen-Z POS" width={128} height={128} className="w-full" />
                   </div>
                 </div>
-                <h2 className="text-lg font-black uppercase tracking-wider mb-1">RAGSPRO POS</h2>
+                <h2 className="text-lg font-black uppercase tracking-wider mb-1">Gen-Z POS</h2>
                 <p className="text-xs text-muted-foreground print:text-gray-600">123 Main Street, New Delhi, India</p>
                 <p className="text-xs text-muted-foreground print:text-gray-600">GST No: 07AABCG1234A1Z5</p>
                 <p className="text-xs text-muted-foreground print:text-gray-600">Tel: +91 98765 43210</p>
@@ -491,7 +491,7 @@ export default function BillsPage() {
 
               <div className="text-center mt-6 text-xs text-muted-foreground print:text-gray-500">
                 <p className="font-medium">Thank you for dining with us! 💚</p>
-                <p className="mt-1">Visit us again at ragspro.com</p>
+                <p className="mt-1">Visit us again at genzpos.com</p>
               </div>
             </div>
 

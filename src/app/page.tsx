@@ -7,7 +7,7 @@ export default function LandingPage() {
       <section className="py-20 md:py-24 text-center">
         <div className="max-w-4xl mx-auto px-6">
           <h1 className="mb-6 text-4xl font-bold text-foreground">
-            RAGSPRO POS
+            Gen-Z POS
           </h1>
           <p className="mb-8 text-xl text-muted-foreground">
             Restaurant Point of Sale System - Free after setup
@@ -33,7 +33,7 @@ export default function LandingPage() {
       <section className="py-16 bg-white">
         <div className="max-w-7xl mx-auto px-6">
           <h2 className="mb-12 text-3xl font-bold text-center text-foreground">
-            Why Choose RAGSPRO POS?
+            Why Choose Gen-Z POS?
           </h2>
           <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-4 text-center">
             <div className="p-6 bg-muted/50 rounded-xl">
@@ -135,7 +135,7 @@ export default function LandingPage() {
             Ready to transform your restaurant operations?
           </h2>
           <p className="mb-10 text-lg text-muted-foreground">
-            Join 100+ restaurants using RAGSPRO POS to increase efficiency &amp; profits
+            Join 100+ restaurants using Gen-Z POS to increase efficiency &amp; profits
           </p>
           <div className="flex flex-col md:flex-row gap-6 justify-center">
             <Link
@@ -158,10 +158,10 @@ export default function LandingPage() {
       <footer className="py-12 bg-muted/50 text-center">
         <div className="max-w-4xl mx-auto px-6">
           <p className="text-sm text-muted-foreground">
-            &copy; {new Date().getFullYear()} RAGSPRO POS. All rights reserved.
+            &copy; {new Date().getFullYear()} Gen-Z POS. All rights reserved.
           </p>
           <p className="text-xs text-muted-foreground mt-2">
-            Powered by <a href="https://ragspro.com" className="text-orange-600 hover:underline">RAGSPRO</a>
+            Powered by <a href="https://genzpos.com" className="text-orange-600 hover:underline">Gen-Z</a>
           </p>
         </div>
       </footer>
