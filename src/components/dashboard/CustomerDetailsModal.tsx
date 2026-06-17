@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { X, ShoppingBag, Package, Bike } from 'lucide-react';
+import { X, ShoppingBag, Package, Bike, ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 
@@ -83,6 +83,12 @@ export function CustomerDetailsModal({ isOpen, onClose, orderType, onContinue }:
         {/* Header */}
         <div className="p-6 border-b border-border flex justify-between items-center bg-muted/10">
           <div className="flex items-center gap-3">
+            <button 
+              onClick={onClose}
+              className="p-1.5 rounded-full hover:bg-muted text-muted-foreground transition-colors mr-1"
+            >
+              <ArrowLeft className="w-5 h-5" />
+            </button>
             <div className={`p-2 rounded-lg bg-${info.color}-500/10 text-${info.color}-500`}>
               <Icon className="w-5 h-5" />
             </div>

@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { X, Utensils } from 'lucide-react';
+import { X, Utensils, ArrowLeft } from 'lucide-react';
 
 interface TableSelectModalProps {
   isOpen: boolean;
@@ -30,6 +30,12 @@ export function TableSelectModal({ isOpen, onClose, tables, activeOrders, onSele
         {/* Header */}
         <div className="p-6 border-b border-border flex justify-between items-center bg-muted/10">
           <div className="flex items-center gap-3">
+            <button 
+              onClick={onClose}
+              className="p-1.5 rounded-full hover:bg-muted text-muted-foreground transition-colors mr-1"
+            >
+              <ArrowLeft className="w-5 h-5" />
+            </button>
             <div className="p-2 bg-blue-500/10 text-blue-500 rounded-lg">
               <Utensils className="w-6 h-6" />
             </div>

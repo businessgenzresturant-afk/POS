@@ -368,6 +368,19 @@ export function Dashboard() {
           setMenuDrawerOpen(false);
           setSelectedTable(null);
         }}
+        onBack={() => {
+          setMenuDrawerOpen(false);
+          if (selectedOrderType === 'DINE_IN') {
+            const hasActiveOrder = activeOrders.some(o => o.tableId === selectedTable?.id);
+            if (hasActiveOrder) {
+              setTableDrawerOpen(true);
+            } else {
+              setGuestCountModalOpen(true);
+            }
+          } else {
+            setCustomerDetailsModalOpen(true);
+          }
+        }}
         menuItems={menuItems}
         tableId={selectedTable?.id || null}
         onPlaceOrder={handlePlaceOrder}

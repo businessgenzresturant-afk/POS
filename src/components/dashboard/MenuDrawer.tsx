@@ -1,17 +1,18 @@
 import React, { useState, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { X, Search, ShoppingCart, Send, Save, Receipt } from 'lucide-react';
+import { X, Search, ShoppingCart, Send, Save, Receipt, ArrowLeft } from 'lucide-react';
 
 interface MenuDrawerProps {
   isOpen: boolean;
   onClose: () => void;
+  onBack?: () => void;
   menuItems: any[];
   tableId: string | null;
   onPlaceOrder: (items: any[]) => void;
 }
 
-export function MenuDrawer({ isOpen, onClose, menuItems, tableId, onPlaceOrder }: MenuDrawerProps) {
+export function MenuDrawer({ isOpen, onClose, onBack, menuItems, tableId, onPlaceOrder }: MenuDrawerProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [cart, setCart] = useState<{menuItemId: string, quantity: number, specialInstructions: string}[]>([]);
@@ -76,12 +77,25 @@ export function MenuDrawer({ isOpen, onClose, menuItems, tableId, onPlaceOrder }
   return (
     <>
       <div className="fixed inset-0 bg-black/60 z-40 backdrop-blur-sm animate-fade-in" onClick={onClose} />
-      <div className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[95vw] max-w-6xl h-[85vh] bg-background border border-border shadow-2xl rounded-3xl z-50 overflow-hidden animate-fade-in flex flex-row">
+      <div 
+        className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-background border border-border shadow-2xl rounded-3xl z-50 overflow-hidden animate-fade-in flex flex-row"
+        style={{ width: '95vw', maxWidth: '1152px', height: '85vh' }}
+      >
         
         {/* Left Side: Menu Selection */}
         <div className="flex-1 flex flex-col h-full bg-muted/10 border-r border-border min-h-0">
           <div className="p-4 border-b border-border bg-background grid grid-cols-3 items-center">
-            <h2 className="text-2xl font-black text-foreground">Menu</h2>
+            <div className="flex items-center gap-2">
+              {onBack && (
+                <button 
+                  onClick={onBack}
+                  className="p-1.5 rounded-full hover:bg-muted text-muted-foreground transition-colors mr-1"
+                >
+                  <ArrowLeft className="w-5 h-5" />
+                </button>
+              )}
+              <h2 className="text-2xl font-black text-foreground">Menu</h2>
+            </div>
             <div className="relative w-full max-w-xs justify-self-center">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
               <Input 
@@ -169,7 +183,10 @@ export function MenuDrawer({ isOpen, onClose, menuItems, tableId, onPlaceOrder }
         </div>
 
         {/* Right Side: Cart */}
-        <div className="w-[350px] flex flex-col h-full bg-background min-h-0">
+        <div 
+          className="flex-shrink-0 flex flex-col h-full bg-background min-h-0 border-l border-border"
+          style={{ width: '350px' }}
+        >
           <div className="p-4 border-b border-border flex justify-between items-center bg-muted/30">
             <div className="flex items-center gap-2">
               <ShoppingCart className="w-5 h-5 text-primary" />
