@@ -75,11 +75,11 @@ export function MenuDrawer({ isOpen, onClose, menuItems, tableId, onPlaceOrder }
 
   return (
     <>
-      <div className="fixed inset-0 bg-black/50 z-40 backdrop-blur-sm" onClick={onClose} />
-      <div className={`fixed right-0 top-0 h-full w-[90vw] max-w-5xl bg-background border-l border-border shadow-2xl z-50 transform transition-transform duration-300 ease-in-out ${isOpen ? 'translate-x-0' : 'translate-x-full'} flex`}>
+      <div className="fixed inset-0 bg-black/60 z-40 backdrop-blur-sm animate-fade-in" onClick={onClose} />
+      <div className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[95vw] max-w-6xl h-[85vh] bg-background border border-border shadow-2xl rounded-3xl z-50 overflow-hidden animate-fade-in flex flex-col md:flex-row">
         
         {/* Left Side: Menu Selection */}
-        <div className="flex-1 flex flex-col h-full bg-muted/10 border-r border-border">
+        <div className="flex-1 flex flex-col h-full bg-muted/10 border-r border-border min-h-0">
           <div className="p-4 border-b border-border bg-background flex justify-between items-center">
             <h2 className="text-2xl font-black text-foreground">Menu</h2>
             <div className="relative w-64">
@@ -137,7 +137,7 @@ export function MenuDrawer({ isOpen, onClose, menuItems, tableId, onPlaceOrder }
         </div>
 
         {/* Right Side: Cart */}
-        <div className="w-[350px] flex flex-col h-full bg-background">
+        <div className="w-[350px] flex flex-col h-full bg-background min-h-0">
           <div className="p-4 border-b border-border flex justify-between items-center bg-muted/30">
             <div className="flex items-center gap-2">
               <ShoppingCart className="w-5 h-5 text-primary" />
