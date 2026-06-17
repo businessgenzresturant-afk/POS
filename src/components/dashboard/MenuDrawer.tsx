@@ -83,7 +83,7 @@ export function MenuDrawer({ isOpen, onClose, onBack, menuItems, tableId, onPlac
       >
         
         {/* Left Side: Menu Selection */}
-        <div className="flex-1 flex flex-col h-full bg-muted/10 border-r border-border min-h-0">
+        <div className="flex-1 flex flex-col h-full bg-muted/10 border-r border-border min-h-0 min-w-0">
           <div className="p-4 border-b border-border bg-background grid grid-cols-3 items-center">
             <div className="flex items-center gap-2">
               {onBack && (
@@ -185,7 +185,7 @@ export function MenuDrawer({ isOpen, onClose, onBack, menuItems, tableId, onPlac
         {/* Right Side: Cart */}
         <div 
           className="flex-shrink-0 flex flex-col h-full bg-background min-h-0 border-l border-border"
-          style={{ width: '350px' }}
+          style={{ width: '350px', minWidth: '350px' }}
         >
           <div className="p-4 border-b border-border flex justify-between items-center bg-muted/30">
             <div className="flex items-center gap-2">
