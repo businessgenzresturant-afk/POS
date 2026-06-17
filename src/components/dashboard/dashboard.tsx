@@ -23,6 +23,7 @@ import { CustomerDetailsModal } from './CustomerDetailsModal';
 import { TablesOccupiedModal } from './TablesOccupiedModal';
 import { KitchenQueueModal } from './KitchenQueueModal';
 import { TodayRevenueModal } from './TodayRevenueModal';
+import { Portal } from '@/components/ui/portal';
 import { toast } from 'sonner';
 
 export function Dashboard() {
@@ -433,90 +434,92 @@ export function Dashboard() {
       </footer>
 
       {/* Modals & Drawers */}
-      <TableSelectModal
-        isOpen={isTableSelectModalOpen}
-        onClose={() => setTableSelectModalOpen(false)}
-        tables={tables}
-        activeOrders={activeOrders}
-        onSelectTable={handleSelectTable}
-      />
+      <Portal>
+        <TableSelectModal
+          isOpen={isTableSelectModalOpen}
+          onClose={() => setTableSelectModalOpen(false)}
+          tables={tables}
+          activeOrders={activeOrders}
+          onSelectTable={handleSelectTable}
+        />
 
-      <GuestCountModal
-        isOpen={isGuestCountModalOpen}
-        onClose={() => setGuestCountModalOpen(false)}
-        onBack={() => {
-          setGuestCountModalOpen(false);
-          setTableSelectModalOpen(true);
-        }}
-        tableNumber={selectedTable?.number || null}
-        onContinue={handleGuestCountContinue}
-      />
+        <GuestCountModal
+          isOpen={isGuestCountModalOpen}
+          onClose={() => setGuestCountModalOpen(false)}
+          onBack={() => {
+            setGuestCountModalOpen(false);
+            setTableSelectModalOpen(true);
+          }}
+          tableNumber={selectedTable?.number || null}
+          onContinue={handleGuestCountContinue}
+        />
 
-      <CustomerDetailsModal
-        isOpen={isCustomerDetailsModalOpen}
-        onClose={() => setCustomerDetailsModalOpen(false)}
-        orderType={selectedOrderType as any}
-        onContinue={handleCustomerDetailsContinue}
-      />
+        <CustomerDetailsModal
+          isOpen={isCustomerDetailsModalOpen}
+          onClose={() => setCustomerDetailsModalOpen(false)}
+          orderType={selectedOrderType as any}
+          onContinue={handleCustomerDetailsContinue}
+        />
 
-      <TableDrawer 
-        isOpen={isTableDrawerOpen} 
-        onClose={() => setTableDrawerOpen(false)} 
-        table={selectedTable}
-        activeOrder={activeOrderForSelectedTable}
-        onAddItem={() => {
-          setTableDrawerOpen(false);
-          setMenuDrawerOpen(true);
-        }}
-        onGenerateBill={handleGenerateBill}
-        onQuickReorder={handleQuickReorder}
-        onMarkAsServed={handleMarkAsServed}
-      />
+        <TableDrawer 
+          isOpen={isTableDrawerOpen} 
+          onClose={() => setTableDrawerOpen(false)} 
+          table={selectedTable}
+          activeOrder={activeOrderForSelectedTable}
+          onAddItem={() => {
+            setTableDrawerOpen(false);
+            setMenuDrawerOpen(true);
+          }}
+          onGenerateBill={handleGenerateBill}
+          onQuickReorder={handleQuickReorder}
+          onMarkAsServed={handleMarkAsServed}
+        />
 
-      <MenuDrawer
-        isOpen={isMenuDrawerOpen}
-        onClose={() => {
-          setMenuDrawerOpen(false);
-          setSelectedTable(null);
-        }}
-        onBack={() => {
-          setMenuDrawerOpen(false);
-          if (selectedOrderType === 'DINE_IN') {
-            const hasActiveOrder = activeOrders.some(o => o.tableId === selectedTable?.id);
-            if (hasActiveOrder) {
-              setTableDrawerOpen(true);
+        <MenuDrawer
+          isOpen={isMenuDrawerOpen}
+          onClose={() => {
+            setMenuDrawerOpen(false);
+            setSelectedTable(null);
+          }}
+          onBack={() => {
+            setMenuDrawerOpen(false);
+            if (selectedOrderType === 'DINE_IN') {
+              const hasActiveOrder = activeOrders.some(o => o.tableId === selectedTable?.id);
+              if (hasActiveOrder) {
+                setTableDrawerOpen(true);
+              } else {
+                setGuestCountModalOpen(true);
+              }
             } else {
-              setGuestCountModalOpen(true);
+              setCustomerDetailsModalOpen(true);
             }
-          } else {
-            setCustomerDetailsModalOpen(true);
-          }
-        }}
-        menuItems={menuItems}
-        tableId={selectedTable?.id || null}
-        onPlaceOrder={handlePlaceOrder}
-      />
+          }}
+          menuItems={menuItems}
+          tableId={selectedTable?.id || null}
+          onPlaceOrder={handlePlaceOrder}
+        />
 
-      <TablesOccupiedModal
-        isOpen={isTablesOccupiedModalOpen}
-        onClose={closeTablesOccupiedModal}
-        tables={tables}
-        activeOrders={activeOrders}
-        onSelectTable={handleSelectTable}
-      />
+        <TablesOccupiedModal
+          isOpen={isTablesOccupiedModalOpen}
+          onClose={closeTablesOccupiedModal}
+          tables={tables}
+          activeOrders={activeOrders}
+          onSelectTable={handleSelectTable}
+        />
 
-      <KitchenQueueModal
-        isOpen={isKitchenQueueModalOpen}
-        onClose={closeKitchenQueueModal}
-        activeOrders={activeOrders}
-        onManageOrder={handleManageOrder}
-      />
+        <KitchenQueueModal
+          isOpen={isKitchenQueueModalOpen}
+          onClose={closeKitchenQueueModal}
+          activeOrders={activeOrders}
+          onManageOrder={handleManageOrder}
+        />
 
-      <TodayRevenueModal
-        isOpen={isTodayRevenueModalOpen}
-        onClose={closeTodayRevenueModal}
-        todayRevenue={revenue}
-      />
+        <TodayRevenueModal
+          isOpen={isTodayRevenueModalOpen}
+          onClose={closeTodayRevenueModal}
+          todayRevenue={revenue}
+        />
+      </Portal>
     </div>
   );
 }
