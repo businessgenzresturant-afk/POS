@@ -7,7 +7,7 @@ import { Flame, UtensilsCrossed, ShoppingBag, Bike, Package } from 'lucide-react
 import { toast } from 'sonner';
 
 const SkeletonCard = () => (
-  <div className="p-4 bg-zinc-900/50 border border-zinc-800/80 rounded-2xl space-y-4 animate-pulse">
+  <div className="p-4 bg-zinc-900/50 border border-zinc-800/80 rounded-2xl space-y-4 ">
     <div className="flex justify-between items-center pb-3 border-b border-zinc-800/40">
       <div className="h-6 w-24 bg-zinc-800 rounded-lg" />
       <div className="h-4 w-12 bg-zinc-800 rounded-lg" />
@@ -230,26 +230,22 @@ export default function KitchenDisplaySystem() {
           </div>
         </div>
         
-        <div className="mt-4 pt-3 border-t border-zinc-800/80 space-y-3">
-          {order.status === 'PENDING' ? (
-            <Button
-              onClick={() => handleUpdateStatus(order.id, 'PREPARING')}
-              className="w-full bg-orange-600 hover:bg-orange-700 text-white font-bold py-2 rounded-xl text-sm transition-all"
-            >
-              🍳 Start Preparing
-            </Button>
-          ) : order.status === 'PREPARING' ? (
-            <Button
-              onClick={() => handleUpdateStatus(order.id, 'READY')}
-              className="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-2 rounded-xl text-sm transition-all"
-            >
-              ✅ Mark Ready
-            </Button>
-          ) : null}
+        <div className="mt-4 pt-3 border-t border-zinc-800/80 flex flex-wrap gap-2 items-center justify-between">
+          <div>
+            {order.status === 'PENDING' ? (
+              <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-black bg-amber-500/10 border border-amber-500/20 text-amber-400 uppercase tracking-wider">
+                🍳 Pending
+              </span>
+            ) : order.status === 'PREPARING' ? (
+              <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-black bg-orange-500/10 border border-orange-500/20 text-orange-400 uppercase tracking-wider">
+                🍳 Preparing
+              </span>
+            ) : null}
+          </div>
           
           {isUrgent && (
-            <div className="text-center animate-pulse">
-              <span className="bg-red-500 text-white text-[10px] font-black px-3 py-1 rounded-full tracking-widest uppercase">
+            <div className="">
+              <span className="bg-red-500 text-white text-[10px] font-black px-3 py-1.5 rounded-xl tracking-widest uppercase">
                 RUNNING TABLE
               </span>
             </div>
@@ -267,7 +263,7 @@ export default function KitchenDisplaySystem() {
         <h1 className="text-4xl font-black text-white tracking-tight">KITCHEN DISPLAY</h1>
         <div className="flex gap-4">
           <div className="flex items-center gap-2 px-4 py-2 bg-zinc-900 rounded-full border border-zinc-800">
-            <div className="w-3 h-3 rounded-full bg-green-500 animate-pulse" />
+            <div className="w-3 h-3 rounded-full bg-green-500 " />
             <span className="text-zinc-300 font-bold text-sm tracking-wider">LIVE</span>
           </div>
         </div>

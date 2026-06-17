@@ -63,7 +63,7 @@ export function KitchenQueueModal({ isOpen, onClose, activeOrders, onManageOrder
 
   const getStatusColor = (status: string) => {
     if (status === 'PENDING') {
-      return 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/25 animate-pulse';
+      return 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/25 ';
     }
     return 'bg-orange-500/10 text-orange-600 dark:text-orange-400 border-orange-500/25';
   };

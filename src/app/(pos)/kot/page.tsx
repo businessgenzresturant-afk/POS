@@ -7,7 +7,7 @@ import { toast } from 'sonner';
 import type { OrderWithItems } from '@/types/prisma';
 
 const SkeletonCard = () => (
-  <Card className="overflow-hidden border border-border shadow-lg shadow-border/50 rounded-2xl animate-pulse">
+  <Card className="overflow-hidden border border-border shadow-lg shadow-border/50 rounded-2xl ">
     <div className="bg-zinc-800 p-4 flex justify-between items-center h-16">
       <div className="h-6 w-24 bg-zinc-700 rounded-lg" />
       <div className="h-6 w-12 bg-zinc-700 rounded-full" />
@@ -211,7 +211,7 @@ export default function KOTPage() {
         <p className="text-sm text-muted-foreground mt-1 flex items-center gap-2">
           Active orders for kitchen staff
           <span className="flex items-center gap-1 text-xs font-bold text-primary bg-primary/10 px-2 py-1 rounded-full">
-            <span className="w-2 h-2 rounded-full bg-orange-500 animate-pulse"></span>
+            <span className="w-2 h-2 rounded-full bg-orange-500 "></span>
             Live Updates
           </span>
         </p>

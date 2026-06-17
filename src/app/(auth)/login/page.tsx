@@ -70,8 +70,9 @@ export default function LoginPage() {
           src="/images/restaurant-bg.jpg"
           alt="Gen-Z Restaurant"
           fill
-          className="object-cover"
+          className="object-cover object-center"
           priority
+          quality={100}
         />
         {/* Dark overlay */}
         <div className="absolute inset-0 bg-gradient-to-br from-black/70 via-black/40 to-orange-900/50" />
@@ -80,8 +81,8 @@ export default function LoginPage() {
         <div className="absolute inset-0 flex flex-col justify-between p-12">
           {/* Top badge */}
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl overflow-hidden flex items-center justify-center shadow-lg bg-zinc-900 border border-zinc-800 flex-shrink-0">
-              <Image src="/images/Gen-z-logo.jpg" alt="Gen-Z Logo" width={40} height={40} className="object-cover w-full h-full" />
+            <div className="w-12 h-12 rounded-full overflow-hidden flex items-center justify-center shadow-lg bg-zinc-900 border border-zinc-800 flex-shrink-0 relative">
+              <Image src="/images/Gen-z-logo.jpg" alt="Gen-Z Logo" fill className="object-cover" sizes="48px" />
             </div>
             <div>
               <p className="text-white font-black text-lg tracking-tight leading-none">Gen-Z Restaurant</p>
@@ -121,8 +122,8 @@ export default function LoginPage() {
 
           {/* Mobile Logo */}
           <div className="lg:hidden flex items-center gap-3 mb-8">
-            <div className="w-10 h-10 rounded-xl overflow-hidden flex items-center justify-center bg-zinc-900 border border-zinc-800 flex-shrink-0">
-              <Image src="/images/Gen-z-logo.jpg" alt="Gen-Z Logo" width={40} height={40} className="object-cover w-full h-full" />
+            <div className="w-12 h-12 rounded-full overflow-hidden flex items-center justify-center bg-zinc-900 border border-zinc-800 flex-shrink-0 relative">
+              <Image src="/images/Gen-z-logo.jpg" alt="Gen-Z Logo" fill className="object-cover" sizes="48px" />
             </div>
             <div>
               <p className="text-white font-black text-lg leading-none">Gen-Z Restaurant</p>
@@ -181,7 +182,7 @@ export default function LoginPage() {
             >
               {isLoading ? (
                 <>
-                  <svg className="animate-spin h-5 w-5 text-white" viewBox="0 0 24 24" fill="none">
+                  <svg className=" h-5 w-5 text-white" viewBox="0 0 24 24" fill="none">
                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
                   </svg>
@@ -245,7 +246,7 @@ export default function LoginPage() {
               <span className="text-orange-500 font-bold">RAGSPRO Agency</span>
             </p>
             <div className="flex items-center gap-1.5">
-              <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
+              <div className="w-2 h-2 rounded-full bg-green-500 " />
               <span className="text-zinc-500 text-xs font-medium">System Online</span>
             </div>
           </div>

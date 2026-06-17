@@ -181,14 +181,30 @@ export default function BillsPage() {
           printWindow.document.write(`
             <html><head><title>Bill Receipt</title>
             <style>
-              body { font-family: monospace; padding: 20px; }
-              .receipt { max-width: 400px; margin: 0 auto; }
+              @page { margin: 0; }
+              body { font-family: monospace; padding: 10px; margin: 0; background: white; color: black; }
+              .receipt { max-width: 300px; margin: 0 auto; font-size: 12px; line-height: 1.4; }
               .text-center { text-align: center; }
-              .border-t { border-top: 1px dashed #000; }
-              .border-b { border-bottom: 1px dashed #000; }
-              .flex { display: flex; justify-content: space-between; }
+              .border-t { border-top: 1px dashed #000; margin-top: 8px; padding-top: 8px; }
+              .border-b { border-bottom: 1px dashed #000; margin-bottom: 8px; padding-bottom: 8px; }
+              .flex { display: flex; justify-content: space-between; align-items: flex-start; }
               .font-bold { font-weight: bold; }
+              .font-black { font-weight: 900; }
               .mt-4 { margin-top: 16px; }
+              .mb-4 { margin-bottom: 16px; }
+              .mb-2 { margin-bottom: 8px; }
+              .pb-2 { padding-bottom: 8px; }
+              .py-3 { padding-top: 12px; padding-bottom: 12px; }
+              .p-3 { padding: 12px; }
+              .space-y-1\\.5 > * + * { margin-top: 6px; }
+              .text-xs { font-size: 11px; }
+              .text-lg { font-size: 16px; }
+              .uppercase { text-transform: uppercase; }
+              .tracking-wider { letter-spacing: 0.05em; }
+              img { max-width: 100%; height: auto; display: block; margin: 0 auto; border-radius: 50%; }
+              * { box-sizing: border-box; }
+              /* Hide UI elements not meant for print */
+              button, .no-print { display: none !important; }
             </style>
             </head><body onload="window.print(); window.close();">
             <div class="receipt">${printContents}</div>
@@ -252,14 +268,30 @@ export default function BillsPage() {
           printWindow.document.write(`
             <html><head><title>Bill Receipt</title>
             <style>
-              body { font-family: monospace; padding: 20px; }
-              .receipt { max-width: 400px; margin: 0 auto; }
+              @page { margin: 0; }
+              body { font-family: monospace; padding: 10px; margin: 0; background: white; color: black; }
+              .receipt { max-width: 300px; margin: 0 auto; font-size: 12px; line-height: 1.4; }
               .text-center { text-align: center; }
-              .border-t { border-top: 1px dashed #000; }
-              .border-b { border-bottom: 1px dashed #000; }
-              .flex { display: flex; justify-content: space-between; }
+              .border-t { border-top: 1px dashed #000; margin-top: 8px; padding-top: 8px; }
+              .border-b { border-bottom: 1px dashed #000; margin-bottom: 8px; padding-bottom: 8px; }
+              .flex { display: flex; justify-content: space-between; align-items: flex-start; }
               .font-bold { font-weight: bold; }
+              .font-black { font-weight: 900; }
               .mt-4 { margin-top: 16px; }
+              .mb-4 { margin-bottom: 16px; }
+              .mb-2 { margin-bottom: 8px; }
+              .pb-2 { padding-bottom: 8px; }
+              .py-3 { padding-top: 12px; padding-bottom: 12px; }
+              .p-3 { padding: 12px; }
+              .space-y-1\\.5 > * + * { margin-top: 6px; }
+              .text-xs { font-size: 11px; }
+              .text-lg { font-size: 16px; }
+              .uppercase { text-transform: uppercase; }
+              .tracking-wider { letter-spacing: 0.05em; }
+              img { max-width: 100%; height: auto; display: block; margin: 0 auto; border-radius: 50%; }
+              * { box-sizing: border-box; }
+              /* Hide UI elements not meant for print */
+              button, .no-print { display: none !important; }
             </style>
             </head><body onload="window.print(); window.close();">
             <div class="receipt">${printContents}</div>
@@ -276,10 +308,10 @@ export default function BillsPage() {
       <div className="min-h-[600px] flex items-center justify-center animate-fade-in">
         <div className="text-center space-y-6">
           <div className="relative w-24 h-24 mx-auto">
-            <div className="absolute inset-0 rounded-full border-t-4 border-primary animate-spin"></div>
-            <div className="absolute inset-2 rounded-full border-r-4 border-green-500 animate-spin" style={{ animationDirection: 'reverse', animationDuration: '1.5s' }}></div>
-            <div className="absolute inset-4 rounded-full border-b-4 border-blue-500 animate-spin" style={{ animationDuration: '2s' }}></div>
-            <div className="absolute inset-0 flex items-center justify-center text-3xl animate-pulse">🧾</div>
+            <div className="absolute inset-0 rounded-full border-t-4 border-primary "></div>
+            <div className="absolute inset-2 rounded-full border-r-4 border-green-500 " style={{ animationDirection: 'reverse', animationDuration: '1.5s' }}></div>
+            <div className="absolute inset-4 rounded-full border-b-4 border-blue-500 " style={{ animationDuration: '2s' }}></div>
+            <div className="absolute inset-0 flex items-center justify-center text-3xl ">🧾</div>
           </div>
           <div className="space-y-2">
             <h3 className="text-xl font-bold text-foreground tracking-tight">Loading Billing System</h3>
@@ -479,8 +511,8 @@ export default function BillsPage() {
               <div id="print-receipt" className="mb-6 p-6 bg-card text-card-foreground rounded-2xl border border-border print:bg-white print:text-black print:border-none print:w-full print:max-w-full print:p-4 max-h-[50vh] overflow-y-auto custom-scrollbar">
                 <div className="text-center mb-4">
                   <div className="flex justify-center mb-3">
-                    <div className="w-32 rounded-lg overflow-hidden bg-white p-2">
-                      <Image src="/images/Gen-z-logo.jpg" alt="Gen-Z POS" width={128} height={128} className="w-full" />
+                    <div className="w-24 h-24 rounded-full overflow-hidden bg-white p-1">
+                      <Image src="/images/Gen-z-logo.jpg" alt="Gen-Z POS" width={96} height={96} className="w-full h-full object-cover rounded-full" />
                     </div>
                   </div>
                   <h2 className="text-lg font-black uppercase tracking-wider mb-1">Gen-Z POS</h2>

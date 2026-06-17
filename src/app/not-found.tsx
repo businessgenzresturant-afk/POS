@@ -12,7 +12,7 @@ export default function NotFound() {
 
       <div className="text-center max-w-md z-10 space-y-6">
         {/* Glowing 404 badge */}
-        <div className="inline-flex items-center justify-center w-24 h-24 rounded-3xl bg-primary/10 border border-primary/20 text-5xl mb-2 shadow-lg shadow-primary/5 animate-pulse">
+        <div className="inline-flex items-center justify-center w-24 h-24 rounded-3xl bg-primary/10 border border-primary/20 text-5xl mb-2 shadow-lg shadow-primary/5 ">
           🛸
         </div>
         

@@ -51,17 +51,30 @@ export function TodayRevenueModal({ isOpen, onClose, todayRevenue }: TodayRevenu
         printWindow.document.write(`
           <html><head><title>Receipt #${bill.id.slice(-6).toUpperCase()}</title>
           <style>
-            body { font-family: monospace; padding: 20px; }
-            .receipt { max-width: 400px; margin: 0 auto; }
+            @page { margin: 0; }
+            body { font-family: monospace; padding: 10px; margin: 0; background: white; color: black; }
+            .receipt { max-width: 300px; margin: 0 auto; font-size: 12px; line-height: 1.4; }
             .text-center { text-align: center; }
-            .border-t { border-top: 1px dashed #000; }
-            .border-b { border-bottom: 1px dashed #000; }
-            .flex { display: flex; justify-content: space-between; }
+            .border-t { border-top: 1px dashed #000; margin-top: 8px; padding-top: 8px; }
+            .border-b { border-bottom: 1px dashed #000; margin-bottom: 8px; padding-bottom: 8px; }
+            .flex { display: flex; justify-content: space-between; align-items: flex-start; }
             .font-bold { font-weight: bold; }
+            .font-black { font-weight: 900; }
             .mt-4 { margin-top: 16px; }
             .mb-4 { margin-bottom: 16px; }
-            .text-sm { font-size: 12px; }
-            .text-xs { font-size: 10px; }
+            .mb-2 { margin-bottom: 8px; }
+            .pb-2 { padding-bottom: 8px; }
+            .py-3 { padding-top: 12px; padding-bottom: 12px; }
+            .p-3 { padding: 12px; }
+            .space-y-1\\.5 > * + * { margin-top: 6px; }
+            .text-xs { font-size: 11px; }
+            .text-lg { font-size: 16px; }
+            .uppercase { text-transform: uppercase; }
+            .tracking-wider { letter-spacing: 0.05em; }
+            img { max-width: 100%; height: auto; display: block; margin: 0 auto; border-radius: 50%; }
+            * { box-sizing: border-box; }
+            /* Hide UI elements not meant for print */
+            button, .no-print { display: none !important; }
           </style>
           </head><body onload="window.print(); window.close();">
           <div class="receipt">${printContents}</div>
@@ -152,7 +165,7 @@ export function TodayRevenueModal({ isOpen, onClose, todayRevenue }: TodayRevenu
                 <p className="text-3xl font-black text-emerald-950 dark:text-emerald-300 mt-1">₹{todayRevenue.toLocaleString()}</p>
                 <p className="text-xs text-muted-foreground/80 mt-1">Calculated from completed/paid orders today</p>
               </div>
-              <div className="p-4 bg-emerald-500/20 rounded-full text-emerald-600 animate-pulse">
+              <div className="p-4 bg-emerald-500/20 rounded-full text-emerald-600 ">
                 <Sparkles className="w-8 h-8" />
               </div>
             </div>
@@ -168,7 +181,7 @@ export function TodayRevenueModal({ isOpen, onClose, todayRevenue }: TodayRevenu
 
               {loading ? (
                 <div className="py-12 flex justify-center items-center">
-                  <Loader2 className="w-8 h-8 animate-spin text-primary" />
+                  <Loader2 className="w-8 h-8  text-primary" />
                 </div>
               ) : bills.length === 0 ? (
                 <div className="text-center py-12 text-muted-foreground">
@@ -246,6 +259,11 @@ export function TodayRevenueModal({ isOpen, onClose, todayRevenue }: TodayRevenu
                   className="flex-1 bg-card text-card-foreground border border-border/80 rounded-2xl p-5 font-mono text-xs overflow-y-auto custom-scrollbar shadow-inner"
                 >
                   <div className="text-center mb-4">
+                    <div className="flex justify-center mb-2">
+                      <div className="w-16 h-16 rounded-full overflow-hidden bg-white p-0.5 mx-auto">
+                        <img src="/images/Gen-z-logo.jpg" alt="Gen-Z POS" className="w-full h-full object-cover rounded-full" />
+                      </div>
+                    </div>
                     <h2 className="text-sm font-black uppercase tracking-wider mb-0.5">GEN-Z POS</h2>
                     <p className="text-[10px] text-muted-foreground">GST No: 07AABCG1234A1Z5</p>
                     <p className="text-[10px] text-muted-foreground">Tel: +91 98765 43210</p>

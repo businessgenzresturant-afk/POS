@@ -287,7 +287,7 @@ export function Dashboard() {
   if (loading && tables.length === 0) {
     return (
       <div className="min-h-[600px] flex items-center justify-center">
-        <Loader2 className="h-10 w-10 animate-spin text-primary" />
+        <Loader2 className="h-10 w-10  text-primary" />
       </div>
     );
   }

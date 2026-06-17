@@ -64,7 +64,7 @@ export default function Sidebar() {
               </span>
               <span className="relative z-10">{item.label}</span>
               {isActive && (
-                <span className="ml-auto w-1.5 h-1.5 bg-primary-foreground rounded-full animate-pulse shadow-[0_0_8px_rgba(255,255,255,0.8)]" />
+                <span className="ml-auto w-1.5 h-1.5 bg-primary-foreground rounded-full  shadow-[0_0_8px_rgba(255,255,255,0.8)]" />
               )}
             </Link>
           );

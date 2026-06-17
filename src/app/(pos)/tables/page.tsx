@@ -121,7 +121,7 @@ export default function TablesPage() {
     return (
       <div className="min-h-[600px] flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full border-4 border-primary border-t-transparent h-12 w-12 mx-auto"></div>
+          <div className=" rounded-full border-4 border-primary border-t-transparent h-12 w-12 mx-auto"></div>
           <p className="mt-4 text-muted-foreground">Loading seating arrangements...</p>
         </div>
       </div>

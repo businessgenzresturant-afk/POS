@@ -291,7 +291,7 @@ export default function OrdersPage() {
     return (
       <div className="min-h-[600px] flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full border-4 border-orange-600 border-t-transparent h-12 w-12 mx-auto"></div>
+          <div className=" rounded-full border-4 border-orange-600 border-t-transparent h-12 w-12 mx-auto"></div>
           <p className="mt-4 text-gray-500">Loading your ordering station...</p>
         </div>
       </div>
