@@ -7,7 +7,7 @@ export default function RegisterPage() {
         <div>
           <h2 className="text-3xl font-bold text-center">Create Account</h2>
           <p className="mt-2 text-center text-gray-600">
-            Sign up for Gen-Z Restaurant POS
+            Sign up for RAGSPRO POS
           </p>
         </div>
         <RegisterForm />

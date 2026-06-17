@@ -104,11 +104,13 @@ export async function PATCH(
           data: { paymentStatus: 'PAID' }
         });
 
-        // Free the table
-        await tx.table.update({
-          where: { id: existingBill.order.tableId },
-          data: { status: 'AVAILABLE' }
-        });
+        // Free the table if order was linked to a table
+        if (existingBill.order.tableId) {
+          await tx.table.update({
+            where: { id: existingBill.order.tableId },
+            data: { status: 'AVAILABLE' }
+          });
+        }
       }
 
       return updatedBill;

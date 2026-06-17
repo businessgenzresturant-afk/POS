@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Sidebar from '@/components/sidebar';
 
 export const metadata: Metadata = {
-  title: "Gen-Z Restaurant POS",
+  title: "RAGSPRO POS",
   description: "Restaurant Point of Sale System",
 };
 

@@ -152,7 +152,7 @@ export default function BillsPage() {
   // UPI QR Code payload format: upi://pay?pa=ADDRESS&pn=NAME&am=AMOUNT&cu=INR
   const generateUPIPayload = (bill: any) => {
     const upiId = process.env.NEXT_PUBLIC_UPI_ID || 'restaurant@upi';
-    const merchantName = 'Gen-Z Restaurant';
+    const merchantName = 'RAGSPRO POS';
     const amount = bill.total.toFixed(2);
     return `upi://pay?pa=${upiId}&pn=${encodeURIComponent(merchantName)}&am=${amount}&cu=INR&tn=Bill_${bill.id}`;
   };
@@ -389,10 +389,10 @@ export default function BillsPage() {
               <div className="text-center mb-4">
                 <div className="flex justify-center mb-3">
                   <div className="w-32 rounded-lg overflow-hidden bg-white p-2">
-                    <Image src="/logo.svg" alt="Gen-Z Restaurant" width={128} height={128} className="w-full" />
+                    <Image src="/logo.svg" alt="RAGSPRO POS" width={128} height={128} className="w-full" />
                   </div>
                 </div>
-                <h2 className="text-lg font-black uppercase tracking-wider mb-1">GEN-Z RESTAURANT</h2>
+                <h2 className="text-lg font-black uppercase tracking-wider mb-1">RAGSPRO POS</h2>
                 <p className="text-xs text-muted-foreground print:text-gray-600">123 Main Street, New Delhi, India</p>
                 <p className="text-xs text-muted-foreground print:text-gray-600">GST No: 07AABCG1234A1Z5</p>
                 <p className="text-xs text-muted-foreground print:text-gray-600">Tel: +91 98765 43210</p>
@@ -429,19 +429,32 @@ export default function BillsPage() {
                   <span>Amt</span>
                 </div>
                 <div className="space-y-2">
-                  {selectedBill.order.items.map((item: any, idx: number) => (
-                    <div key={idx} className="text-xs">
-                      <div className="flex justify-between items-center">
-                        <span className="font-bold text-foreground print:text-black">{item.quantity}x {item.menuItem.name}</span>
-                        <span className="font-semibold">₹{(item.quantity * item.price).toFixed(2)}</span>
-                      </div>
-                      {item.specialInstructions && (
-                        <div className="text-red-500 text-xs mt-0.5 ml-1 font-medium">
-                          ⚠️ {item.specialInstructions}
+                  {(() => {
+                    const mergedItems = selectedBill.order.items.reduce((acc: any[], item: any) => {
+                      const cleanInstr = (item.specialInstructions || '').replace('[URGENT ADDITION]', '').trim();
+                      const existing = acc.find(i => i.menuItem?.id === item.menuItem?.id && i.cleanInstr === cleanInstr);
+                      if (existing) {
+                        existing.quantity += item.quantity;
+                      } else {
+                        acc.push({ ...item, cleanInstr });
+                      }
+                      return acc;
+                    }, []);
+
+                    return mergedItems.map((item: any, idx: number) => (
+                      <div key={idx} className="text-xs">
+                        <div className="flex justify-between items-center">
+                          <span className="font-bold text-foreground print:text-black">{item.quantity}x {item.menuItem.name}</span>
+                          <span className="font-semibold">₹{(item.quantity * item.price).toFixed(2)}</span>
                         </div>
-                      )}
-                    </div>
-                  ))}
+                        {item.cleanInstr && (
+                          <div className="text-red-500 text-xs mt-0.5 ml-1 font-medium">
+                            ⚠️ {item.cleanInstr}
+                          </div>
+                        )}
+                      </div>
+                    ));
+                  })()}
                 </div>
               </div>
 
@@ -478,7 +491,7 @@ export default function BillsPage() {
 
               <div className="text-center mt-6 text-xs text-muted-foreground print:text-gray-500">
                 <p className="font-medium">Thank you for dining with us! 💚</p>
-                <p className="mt-1">Visit us again at genz-restaurant.com</p>
+                <p className="mt-1">Visit us again at ragspro.com</p>
               </div>
             </div>
 
@@ -504,13 +517,15 @@ export default function BillsPage() {
             <div className="flex justify-end space-x-3">
               {selectedBill.status === 'PENDING' && (
                 <>
-                  <Button
-                    onClick={() => handleClearTable(selectedBill.order.tableId)}
-                    variant="outline"
-                    className="border-red-500/50 text-red-500 hover:bg-red-500/10 mr-auto"
-                  >
-                    🧹 Clear Table
-                  </Button>
+                  {selectedBill.order.tableId && (
+                    <Button
+                      onClick={() => handleClearTable(selectedBill.order.tableId)}
+                      variant="outline"
+                      className="border-red-500/50 text-red-500 hover:bg-red-500/10 mr-auto"
+                    >
+                      🧹 Clear Table
+                    </Button>
+                  )}
                   <Button
                     onClick={() => {
                       setPaymentConfirmed(false);
@@ -560,7 +575,7 @@ export default function BillsPage() {
                   <div className="flex-1">
                     <h3 className="text-lg font-medium text-foreground">Bill #{bill.id}</h3>
                     <p className="text-sm text-muted-foreground">
-                      Order #{bill.order.id} • Table #{bill.order.table.number} •
+                      Order #{bill.order.id} • {bill.order.table ? `Table #${bill.order.table.number}` : bill.order.orderType} •
                       {new Date(bill.createdAt).toLocaleDateString()}
                     </p>
                   </div>

@@ -91,20 +91,23 @@ export async function DELETE(
         where: { id: params.id }
       });
 
-      // Check if table has other active orders
-      const activeOrders = await tx.order.count({
-        where: {
-          tableId: order.tableId,
-          status: { notIn: ['COMPLETED'] },
-          id: { not: params.id }
-        }
-      });
-
-      if (activeOrders === 0) {
-        await tx.table.update({
-          where: { id: order.tableId },
-          data: { status: 'AVAILABLE' }
+      let activeOrders = 0;
+      if (order.tableId) {
+        // Check if table has other active orders
+        activeOrders = await tx.order.count({
+          where: {
+            tableId: order.tableId,
+            status: { notIn: ['COMPLETED'] },
+            id: { not: params.id }
+          }
         });
+
+        if (activeOrders === 0) {
+          await tx.table.update({
+            where: { id: order.tableId },
+            data: { status: 'AVAILABLE' }
+          });
+        }
       }
 
       return deleted;

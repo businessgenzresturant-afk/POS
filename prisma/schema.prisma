@@ -5,7 +5,6 @@ generator client {
 datasource db {
   provider  = "postgresql"
   url       = env("DATABASE_URL")
-  directUrl = env("DIRECT_URL")
 }
 
 model Restaurant {
@@ -55,16 +54,18 @@ model MenuItem {
 
 model Order {
   id            String        @id @default(dbgenerated("(gen_random_uuid())::text"))
-  tableId       String
+  tableId       String?
   status        OrderStatus   @default(PENDING)
   totalAmount   Float         @default(0)
   paymentStatus PaymentStatus @default(PENDING)
+  orderType     OrderType     @default(DINE_IN)
+  guests        Int?
   createdAt     DateTime      @default(now())
   updatedAt     DateTime      @default(now()) @updatedAt
   customerName  String?
   customerPhone String?
   bill          Bill?
-  table         Table         @relation(fields: [tableId], references: [id])
+  table         Table?        @relation(fields: [tableId], references: [id])
   items         OrderItem[]
 
   @@index([tableId])
@@ -79,6 +80,7 @@ model OrderItem {
   quantity            Int
   price               Float
   specialInstructions String?
+  createdAt           DateTime @default(now())
   menuItem            MenuItem @relation(fields: [menuItemId], references: [id])
   order               Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
 
@@ -89,7 +91,7 @@ model OrderItem {
 model Bill {
   id            String     @id @default(dbgenerated("(gen_random_uuid())::text"))
   orderId       String     @unique
-  tableId       String
+  tableId       String?
   subtotal      Float
   tax           Float
   discount      Float      @default(0)
@@ -99,7 +101,7 @@ model Bill {
   createdAt     DateTime   @default(now())
   paidAt        DateTime?
   order         Order      @relation(fields: [orderId], references: [id])
-  table         Table      @relation(fields: [tableId], references: [id])
+  table         Table?     @relation(fields: [tableId], references: [id])
 
   @@index([status])
   @@index([createdAt])
@@ -145,4 +147,11 @@ enum BillStatus {
 enum Role {
   ADMIN
   STAFF
+}
+
+enum OrderType {
+  DINE_IN
+  TAKEAWAY
+  PARCEL
+  DELIVERY
 }

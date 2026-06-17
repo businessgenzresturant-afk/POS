@@ -1,0 +1,907 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>GenZ Restaurant POS Proposal | RAGSPRO</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Playfair+Display:wght@600;700&display=swap');
+
+    :root {
+      --primary: #6366f1;
+      --primary-dark: #4f46e5;
+      --secondary: #8b5cf6;
+      --accent: #06b6d4;
+      --dark: #0f172a;
+      --gray: #64748b;
+      --light: #f1f5f9;
+      --success: #10b981;
+      --border: #e2e8f0;
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      line-height: 1.5;
+      color: var(--dark);
+      background: #fff;
+      max-width: 8.5in;
+      margin: 0 auto;
+      padding: 0.3in;
+      font-size: 10pt;
+    }
+
+    @media print {
+      body {
+        padding: 0;
+        margin: 0;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+      }
+      .page-break {
+        page-break-before: always;
+      }
+      .no-print {
+        display: none;
+      }
+      a {
+        text-decoration: none;
+        color: inherit;
+      }
+    }
+
+    .cover-page {
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+      margin: -0.5in;
+      padding: 2rem;
+      color: white;
+      text-align: center;
+      position: relative;
+    }
+
+    .logos-container {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 2rem;
+      margin-bottom: 1.5rem;
+      background: rgba(255,255,255,0.95);
+      padding: 1.5rem 2rem;
+      border-radius: 16px;
+      box-shadow: 0 25px 80px rgba(0,0,0,0.25);
+    }
+
+    .logo-img {
+      width: 80px;
+      height: 80px;
+      object-fit: contain;
+    }
+
+    .logo-img.ragspro {
+      border-radius: 50%;
+      background: linear-gradient(135deg, #6366f1, #8b5cf6);
+      padding: 8px;
+      box-shadow: 0 10px 30px rgba(99, 102, 241, 0.3);
+    }
+
+    .logo-img.genz {
+      border-radius: 50%;
+      background: white;
+      padding: 8px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+    }
+
+    .logo-divider {
+      width: 2px;
+      height: 50px;
+      background: linear-gradient(180deg, #6366f1, #8b5cf6);
+      border-radius: 2px;
+    }
+
+    .cover-title {
+      font-family: 'Playfair Display', serif;
+      font-size: 2.2rem;
+      font-weight: 700;
+      margin-bottom: 0.3rem;
+      line-height: 1.2;
+      color: white;
+    }
+
+    .cover-subtitle {
+      font-size: 0.95rem;
+      font-weight: 300;
+      opacity: 0.95;
+      margin-bottom: 1.5rem;
+      color: rgba(255,255,255,0.95);
+    }
+
+    .cover-info {
+      background: rgba(255,255,255,0.15);
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(255,255,255,0.2);
+      border-radius: 12px;
+      padding: 1rem;
+      max-width: 450px;
+      margin: 0 auto;
+    }
+
+    .cover-info-row {
+      display: flex;
+      justify-content: space-between;
+      padding: 0.4rem 0;
+      border-bottom: 1px solid rgba(255,255,255,0.15);
+    }
+
+    .cover-info-row:last-child {
+      border-bottom: none;
+    }
+
+    .cover-info-label {
+      font-weight: 600;
+      opacity: 0.8;
+      font-size: 0.85rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .cover-info-value {
+      font-weight: 500;
+      font-size: 0.95rem;
+      text-align: right;
+    }
+
+    .header-bar {
+      background: linear-gradient(90deg, #6366f1, #8b5cf6);
+      height: 6px;
+      margin-bottom: 2rem;
+    }
+
+    h1 {
+      font-family: 'Playfair Display', serif;
+      font-size: 1.8rem;
+      font-weight: 700;
+      color: var(--dark);
+      margin-bottom: 0.3rem;
+    }
+
+    h2 {
+      font-size: 1.3rem;
+      font-weight: 700;
+      color: var(--dark);
+      margin: 1.2rem 0 0.5rem;
+      padding-bottom: 0.3rem;
+      border-bottom: 2px solid var(--primary);
+    }
+
+    h3 {
+      font-size: 1rem;
+      font-weight: 600;
+      color: var(--dark);
+      margin: 0.8rem 0 0.4rem;
+    }
+
+    p {
+      margin: 1rem 0;
+      color: #475569;
+    }
+
+    .highlight-box {
+      background: linear-gradient(135deg, rgba(99,102,241,0.1), rgba(139,92,246,0.1));
+      border-left: 4px solid var(--primary);
+      padding: 1.5rem;
+      margin: 1.5rem 0;
+      border-radius: 0 8px 8px 0;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 0.8rem 0;
+      font-size: 0.8rem;
+    }
+
+    th, td {
+      padding: 0.5rem;
+      text-align: left;
+      border: 1px solid var(--border);
+    }
+
+    th {
+      background: #1e293b;
+      color: white;
+      font-weight: 600;
+      text-transform: uppercase;
+      font-size: 0.65rem;
+      letter-spacing: 0.05em;
+    }
+
+    tr:nth-child(even) {
+      background: #f1f5f9;
+    }
+
+    .stat-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 0.5rem;
+      margin: 1rem 0;
+    }
+
+    .stat-card {
+      background: white;
+      border: 1px solid var(--border);
+      padding: 0.8rem;
+      border-radius: 8px;
+      text-align: center;
+    }
+
+    .stat-value {
+      font-size: 1.5rem;
+      font-weight: 900;
+      background: linear-gradient(135deg, #6366f1, #8b5cf6);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .stat-label {
+      font-size: 0.65rem;
+      color: #94a3b8;
+      margin-top: 0.25rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .pricing-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 0.8rem;
+      margin: 1rem 0;
+    }
+
+    .pricing-card {
+      background: white;
+      border: 2px solid var(--border);
+      border-radius: 16px;
+      padding: 2rem;
+      transition: all 0.3s ease;
+      position: relative;
+    }
+
+    .pricing-card.featured {
+      border-color: var(--primary);
+      box-shadow: 0 20px 40px rgba(99, 102, 241, 0.15);
+    }
+
+    .pricing-card.featured::before {
+      content: 'MOST POPULAR';
+      position: absolute;
+      top: -12px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: linear-gradient(90deg, #6366f1, #8b5cf6);
+      color: white;
+      padding: 0.25rem 1rem;
+      border-radius: 20px;
+      font-size: 0.7rem;
+      font-weight: 700;
+      letter-spacing: 0.05em;
+    }
+
+    .price {
+      font-size: 3rem;
+      font-weight: 900;
+      color: var(--primary);
+      margin: 1rem 0;
+    }
+
+    .price span {
+      font-size: 1rem;
+      font-weight: 400;
+      color: #94a3b8;
+    }
+
+    .feature-list {
+      list-style: none;
+      margin: 1.5rem 0;
+    }
+
+    .feature-list li {
+      padding: 0.5rem 0;
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      font-size: 0.9rem;
+    }
+
+    .feature-list li::before {
+      content: '✓';
+      color: #10b981;
+      font-weight: 700;
+      font-size: 1.2rem;
+    }
+
+    .timeline {
+      position: relative;
+      padding: 2rem 0;
+    }
+
+    .timeline-item {
+      display: flex;
+      gap: 1.5rem;
+      margin: 1.5rem 0;
+      position: relative;
+    }
+
+    .timeline-item::before {
+      content: '';
+      position: absolute;
+      left: 15px;
+      top: 30px;
+      bottom: -30px;
+      width: 2px;
+      background: var(--border);
+    }
+
+    .timeline-item:last-child::before {
+      display: none;
+    }
+
+    .timeline-marker {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #6366f1, #8b5cf6);
+      color: white;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      font-size: 0.9rem;
+      flex-shrink: 0;
+    }
+
+    .timeline-content {
+      flex: 1;
+    }
+
+    .savings-box {
+      background: linear-gradient(135deg, rgba(16,185,129,0.15), rgba(5,150,105,0.15));
+      border: 2px solid #10b981;
+      border-radius: 12px;
+      padding: 2rem;
+      text-align: center;
+      margin: 2rem 0;
+    }
+
+    .savings-amount {
+      font-size: 3.5rem;
+      font-weight: 900;
+      color: #10b981;
+      line-height: 1;
+    }
+
+    .savings-label {
+      font-size: 1rem;
+      font-weight: 600;
+      color: #064e3b;
+      margin-top: 0.5rem;
+    }
+
+    .contact-box {
+      background: linear-gradient(135deg, #6366f1, #8b5cf6);
+      color: white;
+      padding: 2rem;
+      border-radius: 16px;
+      margin: 2rem 0;
+    }
+
+    .contact-box h3 {
+      color: white;
+      margin-bottom: 1rem;
+    }
+
+    .contact-box p {
+      color: rgba(255,255,255,0.95);
+      margin: 0.5rem 0;
+      font-size: 1rem;
+    }
+
+    .signature-section {
+      margin-top: 3rem;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 3rem;
+    }
+
+    .signature-box {
+      border-top: 2px solid var(--dark);
+      padding-top: 0.5rem;
+    }
+
+    .signature-box p {
+      font-size: 0.85rem;
+      color: #64748b;
+    }
+
+    .toc {
+      background: #f1f5f9;
+      padding: 2rem;
+      border-radius: 12px;
+      margin: 2rem 0;
+    }
+
+    .toc h3 {
+      margin-top: 0;
+    }
+
+    .toc ol {
+      margin: 1rem 0 0 1.5rem;
+    }
+
+    .toc li {
+      margin: 0.75rem 0;
+      color: #475569;
+    }
+
+    .stat-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 1rem;
+      margin: 1.5rem 0;
+    }
+
+    .stat-card {
+      background: white;
+      border: 1px solid var(--border);
+      padding: 1.5rem;
+      border-radius: 12px;
+      text-align: center;
+    }
+
+    .stat-value {
+      font-size: 2.5rem;
+      font-weight: 900;
+      background: linear-gradient(135deg, #6366f1, #8b5cf6);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .stat-label {
+      font-size: 0.8rem;
+      color: #94a3b8;
+      margin-top: 0.5rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    footer {
+      margin-top: 3rem;
+      padding-top: 1.5rem;
+      border-top: 1px solid var(--border);
+      text-align: center;
+      font-size: 0.8rem;
+      color: #94a3b8;
+    }
+
+    .btn-print {
+      position: fixed;
+      bottom: 2rem;
+      right: 2rem;
+      background: linear-gradient(135deg, #6366f1, #8b5cf6);
+      color: white;
+      padding: 1rem 1.5rem;
+      border: none;
+      border-radius: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      box-shadow: 0 10px 30px rgba(99, 102, 241, 0.3);
+      z-index: 1000;
+    }
+
+    .btn-print:hover {
+      opacity: 0.9;
+    }
+  </style>
+</head>
+<body>
+  <button class="btn-print no-print" onclick="window.print()">📄 Print / Save as PDF</button>
+
+  <!-- COVER PAGE -->
+  <div class="cover-page">
+    <!-- Logos -->
+    <div class="logos-container">
+      <img src="Gen-z-logo.jpg" alt="GenZ Restaurant" class="logo-img genz"/>
+      <div class="logo-divider"></div>
+      <img src="ragspro-logo.jpg" alt="RAGSPRO" class="logo-img ragspro"/>
+    </div>
+
+    <h1 class="cover-title">GenZ Restaurant<br/>POS System</h1>
+    <p class="cover-subtitle">A Modern Point-of-Sale Solution for Restaurant Management</p>
+
+    <div class="cover-info">
+      <div class="cover-info-row">
+        <span class="cover-info-label">Prepared by</span>
+        <span class="cover-info-value">RAGSPRO Technology Solutions</span>
+      </div>
+      <div class="cover-info-row">
+        <span class="cover-info-label">Contact</span>
+        <span class="cover-info-value">+91-88260 73013</span>
+      </div>
+      <div class="cover-info-row">
+        <span class="cover-info-label">Email</span>
+        <span class="cover-info-value">raghav@ragspro.com</span>
+      </div>
+      <div class="cover-info-row">
+        <span class="cover-info-label">Date</span>
+        <span class="cover-info-value">June 2026</span>
+      </div>
+      <div class="cover-info-row">
+        <span class="cover-info-label">Validity</span>
+        <span class="cover-info-value">30 Days</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="page-break"></div>
+
+  <!-- TABLE OF CONTENTS -->
+  <div class="header-bar"></div>
+  <h1>Proposal Contents</h1>
+
+  <div class="toc" style="columns: 2; column-gap: 2rem;">
+    <ol style="column-count: 2;">
+      <li>Executive Summary</li>
+      <li>The Challenge</li>
+      <li>Our Solution</li>
+      <li>Features</li>
+      <li>Pricing</li>
+      <li>Timeline</li>
+      <li>Contact</li>
+    </ol>
+  </div>
+
+  <!-- EXECUTIVE SUMMARY -->
+  <div class="header-bar"></div>
+  <h2>1. Executive Summary</h2>
+
+  <p>Running a successful restaurant in 2026 requires more than great food—it demands efficient operations, accurate billing, real-time kitchen coordination, and actionable business insights.</p>
+
+  <div class="stat-grid">
+    <div class="stat-card">
+      <div class="stat-value">₹1,12,800</div>
+      <div class="stat-label">3-Year Savings</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-value">₹60,000</div>
+      <div class="stat-label">One-Time Cost</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-value">2-3 Weeks</div>
+      <div class="stat-label">Implementation</div>
+    </div>
+  </div>
+
+  <div class="highlight-box">
+    <strong>Key Proposition:</strong> RAGSPRO offers a <strong>one-time investment</strong> alternative—a fully owned, customizable Restaurant POS system built specifically for Indian restaurants, with <strong>₹60,000 one-time cost</strong> vs ₹60K-96K/year subscription platforms like Petpooja.
+  </div>
+
+  <h3>Financial Impact at a Glance</h3>
+  <table>
+    <thead>
+      <tr>
+        <th>Metric</th>
+        <th>Petpooja Standard</th>
+        <th>RAGSPRO Solution</th>
+        <th>Your Savings</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>Year 1 Total</strong></td>
+        <td>₹72,000</td>
+        <td>₹74,400</td>
+        <td>(₹2,400)</td>
+      </tr>
+      <tr>
+        <td><strong>Year 2 Total</strong></td>
+        <td>₹72,000</td>
+        <td>₹14,400</td>
+        <td><strong>+₹57,600</strong></td>
+      </tr>
+      <tr>
+        <td><strong>Year 3 Total</strong></td>
+        <td>₹72,000</td>
+        <td>₹14,400</td>
+        <td><strong>+₹57,600</strong></td>
+      </tr>
+      <tr>
+        <td><strong>3-Year Total</strong></td>
+        <td><strong>₹2,16,000</strong></td>
+        <td><strong>₹1,03,200</strong></td>
+        <td><strong>₹1,12,800</strong></td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h3>What You Receive</h3>
+  <ul class="feature-list" style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem;">
+    <li>Complete Restaurant POS system (web-based)</li>
+    <li>170+ pre-loaded menu items from GenZ Restaurant</li>
+    <li>POS Billing with GST-compliant invoicing</li>
+    <li>Kitchen Order Ticket (KOT) system</li>
+    <li>Table Management for 10+ tables</li>
+    <li>Dashboard with daily sales & reports</li>
+    <li>Source code ownership</li>
+    <li>Custom domain setup</li>
+    <li>30 days complimentary support</li>
+    <li>Staff training session (2 hours)</li>
+  </ul>
+
+  <!-- THE CHALLENGE -->
+  <div class="header-bar"></div>
+  <h2>2. The Challenge</h2>
+
+  <h3>Revenue Loss</h3>
+  <table>
+    <thead>
+      <tr>
+        <th>Issue</th>
+        <th>Estimated Impact</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>Billing calculation errors</td>
+        <td>3–5% of monthly revenue</td>
+      </tr>
+      <tr>
+        <td>Order mistakes (wrong items)</td>
+        <td>2–3% of monthly revenue</td>
+      </tr>
+      <tr>
+        <td>Food waste from overstocking</td>
+        <td>10–15% of inventory cost</td>
+      </tr>
+      <tr>
+        <td><strong>Total Potential Loss</strong></td>
+        <td><strong>₹15,000–₹50,000/month</strong></td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h3>Technology Fragmentation</h3>
+  <div class="highlight-box">
+    <strong>Current State: Fragmented Software Stack</strong>
+    <ul style="margin-top: 1rem; color: var(--gray);">
+      <li>POS Software: ₹3,000/month</li>
+      <li>Billing & GST: ₹2,000/month</li>
+      <li>Inventory Tool: ₹1,500/month</li>
+      <li>SMS/WhatsApp: ₹500/month</li>
+      <li><strong>TOTAL: ₹7,000/month (₹84,000/year)</strong></li>
+    </ul>
+  </div>
+
+  <!-- OUR SOLUTION -->
+  <div class="header-bar"></div>
+  <h2>3. Our Solution</h2>
+
+  <h3>Key Differentiators</h3>
+  <table>
+    <thead>
+      <tr>
+        <th>Feature</th>
+        <th>Petpooja</th>
+        <th>RAGSPRO</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>Pricing Model</strong></td>
+        <td>Subscription (₹60K–₹96K/year)</td>
+        <td><strong>One-time (₹60K)</strong></td>
+      </tr>
+      <tr>
+        <td><strong>3-Year Cost</strong></td>
+        <td>₹2,16,000</td>
+        <td><strong>₹1,00,800</strong></td>
+      </tr>
+      <tr>
+        <td><strong>Data Ownership</strong></td>
+        <td>Vendor-hosted</td>
+        <td><strong>You own everything</strong></td>
+      </tr>
+      <tr>
+        <td><strong>Customization</strong></td>
+        <td>Limited to platform</td>
+        <td><strong>Fully customizable</strong></td>
+      </tr>
+      <tr>
+        <td><strong>Support</strong></td>
+        <td>Ticket-based</td>
+        <td><strong>Direct developer access</strong></td>
+      </tr>
+    </tbody>
+  </table>
+
+  <!-- FEATURES -->
+  <div class="header-bar"></div>
+  <h2>4. Features Overview</h2>
+
+  <h3>4.1 Point of Sale (POS) Terminal</h3>
+  <ul class="feature-list">
+    <li>Visual table layout with status indicators</li>
+    <li>Quick item search by name or category</li>
+    <li>Apply discounts (percentage or fixed amount)</li>
+    <li>Split bills by seat or by amount</li>
+    <li>Multiple payment methods (Cash, Card, UPI, Wallet)</li>
+    <li>GST-compliant invoices with automatic tax calculation</li>
+  </ul>
+
+  <h3>4.2 Menu Management</h3>
+  <ul class="feature-list">
+    <li><strong>170+ pre-loaded menu items</strong> from GenZ Restaurant</li>
+    <li>Categories: Tandoor, Chinese, Main Course, Breads, Biryani, Beverages</li>
+    <li>Upload images for each dish</li>
+    <li>Toggle availability in real-time</li>
+  </ul>
+
+  <h3>4.3 Kitchen Order Ticket (KOT) System</h3>
+  <ul class="feature-list">
+    <li>Real-time order display in kitchen</li>
+    <li>Color-coded status: Pending → Preparing → Ready → Served</li>
+    <li>Timer display showing order age</li>
+    <li>Multiple kitchen station support</li>
+  </ul>
+
+  <h3>4.4 Dashboard & Reports</h3>
+  <ul class="feature-list">
+    <li>Daily sales summary</li>
+    <li>Payment mode breakdown (Cash/Card/UPI/Wallet)</li>
+    <li>Top-selling items (by quantity and revenue)</li>
+    <li>Export to PDF/Excel for accounting</li>
+  </ul>
+
+  <!-- PRICING -->
+  <div class="header-bar"></div>
+  <h2>5. Investment & Pricing</h2>
+
+  <div class="pricing-grid">
+    <div class="pricing-card">
+      <h3 style="text-align: center;">Basic</h3>
+      <div class="price" style="text-align: center;">₹55,000</div>
+      <ul class="feature-list">
+        <li>POS + Billing</li>
+        <li>KOT System</li>
+        <li>Menu (170 items)</li>
+        <li>Table Management (10)</li>
+        <li>Basic Dashboard</li>
+        <li>30 days support</li>
+      </ul>
+    </div>
+
+    <div class="pricing-card featured">
+      <h3 style="text-align: center;">Standard</h3>
+      <div class="price" style="text-align: center;">₹60,000</div>
+      <ul class="feature-list">
+        <li>Everything in Basic</li>
+        <li>Inventory Module</li>
+        <li>Customer CRM</li>
+        <li>Advanced Reports</li>
+        <li>Custom Domain Setup</li>
+        <li>Staff Training (2 hours)</li>
+      </ul>
+    </div>
+
+    <div class="pricing-card">
+      <h3 style="text-align: center;">Premium</h3>
+      <div class="price" style="text-align: center;">₹75,000</div>
+      <ul class="feature-list">
+        <li>Everything in Standard</li>
+        <li>SMS/WhatsApp Integration</li>
+        <li>Multi-Outlet Support</li>
+        <li>Priority Support</li>
+        <li>Advanced Analytics</li>
+        <li>Quarterly Reviews</li>
+      </ul>
+    </div>
+  </div>
+
+  <h3>Payment Schedule (Standard Package)</h3>
+  <table>
+    <thead>
+      <tr>
+        <th>Milestone</th>
+        <th>Percentage</th>
+        <th>Amount</th>
+        <th>Trigger</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>Advance</strong></td>
+        <td>50%</td>
+        <td>₹30,000</td>
+        <td>Contract signing</td>
+      </tr>
+      <tr>
+        <td><strong>Final Payment</strong></td>
+        <td>50%</td>
+        <td>₹30,000</td>
+        <td>Week 2-3: Final delivery</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="savings-box">
+    <div class="savings-amount">₹1,15,200</div>
+    <div class="savings-label">Total Savings Over 3 Years vs Petpooja</div>
+  </div>
+
+  <!-- TIMELINE -->
+  <div class="header-bar"></div>
+  <h2>6. Implementation Timeline</h2>
+
+  <div class="timeline">
+    <div class="timeline-item">
+      <div class="timeline-marker">1</div>
+      <div class="timeline-content">
+        <h3>Week 1: Setup & Development</h3>
+        <p>Database setup, menu import (170+ items), POS terminal, KOT screen development</p>
+      </div>
+    </div>
+    <div class="timeline-item">
+      <div class="timeline-marker">2</div>
+      <div class="timeline-content">
+        <h3>Week 2: Testing & Training</h3>
+        <p>Dashboard & reports, user acceptance testing, bug fixes, staff training</p>
+      </div>
+    </div>
+    <div class="timeline-item">
+      <div class="timeline-marker">3</div>
+      <div class="timeline-content">
+        <h3>Week 3: Go-Live</h3>
+        <p>Final payment, go-live support, project handover, documentation delivery</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- CONTACT -->
+  <div class="header-bar"></div>
+  <div class="contact-box">
+    <h3>📞 Ready to Get Started?</h3>
+    <p><strong>Raghav Shah</strong><br/>Founder, RAGSPRO</p>
+    <p>📧 raghav@ragspro.com</p>
+    <p>📱 +91-88260 73013</p>
+    <p>🌐 ragspro.com</p>
+  </div>
+
+  <div class="signature-section">
+    <div class="signature-box">
+      <p>Authorized Signature (RAGSPRO)</p>
+      <p style="margin-top: 2rem; border-top: 1px dashed #94a3b8; padding-top: 0.5rem;">_________________</p>
+      <p>Date: _______________</p>
+    </div>
+    <div class="signature-box">
+      <p>Client Acceptance</p>
+      <p style="margin-top: 2rem; border-top: 1px dashed #94a3b8; padding-top: 0.5rem;">_________________</p>
+      <p>Date: _______________</p>
+    </div>
+  </div>
+
+  <footer>
+    <p><strong>RAGSPRO</strong> | Building Technology Solutions for Modern Businesses</p>
+    <p>Contact: raghav@ragspro.com | +91-88260 73013 | ragspro.com</p>
+    <p style="margin-top: 1rem; color: #94a3b8;">© 2026 RAGSPRO. All rights reserved. | Proposal Version 2.0</p>
+  </footer>
+</body>
+</html>

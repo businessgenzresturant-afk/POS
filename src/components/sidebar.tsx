@@ -36,7 +36,7 @@ export default function Sidebar() {
             <span className="text-primary-foreground font-black text-xl">Z</span>
           </div>
           <div>
-            <h1 className="font-black text-xl text-foreground leading-tight tracking-tight">Gen-Z POS</h1>
+            <h1 className="font-black text-xl text-foreground leading-tight tracking-tight">RAGSPRO POS</h1>
             <p className="text-xs font-bold text-primary uppercase tracking-widest">Premium</p>
           </div>
         </Link>

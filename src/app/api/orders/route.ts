@@ -56,12 +56,19 @@ export async function POST(request: Request) {
 
   try {
     const body = await request.json();
-    const { tableId, items, customerName, customerPhone } = body;
+    const { tableId, items, customerName, customerPhone, orderType, guests } = body;
 
     // Input validation
-    if (!tableId || !items || !Array.isArray(items) || items.length === 0) {
+    if (!items || !Array.isArray(items) || items.length === 0) {
       return NextResponse.json(
-        { error: 'Missing required fields: tableId and items are required' },
+        { error: 'Missing required fields: items are required' },
+        { status: 400 }
+      );
+    }
+    
+    if ((!orderType || orderType === 'DINE_IN') && !tableId) {
+      return NextResponse.json(
+        { error: 'tableId is required for DINE_IN orders' },
         { status: 400 }
       );
     }
@@ -90,12 +97,15 @@ export async function POST(request: Request) {
     }
 
     // Check table availability and lock it
-    const table = await prisma.table.findUnique({
-      where: { id: tableId },
-    });
+    let table = null;
+    if (tableId) {
+      table = await prisma.table.findUnique({
+        where: { id: tableId },
+      });
 
-    if (!table) {
-      return NextResponse.json({ error: 'Table not found' }, { status: 404 });
+      if (!table) {
+        return NextResponse.json({ error: 'Table not found' }, { status: 404 });
+      }
     }
 
     // Fetch all menu items to get prices and validate
@@ -130,12 +140,12 @@ export async function POST(request: Request) {
       };
     });
 
-    if (table.status === 'OCCUPIED') {
+    if (table && table.status === 'OCCUPIED') {
       // Find the active order for this table
       const activeOrder = await prisma.order.findFirst({
         where: {
           tableId,
-          status: { notIn: ['COMPLETED'] }
+          status: { notIn: ['COMPLETED', 'SERVED'] }
         },
         orderBy: { createdAt: 'desc' }
       });
@@ -144,7 +154,10 @@ export async function POST(request: Request) {
         // Append items to the active order
         const updatedOrder = await prisma.$transaction(async (tx) => {
           await tx.orderItem.createMany({
-            data: orderItemsData.map(item => ({ ...item, orderId: activeOrder.id }))
+            data: orderItemsData.map(item => ({ 
+              ...item, 
+              orderId: activeOrder.id
+            }))
           });
 
           return tx.order.update({
@@ -173,7 +186,9 @@ export async function POST(request: Request) {
       // Create the order
       const newOrder = await tx.order.create({
         data: {
-          tableId,
+          tableId: tableId || null,
+          orderType: orderType || 'DINE_IN',
+          guests: guests ? parseInt(guests) : null,
           customerName: customerName || 'Walk-in Customer',
           customerPhone: customerPhone || null,
           totalAmount,
@@ -193,11 +208,13 @@ export async function POST(request: Request) {
         }
       });
 
-      // Update table status to OCCUPIED
-      await tx.table.update({
-        where: { id: tableId },
-        data: { status: 'OCCUPIED' }
-      });
+      // Update table status to OCCUPIED if applicable
+      if (tableId) {
+        await tx.table.update({
+          where: { id: tableId },
+          data: { status: 'OCCUPIED' }
+        });
+      }
 
       return newOrder;
     });

@@ -10,8 +10,8 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "Gen-Z Restaurant POS",
-  description: "Modern POS system for Gen-Z Restaurant",
+  title: "RAGSPRO POS",
+  description: "Restaurant Management SaaS by RAGSPRO",
 };
 
 import { Toaster } from 'sonner';

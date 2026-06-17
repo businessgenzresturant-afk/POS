@@ -1,223 +1,360 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import Link from 'next/link';
 import { 
   Users, 
   UtensilsCrossed, 
   ClipboardList, 
   IndianRupee, 
   ChefHat, 
-  ArrowRight,
-  MenuSquare,
-  Receipt,
-  BarChart3,
+  ShoppingBag,
+  Package,
+  Bike,
   Loader2
 } from 'lucide-react';
-
-interface DashboardStats {
-  totalTables: number;
-  occupiedTables: number;
-  pendingOrders: number;
-  totalRevenue: number;
-}
+import { TableDrawer } from './TableDrawer';
+import { OrderModal } from './OrderModal';
+import { MenuDrawer } from './MenuDrawer';
+import { toast } from 'sonner';
 
 export function Dashboard() {
-  const [stats, setStats] = useState<DashboardStats | null>(null);
+  const [tables, setTables] = useState<any[]>([]);
+  const [menuItems, setMenuItems] = useState<any[]>([]);
+  const [activeOrders, setActiveOrders] = useState<any[]>([]);
+  const [revenue, setRevenue] = useState(0);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    fetchStats();
-  }, []);
+  // Drawer States
+  const [isTableDrawerOpen, setTableDrawerOpen] = useState(false);
+  const [isOrderModalOpen, setOrderModalOpen] = useState(false);
+  const [isMenuDrawerOpen, setMenuDrawerOpen] = useState(false);
 
-  const fetchStats = async () => {
+  // Selected state
+  const [selectedTable, setSelectedTable] = useState<any | null>(null);
+  const [selectedActiveOrder, setSelectedActiveOrder] = useState<any | null>(null);
+  const [selectedOrderType, setSelectedOrderType] = useState<string>('DINE_IN');
+  const [customerDetails, setCustomerDetails] = useState<any>(null);
+
+  const fetchData = useCallback(async () => {
     try {
-      const [tablesRes, ordersRes, reportsRes] = await Promise.all([
+      const [tablesRes, ordersRes, reportsRes, menuRes] = await Promise.all([
         fetch('/api/tables'),
-        fetch('/api/orders'),
+        fetch('/api/orders?status=PENDING,PREPARING,READY,SERVED'),
         fetch('/api/reports'),
+        fetch('/api/menu'),
       ]);
 
-      const tables = await tablesRes.json();
-      const orders = await ordersRes.json();
-      const reports = await reportsRes.json();
-
-      const occupiedTables = tables.filter((t: any) => t.status === 'OCCUPIED').length;
-      const pendingOrders = orders.filter((o: any) =>
-        ['PENDING', 'PREPARING', 'READY'].includes(o.status)
-      ).length;
-
-      setStats({
-        totalTables: tables.length,
-        occupiedTables,
-        pendingOrders,
-        totalRevenue: reports.totalRevenue || 0,
-      });
+      const t = await tablesRes.json();
+      setTables(t);
+      setActiveOrders(await ordersRes.json());
+      const r = await reportsRes.json();
+      setRevenue(r.totalRevenue || 0);
+      setMenuItems(await menuRes.json());
     } catch (error) {
-      console.error('Error fetching dashboard stats:', error);
+      console.error('Error fetching dashboard data:', error);
     } finally {
       setLoading(false);
     }
+  }, []);
+
+  useEffect(() => {
+    fetchData();
+    // Poll every 5 seconds for live updates
+    const interval = setInterval(fetchData, 5000);
+    return () => clearInterval(interval);
+  }, [fetchData]);
+
+  const physicalTables = tables.filter(t => t.number < 1000).sort((a, b) => a.number - b.number);
+  
+  const occupiedTables = physicalTables.filter(t => t.status === 'OCCUPIED').length;
+  const kitchenQueue = activeOrders.filter(o => ['PENDING', 'PREPARING'].includes(o.status)).length;
+  
+  const dineInOrders = activeOrders.filter(o => o.orderType === 'DINE_IN').length;
+  const takeawayOrders = activeOrders.filter(o => o.orderType === 'TAKEAWAY').length;
+  const parcelOrders = activeOrders.filter(o => o.orderType === 'PARCEL').length;
+  const deliveryOrders = activeOrders.filter(o => o.orderType === 'DELIVERY').length;
+
+  const handleTableClick = (table: any) => {
+    setSelectedTable(table);
+    setSelectedActiveOrder(null);
+    setTableDrawerOpen(true);
+  };
+  
+  const handleViewOrder = (order: any) => {
+    if (order.table) {
+      setSelectedTable(order.table);
+    } else {
+      setSelectedTable(null);
+    }
+    setSelectedActiveOrder(order);
+    setTableDrawerOpen(true);
   };
 
-  if (loading) {
+  const handleNewOrderClick = () => {
+    setOrderModalOpen(true);
+  };
+
+  const handleSelectOrderType = (type: string, details?: any) => {
+    setSelectedOrderType(type);
+    setCustomerDetails(details);
+    setOrderModalOpen(false);
+    
+    if (type === 'DINE_IN') {
+      toast.info('Please select a table from the dashboard to start Dine In.');
+    } else {
+      setSelectedTable(null);
+      setSelectedActiveOrder(null);
+      setMenuDrawerOpen(true);
+    }
+  };
+
+  const handlePlaceOrder = async (items: any[]) => {
+    // Determine if we're appending or creating
+    // If selectedTable is set, we might be appending, API handles this.
+    try {
+      const response = await fetch('/api/orders', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          tableId: selectedTable?.id || null,
+          orderType: selectedOrderType || 'DINE_IN',
+          items,
+          guests: customerDetails?.guests || null,
+          customerName: customerDetails?.customerName || 'Walk-in Customer',
+          customerPhone: customerDetails?.customerPhone || null,
+        })
+      });
+
+      if (!response.ok) throw new Error('Failed to place order');
+      toast.success('Order sent to kitchen! 🔔');
+      fetchData();
+    } catch (err) {
+      toast.error('Failed to place order');
+    }
+  };
+
+  const handleGenerateBill = async (orderId: string) => {
+    try {
+      const response = await fetch('/api/bills', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ orderId })
+      });
+
+      if (!response.ok) throw new Error('Failed to generate bill');
+      toast.success('Bill generated successfully! 🧾');
+      setTableDrawerOpen(false);
+      fetchData();
+    } catch (err) {
+      toast.error('Failed to generate bill');
+    }
+  };
+
+  if (loading && tables.length === 0) {
     return (
       <div className="min-h-[600px] flex items-center justify-center">
-        <div className="flex flex-col items-center gap-4">
-          <Loader2 className="h-10 w-10 animate-spin text-primary" />
-          <p className="text-sm font-semibold text-muted-foreground animate-pulse">Loading dashboard...</p>
-        </div>
+        <Loader2 className="h-10 w-10 animate-spin text-primary" />
       </div>
     );
   }
 
-  const StatCard = ({ title, value, subtext, icon, colorFrom, colorTo, iconColor }: any) => (
-    <Card className="p-6 card-enhanced">
-      <div className="flex items-center justify-between">
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{title}</p>
-          <p className={`text-4xl font-black mt-2 bg-gradient-to-r ${colorFrom} ${colorTo} bg-clip-text text-transparent`}>
-            {value}
-          </p>
-        </div>
-        <div className={`p-4 rounded-2xl bg-${iconColor}-500/10 text-${iconColor}-600 dark:text-${iconColor}-400 shadow-sm border border-${iconColor}-500/20`}>
-          {icon}
-        </div>
-      </div>
-      <div className="mt-5">
-        <p className="text-sm font-medium text-muted-foreground bg-muted/50 rounded-xl px-3 py-2 border border-border/50 flex items-center gap-2">
-          <span className="w-2 h-2 rounded-full bg-primary"></span>
-          {subtext}
-        </p>
-      </div>
-    </Card>
-  );
+  const handleQuickReorder = async (menuItemId: string, specialInstructions: string) => {
+    if (!selectedActiveOrder && !selectedTable) return;
+    
+    try {
+      const response = await fetch('/api/orders', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          tableId: selectedTable?.id || null,
+          orderType: selectedActiveOrder?.orderType || 'DINE_IN',
+          items: [{ menuItemId, quantity: 1, specialInstructions }]
+        })
+      });
 
-  const QuickActionCard = ({ title, desc, href, icon, color }: any) => (
-    <Link href={href}>
-      <Card className="p-6 card-enhanced cursor-pointer group hover:-translate-y-1 transition-all duration-300">
-        <div className="flex items-start justify-between mb-4">
-          <div className={`w-14 h-14 rounded-2xl bg-gradient-to-br from-${color}-500/10 to-${color}-500/5 flex items-center justify-center text-${color}-600 dark:text-${color}-400 group-hover:scale-110 transition-transform duration-300 border border-${color}-500/20 shadow-sm`}>
-            {icon}
-          </div>
-          <div className={`w-8 h-8 rounded-full bg-background border border-border flex items-center justify-center opacity-0 group-hover:opacity-100 group-hover:bg-${color}-500 group-hover:border-${color}-500 transition-all duration-300`}>
-            <ArrowRight className="w-4 h-4 text-muted-foreground group-hover:text-white" />
-          </div>
-        </div>
-        <h3 className="text-lg font-bold text-foreground mb-1 group-hover:text-primary transition-colors">{title}</h3>
-        <p className="text-sm text-muted-foreground">{desc}</p>
-      </Card>
-    </Link>
-  );
+      if (!response.ok) throw new Error('Failed to quick reorder');
+      toast.success('Reordered successfully! 🔔');
+      fetchData();
+    } catch (err) {
+      toast.error('Failed to quick reorder');
+    }
+  };
+
+  const handleMarkAsServed = async (orderId: string) => {
+    try {
+      const response = await fetch(`/api/orders/${orderId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: 'SERVED' })
+      });
+
+      if (!response.ok) throw new Error('Failed to mark as served');
+      toast.success('Order marked as served! ✅');
+      setTableDrawerOpen(false);
+      fetchData();
+    } catch (err) {
+      toast.error('Failed to mark as served');
+    }
+  };
+
+  const activeOrderForSelectedTable = selectedActiveOrder 
+    ? selectedActiveOrder 
+    : (selectedTable ? activeOrders.find(o => o.tableId === selectedTable.id) : null);
 
   return (
     <div className="space-y-8 animate-fade-in pb-12">
-      {/* Header */}
-      <div className="flex items-center justify-between pb-6 border-b border-border">
-        <div>
-          <h1 className="text-3xl font-black text-foreground tracking-tight">Dashboard</h1>
-          <p className="text-sm text-muted-foreground mt-1">Gen-Z Restaurant Overview</p>
+      {/* Header & Live Stats */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <Card className="p-4 bg-blue-500/10 border-blue-500/20 text-blue-700 dark:text-blue-400">
+          <p className="text-sm font-bold opacity-80 uppercase">Tables Occupied</p>
+          <p className="text-3xl font-black mt-1">{occupiedTables}/{physicalTables.length}</p>
+        </Card>
+        <Card className="p-4 bg-orange-500/10 border-orange-500/20 text-orange-700 dark:text-orange-400">
+          <p className="text-sm font-bold opacity-80 uppercase">Kitchen Queue</p>
+          <p className="text-3xl font-black mt-1">{kitchenQueue}</p>
+        </Card>
+        <Card className="p-4 bg-emerald-500/10 border-emerald-500/20 text-emerald-700 dark:text-emerald-400">
+          <p className="text-sm font-bold opacity-80 uppercase">Today&apos;s Revenue</p>
+          <p className="text-3xl font-black mt-1">₹{revenue.toLocaleString()}</p>
+        </Card>
+        <Button 
+          variant="gradient" 
+          className="h-full text-lg shadow-lg hover:scale-[1.02] transition-transform"
+          onClick={handleNewOrderClick}
+        >
+          <ClipboardList className="mr-2 h-6 w-6" /> NEW ORDER
+        </Button>
+      </div>
+
+      {/* Order Type Cards */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="p-4 rounded-xl border border-border bg-card flex justify-between items-center cursor-pointer hover:border-primary/50" onClick={() => toast.info('Click a table below')}>
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-blue-500/10 text-blue-500 rounded-lg"><UtensilsCrossed /></div>
+            <p className="font-bold">Dine In</p>
+          </div>
+          <span className="font-black text-xl">{dineInOrders}</span>
         </div>
-        <div className="flex items-center gap-3">
-          <div className="flex items-center gap-2 px-4 py-2 bg-primary/10 border border-primary/20 text-primary text-sm font-bold rounded-full shadow-sm">
-            <span className="w-2 h-2 rounded-full bg-primary animate-pulse"></span>
-            Live
+        <div className="p-4 rounded-xl border border-border bg-card flex justify-between items-center cursor-pointer hover:border-amber-500/50" onClick={() => handleSelectOrderType('TAKEAWAY')}>
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-amber-500/10 text-amber-500 rounded-lg"><ShoppingBag /></div>
+            <p className="font-bold">Takeaway</p>
+          </div>
+          <span className="font-black text-xl">{takeawayOrders}</span>
+        </div>
+        <div className="p-4 rounded-xl border border-border bg-card flex justify-between items-center cursor-pointer hover:border-emerald-500/50" onClick={() => handleSelectOrderType('PARCEL')}>
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-emerald-500/10 text-emerald-500 rounded-lg"><Package /></div>
+            <p className="font-bold">Parcel</p>
+          </div>
+          <span className="font-black text-xl">{parcelOrders}</span>
+        </div>
+        <div className="p-4 rounded-xl border border-border bg-card flex justify-between items-center cursor-pointer hover:border-rose-500/50" onClick={() => handleSelectOrderType('DELIVERY')}>
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-rose-500/10 text-rose-500 rounded-lg"><Bike /></div>
+            <p className="font-bold">Delivery</p>
+          </div>
+          <span className="font-black text-xl">{deliveryOrders}</span>
+        </div>
+      </div>
+
+      {/* Recent Orders Widget */}
+      {activeOrders.length > 0 && (
+        <div className="bg-muted/10 border border-border rounded-xl p-4">
+          <h3 className="text-sm font-bold opacity-80 uppercase mb-3 flex items-center gap-2">
+            <ClipboardList className="w-4 h-4" /> Recent Active Orders
+          </h3>
+          <div className="flex gap-3 overflow-x-auto pb-2 custom-scrollbar">
+            {activeOrders.slice(0, 5).map(order => (
+              <button 
+                key={order.id} 
+                onClick={() => handleViewOrder(order)}
+                className="flex-shrink-0 bg-background border border-border p-3 rounded-lg flex flex-col gap-1 min-w-[140px] hover:border-primary/50 text-left transition-colors"
+              >
+                <div className="flex justify-between items-center w-full">
+                  <span className="font-bold text-sm">
+                    {order.table ? `T${order.table.number}` : order.orderType}
+                  </span>
+                  <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold ${
+                    order.status === 'PENDING' ? 'bg-rose-500/10 text-rose-500' :
+                    order.status === 'PREPARING' ? 'bg-amber-500/10 text-amber-500' :
+                    order.status === 'READY' ? 'bg-emerald-500/10 text-emerald-500' :
+                    'bg-blue-500/10 text-blue-500'
+                  }`}>
+                    {order.status}
+                  </span>
+                </div>
+                <span className="font-black text-primary">₹{order.totalAmount?.toFixed(2)}</span>
+                {order.customerName && <span className="text-xs text-muted-foreground truncate w-full">{order.customerName}</span>}
+              </button>
+            ))}
           </div>
         </div>
-      </div>
+      )}
 
-      {/* Stats Grid */}
-      <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
-        <StatCard
-          title="Tables Occupied"
-          value={`${stats?.occupiedTables ?? 0}/${stats?.totalTables ?? 0}`}
-          subtext={`${(stats?.totalTables ?? 0) - (stats?.occupiedTables ?? 0)} tables available`}
-          icon={<UtensilsCrossed size={28} />}
-          colorFrom="from-blue-600"
-          colorTo="to-indigo-600"
-          iconColor="blue"
-        />
-        <StatCard
-          title="Active Orders"
-          value={stats?.pendingOrders ?? 0}
-          subtext="Orders in progress"
-          icon={<ClipboardList size={28} />}
-          colorFrom="from-amber-500"
-          colorTo="to-orange-500"
-          iconColor="amber"
-        />
-        <StatCard
-          title="Today's Revenue"
-          value={`₹${(stats?.totalRevenue ?? 0).toLocaleString('en-IN')}`}
-          subtext="Total sales today"
-          icon={<IndianRupee size={28} />}
-          colorFrom="from-emerald-500"
-          colorTo="to-teal-500"
-          iconColor="emerald"
-        />
-        <StatCard
-          title="Kitchen Status"
-          value={stats?.pendingOrders && stats.pendingOrders > 5 ? 'Busy' : 'Normal'}
-          subtext="Kitchen workload"
-          icon={<ChefHat size={28} />}
-          colorFrom="from-rose-500"
-          colorTo="to-red-500"
-          iconColor="rose"
-        />
-      </div>
-
-      {/* Quick Actions */}
-      <div className="pt-4">
-        <h2 className="text-xl font-bold text-foreground mb-4 flex items-center gap-2">
-          Quick Actions
+      {/* Visual Table Grid */}
+      <div>
+        <h2 className="text-xl font-black mb-4 flex items-center gap-2">
+          <span>Dine-In Tables</span>
         </h2>
-        <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-          <QuickActionCard
-            title="Table Management"
-            desc="View and manage restaurant tables"
-            href="/tables"
-            icon={<UtensilsCrossed size={24} />}
-            color="blue"
-          />
-          <QuickActionCard
-            title="Create Order"
-            desc="Take new customer orders"
-            href="/orders"
-            icon={<ClipboardList size={24} />}
-            color="amber"
-          />
-          <QuickActionCard
-            title="Kitchen Queue"
-            desc="View pending orders in kitchen"
-            href="/kot"
-            icon={<ChefHat size={24} />}
-            color="rose"
-          />
-          <QuickActionCard
-            title="Menu Items"
-            desc="Manage menu and prices"
-            href="/menu"
-            icon={<MenuSquare size={24} />}
-            color="emerald"
-          />
-          <QuickActionCard
-            title="Billing"
-            desc="Generate and view bills"
-            href="/bills"
-            icon={<Receipt size={24} />}
-            color="indigo"
-          />
-          <QuickActionCard
-            title="Reports"
-            desc="Sales and analytics"
-            href="/reports"
-            icon={<BarChart3 size={24} />}
-            color="violet"
-          />
+        <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-3">
+          {physicalTables.map(table => {
+            const hasOrder = activeOrders.some(o => o.tableId === table.id);
+            // Yellow if we want to show Bill pending, for now Red is occupied
+            const isOccupied = table.status === 'OCCUPIED' || hasOrder;
+            
+            return (
+              <button
+                key={table.id}
+                onClick={() => handleTableClick(table)}
+                className={`aspect-square rounded-2xl border-2 flex flex-col items-center justify-center transition-all duration-200 transform hover:scale-105 shadow-sm ${
+                  isOccupied
+                    ? 'bg-red-500/10 border-red-500/30 text-red-600 dark:text-red-400'
+                    : 'bg-green-500/10 border-green-500/30 text-green-600 dark:text-green-400'
+                }`}
+              >
+                <span className="text-2xl font-black mb-1">T{table.number}</span>
+                <span className="text-xs font-bold uppercase tracking-wider opacity-80">
+                  {isOccupied ? 'Occupied' : 'Available'}
+                </span>
+              </button>
+            );
+          })}
         </div>
       </div>
+
+      <TableDrawer 
+        isOpen={isTableDrawerOpen} 
+        onClose={() => setTableDrawerOpen(false)} 
+        table={selectedTable}
+        activeOrder={activeOrderForSelectedTable}
+        onAddItem={() => {
+          setTableDrawerOpen(false);
+          setMenuDrawerOpen(true);
+        }}
+        onGenerateBill={handleGenerateBill}
+        onQuickReorder={handleQuickReorder}
+        onMarkAsServed={handleMarkAsServed}
+      />
+
+      <OrderModal
+        isOpen={isOrderModalOpen}
+        onClose={() => setOrderModalOpen(false)}
+        onSelectOrderType={handleSelectOrderType}
+      />
+
+      <MenuDrawer
+        isOpen={isMenuDrawerOpen}
+        onClose={() => {
+          setMenuDrawerOpen(false);
+          setSelectedTable(null);
+        }}
+        menuItems={menuItems}
+        tableId={selectedTable?.id || null}
+        onPlaceOrder={handlePlaceOrder}
+      />
     </div>
   );
 }
