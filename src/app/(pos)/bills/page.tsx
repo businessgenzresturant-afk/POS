@@ -19,6 +19,7 @@ export default function BillsPage() {
   const [selectedBill, setSelectedBill] = useState<any>(null);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [paymentConfirmed, setPaymentConfirmed] = useState(false);
+  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<'CASH' | 'ONLINE'>('CASH');
 
   useEffect(() => {
     fetchBills();
@@ -116,6 +117,66 @@ export default function BillsPage() {
       setShowBillModal(false);
       setSelectedBill(null);
       await fetchBills();
+    } catch (err) {
+      setError('Failed to update bill status. Please try again.');
+      console.error('Error updating bill status:', err);
+      toast.error('Failed to process payment');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handlePayAndPrint = async (billId: string, paymentMethod: string) => {
+    // 1. Get print contents first before closing
+    const printContents = document.getElementById('print-receipt')?.innerHTML;
+    
+    setLoading(true);
+    try {
+      const response = await fetch(`/api/bills/${billId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          status: 'PAID',
+          paymentMethod
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to update bill status');
+      }
+
+      toast.success('Payment recorded successfully!');
+      
+      // Refresh bill list
+      await fetchBills();
+
+      // 2. Trigger Printing
+      if (printContents) {
+        const printWindow = window.open('', '', 'height=800,width=600');
+        if (printWindow) {
+          printWindow.document.write(`
+            <html><head><title>Bill Receipt</title>
+            <style>
+              body { font-family: monospace; padding: 20px; }
+              .receipt { max-width: 400px; margin: 0 auto; }
+              .text-center { text-align: center; }
+              .border-t { border-top: 1px dashed #000; }
+              .border-b { border-bottom: 1px dashed #000; }
+              .flex { display: flex; justify-content: space-between; }
+              .font-bold { font-weight: bold; }
+              .mt-4 { margin-top: 16px; }
+            </style>
+            </head><body onload="window.print(); window.close();">
+            <div class="receipt">${printContents}</div>
+            </body></html>
+          `);
+          printWindow.document.close();
+        }
+      }
+
+      // 3. Close the modal
+      setShowBillModal(false);
+      setSelectedBill(null);
     } catch (err) {
       setError('Failed to update bill status. Please try again.');
       console.error('Error updating bill status:', err);
@@ -501,20 +562,56 @@ export default function BillsPage() {
                 </div>
               </div>
 
-              <div className="mb-6">
-                <h3 className="text-lg font-medium text-foreground mb-2">Payment Information</h3>
+              <div className="mb-6 bg-muted/30 border border-border p-4 rounded-xl">
+                <h3 className="text-sm font-black text-muted-foreground uppercase tracking-wider mb-3">Payment Information</h3>
                 <div className="space-y-4">
-                  <div>
-                    <p className="text-sm text-muted-foreground">Status:</p>
-                    <p className={`text-lg font-medium
-                      ${selectedBill.status === 'PENDING' ? 'text-yellow-500' : 'text-green-500'}`}>
-                      {selectedBill.status.charAt(0).toUpperCase() + selectedBill.status.slice(1)}
-                    </p>
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-muted-foreground">Status:</span>
+                    <span className={`text-sm font-black uppercase px-2 py-0.5 rounded ${
+                      selectedBill.status === 'PENDING' ? 'bg-amber-500/10 text-amber-500' : 'bg-green-500/10 text-green-500'
+                    }`}>
+                      {selectedBill.status}
+                    </span>
                   </div>
-                  {selectedBill.status === 'PAID' && (
-                    <div>
-                      <p className="text-sm text-muted-foreground">Payment Method:</p>
-                      <p className="text-lg font-medium text-foreground">{selectedBill.paymentMethod || 'Not specified'}</p>
+                  
+                  {selectedBill.status === 'PENDING' ? (
+                    <div className="space-y-2 pt-2 border-t border-border/50">
+                      <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider block">
+                        Select Payment Mode:
+                      </label>
+                      <div className="grid grid-cols-2 gap-2">
+                        <button
+                          type="button"
+                          onClick={() => setSelectedPaymentMethod('CASH')}
+                          className={`py-2 px-3 rounded-xl border flex items-center justify-center gap-2 text-sm transition-all ${
+                            selectedPaymentMethod === 'CASH'
+                              ? 'border-green-500 bg-green-500/10 text-green-500 font-bold shadow-sm'
+                              : 'border-border bg-background hover:bg-muted text-muted-foreground'
+                          }`}
+                        >
+                          <span>💵</span>
+                          <span>Cash</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setSelectedPaymentMethod('ONLINE')}
+                          className={`py-2 px-3 rounded-xl border flex items-center justify-center gap-2 text-sm transition-all ${
+                            selectedPaymentMethod === 'ONLINE'
+                              ? 'border-primary bg-primary/10 text-primary font-bold shadow-sm'
+                              : 'border-border bg-background hover:bg-muted text-muted-foreground'
+                          }`}
+                        >
+                          <span>🌐</span>
+                          <span>Online</span>
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="flex justify-between items-center pt-2 border-t border-border/50">
+                      <span className="text-sm text-muted-foreground">Payment Method:</span>
+                      <span className="text-sm font-bold text-foreground">
+                        {selectedBill.paymentMethod || 'Not specified'}
+                      </span>
                     </div>
                   )}
                 </div>
@@ -527,26 +624,24 @@ export default function BillsPage() {
                       <Button
                         onClick={() => handleClearTable(selectedBill.order.tableId)}
                         variant="outline"
-                        className="border-red-500/50 text-red-500 hover:bg-red-500/10 mr-auto"
+                        className="border-red-500/50 text-red-500 hover:bg-red-500/10 mr-auto font-bold rounded-xl"
                       >
                         🧹 Clear Table
                       </Button>
                     )}
                     <Button
-                      onClick={() => {
-                        setPaymentConfirmed(false);
-                        setShowPaymentModal(true);
-                      }}
+                      onClick={() => handlePayAndPrint(selectedBill.id, selectedPaymentMethod)}
                       variant="gradient"
-                      className="bg-gradient-to-r from-orange-600 to-amber-600"
+                      className="bg-gradient-to-r from-orange-600 to-amber-600 font-bold flex items-center gap-2 rounded-xl"
                     >
-                      💳 Make Payment
+                      {selectedPaymentMethod === 'CASH' ? '💵' : '🌐'} Pay & Print
                     </Button>
                     <Button
                       onClick={handlePrintBill}
                       variant="outline"
+                      className="font-bold rounded-xl"
                     >
-                      🖨️ Print
+                      🖨️ Print Draft
                     </Button>
                   </>
                 )}
