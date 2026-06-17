@@ -9,11 +9,31 @@ import { toast } from 'sonner';
 
 export default function OrdersPage() {
   const router = useRouter();
-  const [tables, setTables] = useState<any[]>([]);
-  const [menuItems, setMenuItems] = useState<any[]>([]);
-  const [activeOrders, setActiveOrders] = useState<any[]>([]);
+  const [tables, setTables] = useState<any[]>(() => {
+    if (typeof window !== 'undefined' && (window as any).__pos_orders_cache?.tables) {
+      return (window as any).__pos_orders_cache.tables;
+    }
+    return [];
+  });
+  const [menuItems, setMenuItems] = useState<any[]>(() => {
+    if (typeof window !== 'undefined' && (window as any).__pos_orders_cache?.menuItems) {
+      return (window as any).__pos_orders_cache.menuItems;
+    }
+    return [];
+  });
+  const [activeOrders, setActiveOrders] = useState<any[]>(() => {
+    if (typeof window !== 'undefined' && (window as any).__pos_orders_cache?.activeOrders) {
+      return (window as any).__pos_orders_cache.activeOrders;
+    }
+    return [];
+  });
+  const [categories, setCategories] = useState<string[]>(() => {
+    if (typeof window !== 'undefined' && (window as any).__pos_orders_cache?.categories) {
+      return (window as any).__pos_orders_cache.categories;
+    }
+    return ['All'];
+  });
   const [selectedCategory, setSelectedCategory] = useState('All');
-  const [categories, setCategories] = useState<string[]>(['All']);
   const [searchQuery, setSearchQuery] = useState('');
   
   const [selectedTable, setSelectedTable] = useState<string | null>(null);
@@ -21,7 +41,12 @@ export default function OrdersPage() {
   const [customerName, setCustomerName] = useState('');
   const [customerPhone, setCustomerPhone] = useState('');
   const [showCustomerForm, setShowCustomerForm] = useState(false);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(() => {
+    if (typeof window !== 'undefined' && (window as any).__pos_orders_cache?.tables) {
+      return false;
+    }
+    return true;
+  });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -30,7 +55,6 @@ export default function OrdersPage() {
   }, []);
 
   const fetchData = async () => {
-    setLoading(true);
     setError(null);
     try {
       const [tablesRes, menuRes, ordersRes] = await Promise.all([
@@ -47,13 +71,27 @@ export default function OrdersPage() {
       const menuData = await menuRes.json();
       const ordersData = await ordersRes.json();
       
-      setTables(tablesData);
-      setMenuItems(menuData);
-      setActiveOrders(ordersData);
+      const finalTables = Array.isArray(tablesData) ? tablesData : [];
+      const finalMenu = Array.isArray(menuData) ? menuData : [];
+      const finalOrders = Array.isArray(ordersData) ? ordersData : [];
+
+      setTables(finalTables);
+      setMenuItems(finalMenu);
+      setActiveOrders(finalOrders);
 
       // Extract unique categories from menu items
-      const uniqueCategories = ['All', ...Array.from(new Set(menuData.map((item: any) => item.category)))];
+      const uniqueCategories = ['All', ...Array.from(new Set(finalMenu.map((item: any) => item.category)))];
       setCategories(uniqueCategories as string[]);
+
+      // Save to cache
+      if (typeof window !== 'undefined') {
+        (window as any).__pos_orders_cache = {
+          tables: finalTables,
+          menuItems: finalMenu,
+          activeOrders: finalOrders,
+          categories: uniqueCategories as string[]
+        };
+      }
 
     } catch (err) {
       setError('Failed to load data. Please try again.');

@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import { signOut } from 'next-auth/react';
 import { 
@@ -51,8 +52,8 @@ export default function Header() {
       {/* Left side: Logo & Brand */}
       <div className="flex items-center gap-3 sm:gap-6">
         <Link href="/dashboard" className="flex items-center gap-3 hover:opacity-80 transition-opacity">
-          <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-primary to-primary/80 flex items-center justify-center shadow-md shadow-primary/20 flex-shrink-0">
-            <span className="text-primary-foreground font-black text-md">Z</span>
+          <div className="w-9 h-9 rounded-xl overflow-hidden flex items-center justify-center bg-zinc-900 border border-zinc-800 shadow-md shadow-primary/5 flex-shrink-0">
+            <Image src="/images/Gen-z-logo.jpg" alt="Gen-Z Logo" width={36} height={36} className="object-cover w-full h-full" />
           </div>
           <div className="hidden sm:block">
             <h1 className="font-black text-md text-foreground leading-tight tracking-tight">Gen-Z POS</h1>

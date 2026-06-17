@@ -1,6 +1,7 @@
 import { prisma } from '@/lib/prisma';
 import { NextResponse } from 'next/server';
 import { checkAuth } from '@/lib/api-auth';
+import { updateBillSchema } from '@/lib/validations';
 
 // GET single bill by ID
 export async function GET(
@@ -11,8 +12,15 @@ export async function GET(
   if (auth.error) return auth.error;
 
   try {
-    const bill = await prisma.bill.findUnique({
-      where: { id: params.id },
+    const restaurantId = (auth.session.user as any).restaurantId;
+    const bill = await prisma.bill.findFirst({
+      where: {
+        id: params.id,
+        OR: [
+          { table: { restaurantId } },
+          { order: { items: { some: { menuItem: { restaurantId } } } } }
+        ]
+      },
       include: {
         order: {
           include: {
@@ -48,18 +56,25 @@ export async function PATCH(
 
   try {
     const body = await request.json();
-    const { status, paymentMethod } = body;
-
-    if (!status) {
+    const validation = updateBillSchema.safeParse(body);
+    if (!validation.success) {
       return NextResponse.json(
-        { error: 'status is required' },
+        { error: validation.error.issues[0].message },
         { status: 400 }
       );
     }
+    const { status, paymentMethod } = validation.data;
 
-    // Get the bill with order and table info
-    const existingBill = await prisma.bill.findUnique({
-      where: { id: params.id },
+    // Get the bill with order and table info and verify restaurant ownership
+    const restaurantId = (auth.session.user as any).restaurantId;
+    const existingBill = await prisma.bill.findFirst({
+      where: {
+        id: params.id,
+        OR: [
+          { table: { restaurantId } },
+          { order: { items: { some: { menuItem: { restaurantId } } } } }
+        ]
+      },
       include: {
         order: {
           include: {

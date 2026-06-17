@@ -1,12 +1,18 @@
 import { prisma } from '@/lib/prisma';
 import { NextResponse } from 'next/server';
 import { checkAuth } from '@/lib/api-auth';
+import { checkRateLimit, RateLimitPresets, createRateLimitResponse } from '@/lib/rateLimit';
 
 // Force dynamic route to prevent caching
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
 export async function GET(request: Request) {
+  const rateLimit = checkRateLimit(request, RateLimitPresets.API);
+  if (!rateLimit.success) {
+    return createRateLimitResponse(rateLimit.resetAt);
+  }
+
   const auth = await checkAuth(request);
   if (auth.error) return auth.error;
 
@@ -15,8 +21,12 @@ export async function GET(request: Request) {
     const status = searchParams.get('status');
     const tableId = searchParams.get('tableId');
 
+    const restaurantId = (auth.session.user as any).restaurantId;
     let whereClause: any = {
-      table: { restaurantId: (auth.session.user as any).restaurantId }
+      OR: [
+        { table: { restaurantId } },
+        { items: { some: { menuItem: { restaurantId } } } }
+      ]
     };
     
     // Handle multiple statuses (comma-separated)
@@ -51,6 +61,11 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
+  const rateLimit = checkRateLimit(request, RateLimitPresets.API);
+  if (!rateLimit.success) {
+    return createRateLimitResponse(rateLimit.resetAt);
+  }
+
   const auth = await checkAuth(request);
   if (auth.error) return auth.error;
 

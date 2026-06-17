@@ -8,8 +8,18 @@ import { Input } from '@/components/ui/input';
 import { Portal } from '@/components/ui/portal';
 
 export default function TablesPage() {
-  const [tables, setTables] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [tables, setTables] = useState<any[]>(() => {
+    if (typeof window !== 'undefined' && (window as any).__pos_tables_cache?.tables) {
+      return (window as any).__pos_tables_cache.tables;
+    }
+    return [];
+  });
+  const [loading, setLoading] = useState(() => {
+    if (typeof window !== 'undefined' && (window as any).__pos_tables_cache?.tables) {
+      return false;
+    }
+    return true;
+  });
   const [error, setError] = useState<string | null>(null);
   const [showAddModal, setShowAddModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
@@ -25,7 +35,6 @@ export default function TablesPage() {
   }, []);
 
   const fetchTables = async () => {
-    setLoading(true);
     setError(null);
     try {
       const response = await fetch('/api/tables');
@@ -33,7 +42,15 @@ export default function TablesPage() {
         throw new Error('Failed to fetch tables');
       }
       const data = await response.json();
-      setTables(data);
+      const finalTables = Array.isArray(data) ? data : [];
+      setTables(finalTables);
+
+      // Save to cache
+      if (typeof window !== 'undefined') {
+        (window as any).__pos_tables_cache = {
+          tables: finalTables
+        };
+      }
     } catch (err) {
       setError('Failed to load tables. Please try again.');
       console.error('Error fetching tables:', err);

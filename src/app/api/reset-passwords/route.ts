@@ -5,6 +5,9 @@ import { hash } from 'bcryptjs';
 // This endpoint resets admin & staff passwords to known values
 // Protected by a secret key
 export async function POST(request: Request) {
+  if (process.env.NODE_ENV === 'production') {
+    return new NextResponse('Not Found', { status: 404 });
+  }
   try {
     const { secret } = await request.json();
     

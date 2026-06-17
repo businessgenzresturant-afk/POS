@@ -2,6 +2,7 @@ import { prisma } from '@/lib/prisma';
 import { NextResponse } from 'next/server';
 import * as z from 'zod';
 import * as bcrypt from 'bcryptjs';
+import { checkRateLimit, RateLimitPresets, createRateLimitResponse } from '@/lib/rateLimit';
 
 const registerSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters"),
@@ -10,6 +11,11 @@ const registerSchema = z.object({
 });
 
 export async function POST(request: Request) {
+  const rateLimit = checkRateLimit(request, RateLimitPresets.AUTH);
+  if (!rateLimit.success) {
+    return createRateLimitResponse(rateLimit.resetAt);
+  }
+
   try {
     const body = await request.json();
     const { name, email, password } = registerSchema.parse(body);

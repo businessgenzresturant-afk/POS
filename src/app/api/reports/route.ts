@@ -13,8 +13,8 @@ export async function GET(request: Request) {
 
   try {
     const { searchParams } = new URL(request.url);
-    const startDateStr = searchParams.get('startDate');
-    const endDateStr = searchParams.get('endDate');
+    const startDateStr = searchParams.get('startDate') || searchParams.get('start');
+    const endDateStr = searchParams.get('endDate') || searchParams.get('end');
     
     // Default to today if no dates provided
     const startDate = startDateStr ? new Date(startDateStr) : new Date();
@@ -24,6 +24,7 @@ export async function GET(request: Request) {
     endDate.setHours(23, 59, 59, 999);
     
     // Get completed orders within date range
+    const restaurantId = (auth.session.user as any).restaurantId;
     const orders = await prisma.order.findMany({
       where: {
         status: 'COMPLETED',
@@ -31,6 +32,10 @@ export async function GET(request: Request) {
           gte: startDate,
           lte: endDate,
         },
+        OR: [
+          { table: { restaurantId } },
+          { items: { some: { menuItem: { restaurantId } } } }
+        ]
       },
       include: {
         items: {

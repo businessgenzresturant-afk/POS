@@ -6,18 +6,35 @@ import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 
 export default function ReportsPage() {
-  const [startDate, setStartDate] = useState('');
-  const [endDate, setEndDate] = useState('');
-  const [reportData, setReportData] = useState<any>(null);
+  const [startDate, setStartDate] = useState(() => {
+    if (typeof window !== 'undefined' && (window as any).__pos_reports_cache?.startDate) {
+      return (window as any).__pos_reports_cache.startDate;
+    }
+    return '';
+  });
+  const [endDate, setEndDate] = useState(() => {
+    if (typeof window !== 'undefined' && (window as any).__pos_reports_cache?.endDate) {
+      return (window as any).__pos_reports_cache.endDate;
+    }
+    return '';
+  });
+  const [reportData, setReportData] = useState<any>(() => {
+    if (typeof window !== 'undefined' && (window as any).__pos_reports_cache?.reportData) {
+      return (window as any).__pos_reports_cache.reportData;
+    }
+    return null;
+  });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
-  // Set default dates to today
+  // Set default dates to today if cache is empty
   useEffect(() => {
-    const today = new Date().toISOString().split('T')[0];
-    setStartDate(today);
-    setEndDate(today);
-  }, []);
+    if (!startDate || !endDate) {
+      const today = new Date().toISOString().split('T')[0];
+      setStartDate(today);
+      setEndDate(today);
+    }
+  }, [startDate, endDate]);
 
   const generateReport = async () => {
     if (!startDate || !endDate) {
@@ -29,11 +46,20 @@ export default function ReportsPage() {
     setError('');
     
     try {
-      const res = await fetch(`/api/reports?start=${startDate}&end=${endDate}`);
+      const res = await fetch(`/api/reports?startDate=${startDate}&endDate=${endDate}`);
       if (!res.ok) throw new Error('Failed to generate report');
       
       const data = await res.json();
       setReportData(data);
+
+      // Save to cache
+      if (typeof window !== 'undefined') {
+        (window as any).__pos_reports_cache = {
+          reportData: data,
+          startDate,
+          endDate
+        };
+      }
     } catch (err) {
       setError('Failed to load report data');
       console.error(err);

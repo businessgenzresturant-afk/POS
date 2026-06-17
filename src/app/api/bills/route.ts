@@ -1,6 +1,8 @@
 import { prisma } from '@/lib/prisma';
 import { NextResponse } from 'next/server';
 import { checkAuth } from '@/lib/api-auth';
+import { createBillSchema } from '@/lib/validations';
+import { checkRateLimit, RateLimitPresets, createRateLimitResponse } from '@/lib/rateLimit';
 
 // Force dynamic route to prevent caching
 export const dynamic = 'force-dynamic';
@@ -8,6 +10,11 @@ export const revalidate = 0;
 
 // GET bills with optional filtering
 export async function GET(request: Request) {
+  const rateLimit = checkRateLimit(request, RateLimitPresets.API);
+  if (!rateLimit.success) {
+    return createRateLimitResponse(rateLimit.resetAt);
+  }
+
   const auth = await checkAuth(request);
   if (auth.error) return auth.error;
 
@@ -15,8 +22,12 @@ export async function GET(request: Request) {
     const { searchParams } = new URL(request.url);
     const statusParam = searchParams.get('status');
 
+    const restaurantId = (auth.session.user as any).restaurantId;
     let whereClause: any = {
-      table: { restaurantId: (auth.session.user as any).restaurantId }
+      OR: [
+        { table: { restaurantId } },
+        { order: { items: { some: { menuItem: { restaurantId } } } } }
+      ]
     };
     if (statusParam) {
       whereClause.status = statusParam.toUpperCase();
@@ -48,19 +59,26 @@ export async function GET(request: Request) {
 
 // POST create new bill
 export async function POST(request: Request) {
+  const rateLimit = checkRateLimit(request, RateLimitPresets.API);
+  if (!rateLimit.success) {
+    return createRateLimitResponse(rateLimit.resetAt);
+  }
+
   const auth = await checkAuth(request);
   if (auth.error) return auth.error;
 
   try {
     const body = await request.json();
-    const { orderId } = body;
-
-    if (!orderId) {
+    
+    const validation = createBillSchema.safeParse(body);
+    if (!validation.success) {
       return NextResponse.json(
-        { error: 'orderId is required' },
+        { error: validation.error.issues[0].message },
         { status: 400 }
       );
     }
+
+    const { orderId } = validation.data;
 
     // Check if order exists and is completed
     const order = await prisma.order.findUnique({

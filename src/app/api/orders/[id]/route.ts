@@ -10,8 +10,15 @@ export async function GET(
   if (auth.error) return auth.error;
 
   try {
-    const order = await prisma.order.findUnique({
-      where: { id: params.id },
+    const restaurantId = (auth.session.user as any).restaurantId;
+    const order = await prisma.order.findFirst({
+      where: {
+        id: params.id,
+        OR: [
+          { table: { restaurantId } },
+          { items: { some: { menuItem: { restaurantId } } } }
+        ]
+      },
       include: {
         table: true,
         items: {
@@ -41,6 +48,21 @@ export async function PATCH(
   try {
     const body = await request.json();
     const { status, paymentStatus } = body;
+
+    const restaurantId = (auth.session.user as any).restaurantId;
+    const existingOrder = await prisma.order.findFirst({
+      where: {
+        id: params.id,
+        OR: [
+          { table: { restaurantId } },
+          { items: { some: { menuItem: { restaurantId } } } }
+        ]
+      }
+    });
+
+    if (!existingOrder) {
+      return NextResponse.json({ error: 'Order not found' }, { status: 404 });
+    }
 
     const order = await prisma.order.update({
       where: { id: params.id },
@@ -73,8 +95,15 @@ export async function DELETE(
   if (auth.error) return auth.error;
 
   try {
-    const order = await prisma.order.findUnique({
-      where: { id: params.id }
+    const restaurantId = (auth.session.user as any).restaurantId;
+    const order = await prisma.order.findFirst({
+      where: {
+        id: params.id,
+        OR: [
+          { table: { restaurantId } },
+          { items: { some: { menuItem: { restaurantId } } } }
+        ]
+      }
     });
 
     if (!order) {

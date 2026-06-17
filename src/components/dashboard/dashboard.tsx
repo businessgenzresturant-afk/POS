@@ -27,11 +27,36 @@ import { Portal } from '@/components/ui/portal';
 import { toast } from 'sonner';
 
 export function Dashboard() {
-  const [tables, setTables] = useState<any[]>([]);
-  const [menuItems, setMenuItems] = useState<any[]>([]);
-  const [activeOrders, setActiveOrders] = useState<any[]>([]);
-  const [revenue, setRevenue] = useState(0);
-  const [loading, setLoading] = useState(true);
+  const [tables, setTables] = useState<any[]>(() => {
+    if (typeof window !== 'undefined' && (window as any).__pos_cache?.tables) {
+      return (window as any).__pos_cache.tables;
+    }
+    return [];
+  });
+  const [menuItems, setMenuItems] = useState<any[]>(() => {
+    if (typeof window !== 'undefined' && (window as any).__pos_cache?.menuItems) {
+      return (window as any).__pos_cache.menuItems;
+    }
+    return [];
+  });
+  const [activeOrders, setActiveOrders] = useState<any[]>(() => {
+    if (typeof window !== 'undefined' && (window as any).__pos_cache?.activeOrders) {
+      return (window as any).__pos_cache.activeOrders;
+    }
+    return [];
+  });
+  const [revenue, setRevenue] = useState(() => {
+    if (typeof window !== 'undefined' && (window as any).__pos_cache?.revenue) {
+      return (window as any).__pos_cache.revenue;
+    }
+    return 0;
+  });
+  const [loading, setLoading] = useState(() => {
+    if (typeof window !== 'undefined' && (window as any).__pos_cache?.tables) {
+      return false;
+    }
+    return true;
+  });
 
   // Modal / Drawer States
   const [isTableSelectModalOpen, setTableSelectModalOpen] = useState(false);
@@ -67,18 +92,29 @@ export function Dashboard() {
       }
 
       const t = tablesRes.ok ? await tablesRes.json() : [];
-      setTables(Array.isArray(t) ? t : []);
-
       const o = ordersRes.ok ? await ordersRes.json() : [];
-      setActiveOrders(Array.isArray(o) ? o : []);
-
+      const m = menuRes.ok ? await menuRes.json() : [];
+      let rev = 0;
       if (reportsRes.ok) {
         const r = await reportsRes.json();
-        setRevenue(r.dailySalesTotal || 0);
+        rev = r.dailySalesTotal || 0;
       }
 
-      const m = menuRes.ok ? await menuRes.json() : [];
+      // Update state
+      setTables(Array.isArray(t) ? t : []);
+      setActiveOrders(Array.isArray(o) ? o : []);
+      setRevenue(rev);
       setMenuItems(Array.isArray(m) ? m : []);
+
+      // Cache globally on window
+      if (typeof window !== 'undefined') {
+        (window as any).__pos_cache = {
+          tables: Array.isArray(t) ? t : [],
+          activeOrders: Array.isArray(o) ? o : [],
+          revenue: rev,
+          menuItems: Array.isArray(m) ? m : []
+        };
+      }
     } catch (error) {
       console.error('Error fetching dashboard data:', error);
     } finally {

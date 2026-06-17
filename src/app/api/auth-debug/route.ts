@@ -8,6 +8,9 @@ import { authOptions } from '@/lib/auth-config';
 export const dynamic = 'force-dynamic';
 
 export async function GET(req: Request) {
+  if (process.env.NODE_ENV === 'production') {
+    return new NextResponse('Not Found', { status: 404 });
+  }
   const cookieStore = await cookies();
   const allCookies = cookieStore.getAll();
   

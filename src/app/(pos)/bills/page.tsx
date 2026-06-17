@@ -11,8 +11,24 @@ import Image from 'next/image';
 import { Portal } from '@/components/ui/portal';
 
 export default function BillsPage() {
-  const [bills, setBills] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [bills, setBills] = useState<any[]>(() => {
+    if (typeof window !== 'undefined' && (window as any).__pos_bills_cache?.bills) {
+      return (window as any).__pos_bills_cache.bills;
+    }
+    return [];
+  });
+  const [completedOrders, setCompletedOrders] = useState<any[]>(() => {
+    if (typeof window !== 'undefined' && (window as any).__pos_bills_cache?.completedOrders) {
+      return (window as any).__pos_bills_cache.completedOrders;
+    }
+    return [];
+  });
+  const [loading, setLoading] = useState(() => {
+    if (typeof window !== 'undefined' && (window as any).__pos_bills_cache?.bills) {
+      return false;
+    }
+    return true;
+  });
   const [error, setError] = useState<string | null>(null);
   const [showBillModal, setShowBillModal] = useState(false);
   const [showGenerateModal, setShowGenerateModal] = useState(false);
@@ -25,10 +41,7 @@ export default function BillsPage() {
     fetchBills();
   }, []);
 
-  const [completedOrders, setCompletedOrders] = useState<any[]>([]);
-
   const fetchBills = async () => {
-    setLoading(true);
     setError(null);
     try {
       // Fetch both bills and completed orders concurrently
@@ -45,8 +58,19 @@ export default function BillsPage() {
       const ordersData = await ordersResponse.json();
 
       const billsData = billsJson.data ?? billsJson;
-      setBills(Array.isArray(billsData) ? billsData : []);
-      setCompletedOrders(Array.isArray(ordersData) ? ordersData : []);
+      const finalBills = Array.isArray(billsData) ? billsData : [];
+      const finalOrders = Array.isArray(ordersData) ? ordersData : [];
+
+      setBills(finalBills);
+      setCompletedOrders(finalOrders);
+
+      // Save to cache
+      if (typeof window !== 'undefined') {
+        (window as any).__pos_bills_cache = {
+          bills: finalBills,
+          completedOrders: finalOrders
+        };
+      }
     } catch (err) {
       setError('Failed to load data. Please try again.');
       console.error('Error fetching data:', err);
@@ -456,7 +480,7 @@ export default function BillsPage() {
                 <div className="text-center mb-4">
                   <div className="flex justify-center mb-3">
                     <div className="w-32 rounded-lg overflow-hidden bg-white p-2">
-                      <Image src="/logo.svg" alt="Gen-Z POS" width={128} height={128} className="w-full" />
+                      <Image src="/images/Gen-z-logo.jpg" alt="Gen-Z POS" width={128} height={128} className="w-full" />
                     </div>
                   </div>
                   <h2 className="text-lg font-black uppercase tracking-wider mb-1">Gen-Z POS</h2>

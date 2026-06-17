@@ -6,9 +6,39 @@ import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import type { OrderWithItems } from '@/types/prisma';
 
+const SkeletonCard = () => (
+  <Card className="overflow-hidden border border-border shadow-lg shadow-border/50 rounded-2xl animate-pulse">
+    <div className="bg-zinc-800 p-4 flex justify-between items-center h-16">
+      <div className="h-6 w-24 bg-zinc-700 rounded-lg" />
+      <div className="h-6 w-12 bg-zinc-700 rounded-full" />
+    </div>
+    <div className="p-4 space-y-4">
+      <div className="space-y-2">
+        <div className="h-5 w-2/3 bg-zinc-800 rounded-lg" />
+        <div className="h-4 w-1/3 bg-zinc-800 rounded-lg" />
+      </div>
+      <div className="h-[100px] bg-zinc-900 rounded-xl" />
+      <div className="flex gap-2">
+        <div className="h-9 flex-1 bg-zinc-800 rounded-xl" />
+        <div className="h-9 w-20 bg-zinc-800 rounded-xl" />
+      </div>
+    </div>
+  </Card>
+);
+
 export default function KOTPage() {
-  const [orders, setOrders] = useState<Record<number, OrderWithItems[]>>({});
-  const [loading, setLoading] = useState(true);
+  const [orders, setOrders] = useState<Record<number, OrderWithItems[]>>(() => {
+    if (typeof window !== 'undefined' && (window as any).__pos_kot_cache?.orders) {
+      return (window as any).__pos_kot_cache.orders;
+    }
+    return {};
+  });
+  const [loading, setLoading] = useState(() => {
+    if (typeof window !== 'undefined' && (window as any).__pos_kot_cache?.orders) {
+      return false;
+    }
+    return true;
+  });
   const [error, setError] = useState<string | null>(null);
   const [elapsedTime, setElapsedTime] = useState<Record<string, number>>({});
 
@@ -54,6 +84,13 @@ export default function KOTPage() {
       }, {});
 
       setOrders(groupedOrders);
+
+      // Save to cache
+      if (typeof window !== 'undefined') {
+        (window as any).__pos_kot_cache = {
+          orders: groupedOrders
+        };
+      }
 
       // Initialize elapsed time for new orders
       setElapsedTime(prev => {
@@ -149,25 +186,6 @@ export default function KOTPage() {
     printWindow.document.close();
   };
 
-  if (loading && Object.keys(orders).length === 0) {
-    return (
-      <div className="min-h-[600px] flex items-center justify-center animate-fade-in">
-        <div className="text-center space-y-6">
-          <div className="relative w-24 h-24 mx-auto">
-            <div className="absolute inset-0 rounded-full border-t-4 border-primary animate-spin"></div>
-            <div className="absolute inset-2 rounded-full border-r-4 border-orange-400 animate-spin" style={{ animationDirection: 'reverse', animationDuration: '1.5s' }}></div>
-            <div className="absolute inset-4 rounded-full border-b-4 border-yellow-400 animate-spin" style={{ animationDuration: '2s' }}></div>
-            <div className="absolute inset-0 flex items-center justify-center text-3xl animate-pulse">👨‍🍳</div>
-          </div>
-          <div className="space-y-2">
-            <h3 className="text-xl font-bold text-foreground tracking-tight">Fetching Kitchen Tickets</h3>
-            <p className="text-muted-foreground font-medium">Getting the latest orders from the floor...</p>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
   if (error) {
     return (
       <div className="p-6 text-center">
@@ -182,6 +200,7 @@ export default function KOTPage() {
 
   // Convert grouped orders to array for rendering
   const orderGroups = Object.entries(orders);
+  const showSkeletons = loading && orderGroups.length === 0;
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -198,7 +217,14 @@ export default function KOTPage() {
         </p>
       </div>
 
-      {orderGroups.length === 0 ? (
+      {showSkeletons ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4 items-start">
+          <SkeletonCard />
+          <SkeletonCard />
+          <SkeletonCard />
+          <SkeletonCard />
+        </div>
+      ) : orderGroups.length === 0 ? (
         <Card className="p-16 text-center border-dashed border border-border bg-muted/50">
           <div className="text-6xl mb-4">✨</div>
           <h3 className="text-xl font-bold text-foreground mb-2">Kitchen is all caught up!</h3>

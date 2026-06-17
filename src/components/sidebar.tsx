@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import { 
   LayoutDashboard, 
@@ -32,8 +33,8 @@ export default function Sidebar() {
     <aside className="w-72 h-screen flex-shrink-0 bg-background/80 backdrop-blur-2xl border-r border-border shadow-sm flex flex-col z-20 sticky top-0">
       <div className="p-6 border-b border-border/50">
         <Link href="/" className="flex items-center gap-3 hover:opacity-80 transition-opacity">
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary to-primary/80 flex items-center justify-center shadow-lg shadow-primary/30">
-            <span className="text-primary-foreground font-black text-xl">Z</span>
+          <div className="w-10 h-10 rounded-xl overflow-hidden flex items-center justify-center bg-zinc-900 border border-zinc-800 shadow-lg shadow-primary/5 flex-shrink-0">
+            <Image src="/images/Gen-z-logo.jpg" alt="Gen-Z Logo" width={40} height={40} className="object-cover w-full h-full" />
           </div>
           <div>
             <h1 className="font-black text-xl text-foreground leading-tight tracking-tight">Gen-Z POS</h1>

@@ -25,9 +25,24 @@ const CATEGORIES = [
 ];
 
 export default function MenuPage() {
-  const [menuItems, setMenuItems] = useState<any[]>([]);
-  const [filteredItems, setFilteredItems] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [menuItems, setMenuItems] = useState<any[]>(() => {
+    if (typeof window !== 'undefined' && (window as any).__pos_menu_cache?.menuItems) {
+      return (window as any).__pos_menu_cache.menuItems;
+    }
+    return [];
+  });
+  const [filteredItems, setFilteredItems] = useState<any[]>(() => {
+    if (typeof window !== 'undefined' && (window as any).__pos_menu_cache?.filteredItems) {
+      return (window as any).__pos_menu_cache.filteredItems;
+    }
+    return [];
+  });
+  const [loading, setLoading] = useState(() => {
+    if (typeof window !== 'undefined' && (window as any).__pos_menu_cache?.menuItems) {
+      return false;
+    }
+    return true;
+  });
   const [error, setError] = useState<string | null>(null);
   const [showAddModal, setShowAddModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
@@ -67,10 +82,17 @@ export default function MenuPage() {
     }
 
     setFilteredItems(filtered);
+
+    // Save filtered state to cache too
+    if (typeof window !== 'undefined' && menuItems.length > 0) {
+      (window as any).__pos_menu_cache = {
+        menuItems,
+        filteredItems: filtered
+      };
+    }
   }, [menuItems, searchQuery, selectedCategory]);
 
   const fetchMenuItems = async () => {
-    setLoading(true);
     setError(null);
     try {
       const response = await fetch('/api/menu');
@@ -78,7 +100,16 @@ export default function MenuPage() {
         throw new Error('Failed to fetch menu items');
       }
       const data = await response.json();
-      setMenuItems(data);
+      const finalItems = Array.isArray(data) ? data : [];
+      setMenuItems(finalItems);
+
+      // Save to cache
+      if (typeof window !== 'undefined') {
+        (window as any).__pos_menu_cache = {
+          menuItems: finalItems,
+          filteredItems: finalItems
+        };
+      }
     } catch (err) {
       setError('Failed to load menu items. Please try again.');
       console.error('Error fetching menu items:', err);

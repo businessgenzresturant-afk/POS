@@ -1,6 +1,7 @@
 import { prisma } from '@/lib/prisma';
 import { NextResponse } from 'next/server';
 import { checkAuth } from '@/lib/api-auth';
+import { createMenuItemSchema } from '@/lib/validations';
 
 // Force dynamic route to prevent caching
 export const dynamic = 'force-dynamic';
@@ -31,17 +32,29 @@ export async function POST(request: Request) {
   const auth = await checkAuth(request);
   if (auth.error) return auth.error;
 
+  // Restrict to ADMIN
+  if ((auth.session.user as any).role !== 'ADMIN') {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  }
+
   try {
     const body = await request.json();
-    const { name, category, price, imageUrl, available, restaurantId } = body;
+    
+    const validation = createMenuItemSchema.safeParse(body);
+    if (!validation.success) {
+      return NextResponse.json(
+        { error: validation.error.issues[0].message },
+        { status: 400 }
+      );
+    }
 
     const menuItem = await prisma.menuItem.create({
       data: {
-        name,
-        category,
-        price,
-        imageUrl: imageUrl || '',
-        available: available !== false,
+        name: validation.data.name,
+        category: validation.data.category,
+        price: validation.data.price,
+        imageUrl: validation.data.imageUrl || '',
+        available: validation.data.available !== false,
         restaurantId: (auth.session.user as any).restaurantId
       }
     });
