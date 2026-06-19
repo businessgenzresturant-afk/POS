@@ -78,8 +78,8 @@ export function Dashboard() {
   const [selectedOrderType, setSelectedOrderType] = useState<string>('DINE_IN');
   const [customerDetails, setCustomerDetails] = useState<any>(null);
 
-  // Audio ref for dashboard click sound
-  const clickSoundRef = useRef<HTMLAudioElement | null>(null);
+  // Removed dashboard click sound - sounds should ONLY play on KDS page
+  // when actual new orders arrive, not on dashboard button clicks
 
   const fetchData = useCallback(async () => {
     try {
@@ -167,32 +167,9 @@ export function Dashboard() {
     return () => clearInterval(interval);
   }, [fetchData]);
 
-  // Preload dashboard click sound (reuse the same sound loading pattern as KDS)
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      // Reuse the urgent.mp3 sound at lower volume for dashboard clicks
-      clickSoundRef.current = new Audio('/sounds/urgent.mp3');
-      clickSoundRef.current.volume = 0.3; // Lower volume for subtle feedback
-      clickSoundRef.current.load();
-    }
-  }, []);
+  // Removed dashboard click sound preloading
 
-  // Play click sound utility (follows KDS pattern)
-  const playClickSound = useCallback(() => {
-    try {
-      if (!clickSoundRef.current) return;
-      
-      // Clone the audio to allow rapid successive clicks
-      const soundClone = clickSoundRef.current.cloneNode() as HTMLAudioElement;
-      soundClone.volume = 0.3;
-      soundClone.play().catch(() => {
-        // Silently fail if browser blocks autoplay - never break functionality
-      });
-    } catch (e) {
-      // Silently fail - sound is nice-to-have, not critical
-      console.debug('Dashboard click sound failed:', e);
-    }
-  }, []);
+  // Removed playClickSound function - no sounds on dashboard buttons
 
   const physicalTables = tables.filter(t => t.number < 1000).sort((a, b) => a.number - b.number);
   
@@ -414,7 +391,6 @@ export function Dashboard() {
             {/* Dine In Card */}
             <button 
               onClick={() => {
-                playClickSound();
                 setTableSelectModalOpen(true);
               }}
               className="p-6 rounded-2xl border-2 border-border/80 bg-card flex flex-col justify-between items-start cursor-pointer hover:border-blue-500/60 hover:bg-blue-500/5 hover:shadow-lg hover:shadow-blue-500/5 transition-all text-left group min-h-[140px]"
@@ -431,7 +407,6 @@ export function Dashboard() {
             {/* Takeaway Card */}
             <button 
               onClick={() => {
-                playClickSound();
                 handleOrderTypeCardClick('TAKEAWAY');
               }}
               className="p-6 rounded-2xl border-2 border-border/80 bg-card flex flex-col justify-between items-start cursor-pointer hover:border-amber-500/60 hover:bg-amber-500/5 hover:shadow-lg hover:shadow-amber-500/5 transition-all text-left group min-h-[140px]"
@@ -448,7 +423,6 @@ export function Dashboard() {
             {/* Delivery Card */}
             <button 
               onClick={() => {
-                playClickSound();
                 handleOrderTypeCardClick('DELIVERY');
               }}
               className="p-6 rounded-2xl border-2 border-border/80 bg-card flex flex-col justify-between items-start cursor-pointer hover:border-rose-500/60 hover:bg-rose-500/5 hover:shadow-lg hover:shadow-rose-500/5 transition-all text-left group min-h-[140px]"
@@ -596,7 +570,7 @@ export function Dashboard() {
               if (hasActiveOrder) {
                 setTableDrawerOpen(true);
               } else {
-                setGuestCountModalOpen(true);
+                setTableSelectModalOpen(true); // Go back to table selection, not guest count
               }
             } else {
               setCustomerDetailsModalOpen(true);
