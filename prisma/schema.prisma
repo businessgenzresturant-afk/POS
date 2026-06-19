@@ -36,21 +36,21 @@ model Table {
 }
 
 model MenuItem {
-  id                 String      @id @default(dbgenerated("(gen_random_uuid())::text"))
-  name               String
-  category           String
-  price              Float
-  priceHalf          Float?
-  hasHalfFullOption  Boolean     @default(false)
-  imageUrl           String
-  available          Boolean     @default(true)
-  dietType           DietType    @default(VEG)
-  stockQuantity      Int?
-  restaurantId       String
-  createdAt          DateTime    @default(now())
-  updatedAt          DateTime    @default(now()) @updatedAt
-  restaurant         Restaurant  @relation(fields: [restaurantId], references: [id])
-  orderItems         OrderItem[]
+  id                String      @id @default(dbgenerated("(gen_random_uuid())::text"))
+  name              String
+  category          String
+  price             Float
+  priceHalf         Float?
+  hasHalfFullOption Boolean     @default(false)
+  imageUrl          String
+  available         Boolean     @default(true)
+  dietType          DietType    @default(VEG)
+  stockQuantity     Int?
+  restaurantId      String
+  createdAt         DateTime    @default(now())
+  updatedAt         DateTime    @default(now()) @updatedAt
+  restaurant        Restaurant  @relation(fields: [restaurantId], references: [id])
+  orderItems        OrderItem[]
 
   @@index([restaurantId])
   @@index([category])
@@ -126,29 +126,29 @@ model Bill {
 }
 
 model Customer {
-  id                 String             @id @default(dbgenerated("(gen_random_uuid())::text"))
-  phone              String             @unique
-  name               String?
-  totalVisits        Int                @default(0)
-  totalSpend         Float              @default(0)
-  pointsBalance      Int                @default(0)
-  createdAt          DateTime           @default(now())
-  updatedAt          DateTime           @default(now()) @updatedAt
-  bills              Bill[]
-  pointTransactions  PointTransaction[]
+  id                String             @id @default(dbgenerated("(gen_random_uuid())::text"))
+  phone             String             @unique
+  name              String?
+  totalVisits       Int                @default(0)
+  totalSpend        Float              @default(0)
+  pointsBalance     Int                @default(0)
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @default(now()) @updatedAt
+  bills             Bill[]
+  pointTransactions PointTransaction[]
 
   @@index([phone])
 }
 
 model PointTransaction {
-  id         String                 @id @default(dbgenerated("(gen_random_uuid())::text"))
+  id         String               @id @default(dbgenerated("(gen_random_uuid())::text"))
   customerId String
   billId     String?
   points     Int
   type       PointTransactionType
-  createdAt  DateTime               @default(now())
-  bill       Bill?                  @relation(fields: [billId], references: [id])
-  customer   Customer               @relation(fields: [customerId], references: [id])
+  createdAt  DateTime             @default(now())
+  bill       Bill?                @relation(fields: [billId], references: [id])
+  customer   Customer             @relation(fields: [customerId], references: [id])
 
   @@index([customerId])
   @@index([billId])
@@ -162,8 +162,8 @@ model User {
   role                Role        @default(STAFF)
   restaurantId        String?
   createdAt           DateTime    @default(now())
-  restaurant          Restaurant? @relation(fields: [restaurantId], references: [id])
   cancelledOrderItems OrderItem[]
+  restaurant          Restaurant? @relation(fields: [restaurantId], references: [id])
 }
 
 enum TableStatus {
