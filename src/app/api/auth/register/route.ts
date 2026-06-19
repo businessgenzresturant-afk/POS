@@ -13,13 +13,16 @@ const registerSchema = z.object({
 });
 
 export async function POST(request: Request) {
-  const rateLimit = checkRateLimit(request, RateLimitPresets.AUTH);
+  // More relaxed rate limit for registration (10 requests per minute)
+  const rateLimit = checkRateLimit(request, { maxRequests: 10, windowMs: 60 * 1000 });
   if (!rateLimit.success) {
     return createRateLimitResponse(rateLimit.resetAt);
   }
 
   try {
     const body = await request.json();
+    console.log('[Registration] Request received:', { email: body.email, name: body.name });
+    
     const { name, email, password, restaurantName, restaurantAddress } = registerSchema.parse(body);
 
     // Check if user already exists
@@ -28,6 +31,7 @@ export async function POST(request: Request) {
     });
 
     if (existingUser) {
+      console.log('[Registration] User already exists:', email);
       return NextResponse.json(
         { error: "User with this email already exists" },
         { status: 400 }
@@ -35,26 +39,35 @@ export async function POST(request: Request) {
     }
 
     // Hash password
+    console.log('[Registration] Hashing password...');
     const hashedPassword = await bcrypt.hash(password, 10);
 
     // Check if a restaurant already exists
+    console.log('[Registration] Checking for existing restaurant...');
     let restaurant = await prisma.restaurant.findFirst();
 
     // If no restaurant exists, create one with the provided details or defaults
     if (!restaurant) {
+      console.log('[Registration] Creating new restaurant...');
       restaurant = await prisma.restaurant.create({
         data: {
           name: restaurantName || 'GenZ Restaurant',
           address: restaurantAddress || 'L-97, Gali No 7, Near Labour Chowk, Mahipalpur, 110037',
         },
       });
+      console.log('[Registration] Restaurant created:', restaurant.id);
+    } else {
+      console.log('[Registration] Using existing restaurant:', restaurant.id);
     }
 
     // First user becomes ADMIN, subsequent users become STAFF
+    console.log('[Registration] Counting existing users...');
     const userCount = await prisma.user.count();
     const role = userCount === 0 ? 'ADMIN' : 'STAFF';
+    console.log('[Registration] User will be:', role);
 
     // Create user
+    console.log('[Registration] Creating user...');
     const user = await prisma.user.create({
       data: {
         name,
@@ -64,6 +77,8 @@ export async function POST(request: Request) {
         restaurantId: restaurant.id,
       },
     });
+
+    console.log('[Registration] User created successfully:', user.id, user.email, user.role);
 
     // Remove password from response
     const { password: _, ...userWithoutPassword } = user;
@@ -75,15 +90,22 @@ export async function POST(request: Request) {
   } catch (error) {
     if (error instanceof z.ZodError) {
       const zodError = error as any;
+      console.error('[Registration] Validation error:', zodError.errors);
       return NextResponse.json(
         { error: zodError.errors[0].message },
         { status: 400 }
       );
     }
 
-    console.error('Registration error:', error);
+    console.error('[Registration] Internal error:', error);
+    console.error('[Registration] Error details:', {
+      message: (error as any)?.message,
+      code: (error as any)?.code,
+      meta: (error as any)?.meta,
+    });
+    
     return NextResponse.json(
-      { error: "Internal server error" },
+      { error: "Internal server error", details: (error as any)?.message || "Unknown error" },
       { status: 500 }
     );
   }
