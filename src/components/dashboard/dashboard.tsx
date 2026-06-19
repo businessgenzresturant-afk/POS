@@ -81,6 +81,8 @@ export function Dashboard() {
 
   const fetchData = useCallback(async () => {
     try {
+      console.log('[Dashboard] Starting data fetch...');
+      
       const [tablesRes, ordersRes, reportsRes, menuRes] = await Promise.all([
         fetch('/api/tables', { cache: 'no-store' }),
         fetch('/api/orders?status=PENDING,PREPARING,READY,SERVED', { cache: 'no-store' }),
@@ -88,9 +90,16 @@ export function Dashboard() {
         fetch('/api/menu', { cache: 'no-store' }),
       ]);
 
+      console.log('[Dashboard] API responses:', {
+        tables: tablesRes.status,
+        orders: ordersRes.status,
+        reports: reportsRes.status,
+        menu: menuRes.status
+      });
+
       // Handle auth errors gracefully - redirect to login
       if (tablesRes.status === 401) {
-        console.error('Authentication error - redirecting to login');
+        console.error('[Dashboard] Authentication error - redirecting to login');
         window.location.href = '/login';
         return;
       }
@@ -105,35 +114,47 @@ export function Dashboard() {
         rev = r.dailySalesTotal || 0;
       }
 
+      console.log('[Dashboard] Parsed data:', {
+        tablesCount: Array.isArray(t) ? t.length : 0,
+        ordersCount: Array.isArray(o) ? o.length : 0,
+        menuCount: Array.isArray(m) ? m.length : 0,
+        revenue: rev
+      });
+
       // Validate data before updating state
       const validTables = Array.isArray(t) ? t : [];
       const validOrders = Array.isArray(o) ? o : [];
       const validMenu = Array.isArray(m) ? m : [];
 
-      // Only update if we have valid data
-      if (validTables.length > 0 || validMenu.length > 0) {
-        setTables(validTables);
-        setActiveOrders(validOrders);
-        setRevenue(rev);
-        setMenuItems(validMenu);
+      // ALWAYS update state - even if data is empty (fresh restaurant)
+      console.log('[Dashboard] Updating state with:', {
+        tables: validTables.length,
+        orders: validOrders.length,
+        menu: validMenu.length
+      });
+      
+      setTables(validTables);
+      setActiveOrders(validOrders);
+      setRevenue(rev);
+      setMenuItems(validMenu);
 
-        // Cache globally on window
-        if (typeof window !== 'undefined') {
-          (window as any).__pos_cache = {
-            tables: validTables,
-            activeOrders: validOrders,
-            revenue: rev,
-            menuItems: validMenu
-          };
-        }
-      } else {
-        console.warn('Received empty data from API, keeping previous state');
+      // Cache globally on window
+      if (typeof window !== 'undefined') {
+        (window as any).__pos_cache = {
+          tables: validTables,
+          activeOrders: validOrders,
+          revenue: rev,
+          menuItems: validMenu
+        };
       }
+      
+      console.log('[Dashboard] State updated successfully');
     } catch (error) {
-      console.error('Error fetching dashboard data:', error);
+      console.error('[Dashboard] Error fetching dashboard data:', error);
       // Don't clear state on error - keep showing last known good data
     } finally {
       setLoading(false);
+      console.log('[Dashboard] Loading complete');
     }
   }, []);
 
