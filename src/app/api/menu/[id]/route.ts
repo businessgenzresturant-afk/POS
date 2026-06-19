@@ -37,13 +37,9 @@ export async function PATCH(
   const auth = await checkAuth(request);
   if (auth.error) return auth.error;
 
-  // Restrict to ADMIN
-  if ((auth.session.user as any).role !== 'ADMIN') {
-    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-  }
-
   try {
     const body = await request.json();
+    const userRole = (auth.session.user as any).role;
     
     // Validate request using partial schema (so fields not present are optional)
     const validation = updateMenuItemSchema.partial().safeParse(body);
@@ -66,6 +62,25 @@ export async function PATCH(
       return NextResponse.json({ error: 'Menu item not found' }, { status: 404 });
     }
 
+    // RBAC: Check what fields are being updated
+    const updatingFields = Object.keys(body);
+    const isOnlyTogglingAvailability = updatingFields.length === 1 && updatingFields.includes('available');
+    const isOnlyRestocking = updatingFields.length === 1 && 
+                             updatingFields.includes('stockQuantity') && 
+                             body.stockQuantity !== null &&
+                             body.stockQuantity > (item.stockQuantity || 0);
+
+    // STAFF can only: toggle availability OR restock (increase stock only)
+    // ADMIN can do anything
+    if (userRole !== 'ADMIN') {
+      if (!isOnlyTogglingAvailability && !isOnlyRestocking) {
+        return NextResponse.json(
+          { error: 'Forbidden: STAFF can only toggle availability or restock items. Contact ADMIN to edit menu details.' },
+          { status: 403 }
+        );
+      }
+    }
+
     const menuItem = await prisma.menuItem.update({
       where: { id: params.id },
       data: validation.data
@@ -75,6 +90,14 @@ export async function PATCH(
     console.error('Error updating menu item:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
+}
+
+// PUT is an alias for PATCH for backwards compatibility
+export async function PUT(
+  request: Request,
+  { params }: { params: { id: string } }
+) {
+  return PATCH(request, { params });
 }
 
 export async function DELETE(

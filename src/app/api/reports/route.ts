@@ -11,6 +11,11 @@ export async function GET(request: Request) {
   const auth = await checkAuth(request);
   if (auth.error) return auth.error;
 
+  // Restrict to ADMIN - financial reports are sensitive
+  if ((auth.session.user as any).role !== 'ADMIN') {
+    return NextResponse.json({ error: 'Forbidden: Admin access required' }, { status: 403 });
+  }
+
   try {
     const { searchParams } = new URL(request.url);
     const startDateStr = searchParams.get('startDate') || searchParams.get('start');

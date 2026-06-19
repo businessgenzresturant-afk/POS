@@ -3,11 +3,13 @@ import { NextResponse } from 'next/server';
 import * as z from 'zod';
 import * as bcrypt from 'bcryptjs';
 import { checkRateLimit, RateLimitPresets, createRateLimitResponse } from '@/lib/rateLimit';
+import { checkAuth } from '@/lib/api-auth';
 
 const registerSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters"),
   email: z.string().email("Invalid email address"),
   password: z.string().min(8, "Password must be at least 8 characters"),
+  role: z.enum(['ADMIN', 'STAFF']).optional(),
 });
 
 export async function POST(request: Request) {
@@ -16,9 +18,17 @@ export async function POST(request: Request) {
     return createRateLimitResponse(rateLimit.resetAt);
   }
 
+  // Restrict to ADMIN - only admins can create new user accounts
+  const auth = await checkAuth(request);
+  if (auth.error) return auth.error;
+  
+  if ((auth.session.user as any).role !== 'ADMIN') {
+    return NextResponse.json({ error: 'Forbidden: Admin access required to create users' }, { status: 403 });
+  }
+
   try {
     const body = await request.json();
-    const { name, email, password } = registerSchema.parse(body);
+    const { name, email, password, role } = registerSchema.parse(body);
 
     // Check if user already exists
     const existingUser = await prisma.user.findUnique({
@@ -35,25 +45,17 @@ export async function POST(request: Request) {
     // Hash password
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // Get or create default restaurant
-    let restaurant = await prisma.restaurant.findFirst();
-    if (!restaurant) {
-      restaurant = await prisma.restaurant.create({
-        data: { 
-          id: '00000000-0000-0000-0000-000000000001', 
-          name: 'GenZ Restaurant', 
-          address: '123 Main Street' 
-        }
-      });
-    }
+    // Use admin's restaurant
+    const restaurantId = (auth.session.user as any).restaurantId;
 
-    // Create user
+    // Create user with specified role or default to STAFF
     const user = await prisma.user.create({
       data: {
         name,
         email,
         password: hashedPassword,
-        restaurantId: restaurant.id,
+        role: role || 'STAFF',
+        restaurantId,
       },
     });
 

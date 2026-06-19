@@ -8,6 +8,8 @@ import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
 import { Pencil, Eye, EyeOff, Trash2, Search, Plus, X, AlertTriangle } from 'lucide-react';
 import { Portal } from '@/components/ui/portal';
+import { DietIndicator } from '@/components/ui/diet-indicator';
+import { useAuth } from '@/lib/useAuth';
 
 const CATEGORIES = [
   'All',
@@ -25,6 +27,9 @@ const CATEGORIES = [
 ];
 
 export default function MenuPage() {
+  const { user, isAdmin, isStaff } = useAuth();
+  const router = useRouter();
+  
   const [menuItems, setMenuItems] = useState<any[]>(() => {
     if (typeof window !== 'undefined' && (window as any).__pos_menu_cache?.menuItems) {
       return (window as any).__pos_menu_cache.menuItems;
@@ -51,14 +56,17 @@ export default function MenuPage() {
   const [itemToDelete, setItemToDelete] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('All');
-  const router = useRouter();
 
   // Form state for adding/editing menu item
   const [name, setName] = useState('');
   const [category, setCategory] = useState('');
   const [price, setPrice] = useState('');
+  const [priceHalf, setPriceHalf] = useState('');
+  const [hasHalfFullOption, setHasHalfFullOption] = useState(false);
   const [imageUrl, setImageUrl] = useState('');
   const [available, setAvailable] = useState(true);
+  const [dietType, setDietType] = useState<'VEG' | 'NON_VEG'>('VEG');
+  const [stockQuantity, setStockQuantity] = useState<string>('');
 
   useEffect(() => {
     fetchMenuItems();
@@ -121,6 +129,10 @@ export default function MenuPage() {
   const handleAddMenuItem = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!name || !category || !price) return;
+    if (hasHalfFullOption && !priceHalf) {
+      setError('Please provide half portion price');
+      return;
+    }
 
     setLoading(true);
     try {
@@ -131,8 +143,12 @@ export default function MenuPage() {
           name,
           category,
           price: parseFloat(price),
+          priceHalf: hasHalfFullOption && priceHalf ? parseFloat(priceHalf) : null,
+          hasHalfFullOption,
           imageUrl,
           available,
+          dietType,
+          stockQuantity: stockQuantity ? parseInt(stockQuantity) : null,
         }),
       });
 
@@ -144,8 +160,12 @@ export default function MenuPage() {
       setName('');
       setCategory('');
       setPrice('');
+      setPriceHalf('');
+      setHasHalfFullOption(false);
       setImageUrl('');
       setAvailable(true);
+      setDietType('VEG');
+      setStockQuantity('');
       setShowAddModal(false);
       
       // Refresh menu items
@@ -160,6 +180,10 @@ export default function MenuPage() {
 
   const handleUpdateMenuItem = async () => {
     if (!itemToEdit?.id || !name || !category || !price) return;
+    if (hasHalfFullOption && !priceHalf) {
+      setError('Please provide half portion price');
+      return;
+    }
 
     setLoading(true);
     try {
@@ -170,8 +194,12 @@ export default function MenuPage() {
           name,
           category,
           price: parseFloat(price),
+          priceHalf: hasHalfFullOption && priceHalf ? parseFloat(priceHalf) : null,
+          hasHalfFullOption,
           imageUrl,
           available,
+          dietType,
+          stockQuantity: stockQuantity ? parseInt(stockQuantity) : null,
         }),
       });
 
@@ -183,8 +211,12 @@ export default function MenuPage() {
       setName('');
       setCategory('');
       setPrice('');
+      setPriceHalf('');
+      setHasHalfFullOption(false);
       setImageUrl('');
       setAvailable(true);
+      setDietType('VEG');
+      setStockQuantity('');
       setShowEditModal(false);
       setItemToEdit(null);
       
@@ -278,14 +310,16 @@ export default function MenuPage() {
             <h1 className="text-3xl font-black text-foreground">Menu Management</h1>
             <p className="text-sm text-muted-foreground mt-1">Manage your restaurant delicious items</p>
           </div>
-          <Button
-            onClick={() => setShowAddModal(true)}
-            variant="gradient"
-            size="lg"
-            className="gap-2"
-          >
-            <Plus className="h-5 w-5" /> Add New Item
-          </Button>
+          {(isAdmin === true) && (
+            <Button
+              onClick={() => setShowAddModal(true)}
+              variant="gradient"
+              size="lg"
+              className="gap-2"
+            >
+              <Plus className="h-5 w-5" /> Add New Item
+            </Button>
+          )}
         </div>
       </div>
 
@@ -393,7 +427,7 @@ export default function MenuPage() {
                 </div>
                 <div>
                   <label htmlFor="itemPrice" className="block text-sm font-semibold text-gray-700 mb-2">
-                    Price (₹)
+                    {hasHalfFullOption ? 'Full Portion Price (₹)' : 'Price (₹)'}
                   </label>
                   <Input
                     id="itemPrice"
@@ -404,6 +438,33 @@ export default function MenuPage() {
                     placeholder="0"
                   />
                 </div>
+                <div className="flex items-center gap-3 p-3 bg-muted/50 rounded-lg border border-border">
+                  <input
+                    type="checkbox"
+                    id="itemHalfFullOption"
+                    checked={hasHalfFullOption}
+                    onChange={(e) => setHasHalfFullOption(e.target.checked)}
+                    className="h-5 w-5 text-primary rounded border-border"
+                  />
+                  <label htmlFor="itemHalfFullOption" className="text-sm font-medium text-foreground">
+                    Offer Half/Full portions?
+                  </label>
+                </div>
+                {hasHalfFullOption && (
+                  <div>
+                    <label htmlFor="itemPriceHalf" className="block text-sm font-semibold text-gray-700 mb-2">
+                      Half Portion Price (₹)
+                    </label>
+                    <Input
+                      id="itemPriceHalf"
+                      type="number"
+                      value={priceHalf}
+                      onChange={(e) => setPriceHalf(e.target.value)}
+                      className="w-full"
+                      placeholder="0"
+                    />
+                  </div>
+                )}
                 <div>
                   <label htmlFor="itemImageUrl" className="block text-sm font-semibold text-gray-700 mb-2">
                     Image URL (Optional)
@@ -415,6 +476,35 @@ export default function MenuPage() {
                     className="w-full"
                     placeholder="https://example.com/image.jpg"
                   />
+                </div>
+                <div>
+                  <label htmlFor="itemDietType" className="block text-sm font-semibold text-foreground mb-2">
+                    Diet Type
+                  </label>
+                  <select
+                    id="itemDietType"
+                    value={dietType}
+                    onChange={(e) => setDietType(e.target.value as 'VEG' | 'NON_VEG')}
+                    className="w-full px-4 py-2 bg-background text-foreground border border-border rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+                  >
+                    <option value="VEG">🟢 Vegetarian</option>
+                    <option value="NON_VEG">🔴 Non-Vegetarian</option>
+                  </select>
+                </div>
+                <div>
+                  <label htmlFor="itemStockQuantity" className="block text-sm font-semibold text-foreground mb-2">
+                    Stock Quantity (Optional - leave empty for unlimited)
+                  </label>
+                  <Input
+                    id="itemStockQuantity"
+                    type="number"
+                    value={stockQuantity}
+                    onChange={(e) => setStockQuantity(e.target.value)}
+                    className="w-full"
+                    placeholder="Leave empty for unlimited stock"
+                    min="0"
+                  />
+                  <p className="text-xs text-muted-foreground mt-1">💡 When stock reaches 0, item will be automatically unavailable</p>
                 </div>
                 <div className="flex items-center gap-3 p-3 bg-muted/50 rounded-lg border border-border">
                   <input
@@ -497,7 +587,7 @@ export default function MenuPage() {
                 </div>
                 <div>
                   <label htmlFor="editItemPrice" className="block text-sm font-semibold text-gray-700 mb-2">
-                    Price (₹)
+                    {hasHalfFullOption ? 'Full Portion Price (₹)' : 'Price (₹)'}
                   </label>
                   <Input
                     id="editItemPrice"
@@ -508,6 +598,33 @@ export default function MenuPage() {
                     placeholder="Enter price"
                   />
                 </div>
+                <div className="flex items-center gap-3 p-3 bg-muted/50 rounded-lg border border-border">
+                  <input
+                    type="checkbox"
+                    id="editItemHalfFullOption"
+                    checked={hasHalfFullOption}
+                    onChange={(e) => setHasHalfFullOption(e.target.checked)}
+                    className="h-5 w-5 text-primary rounded border-border"
+                  />
+                  <label htmlFor="editItemHalfFullOption" className="text-sm font-medium text-foreground">
+                    Offer Half/Full portions?
+                  </label>
+                </div>
+                {hasHalfFullOption && (
+                  <div>
+                    <label htmlFor="editItemPriceHalf" className="block text-sm font-semibold text-gray-700 mb-2">
+                      Half Portion Price (₹)
+                    </label>
+                    <Input
+                      id="editItemPriceHalf"
+                      type="number"
+                      value={priceHalf}
+                      onChange={(e) => setPriceHalf(e.target.value)}
+                      className="w-full"
+                      placeholder="Enter half price"
+                    />
+                  </div>
+                )}
                 <div>
                   <label htmlFor="editItemImageUrl" className="block text-sm font-semibold text-gray-700 mb-2">
                     Image URL (Optional)
@@ -519,6 +636,35 @@ export default function MenuPage() {
                     className="w-full"
                     placeholder="https://example.com/image.jpg"
                   />
+                </div>
+                <div>
+                  <label htmlFor="editItemDietType" className="block text-sm font-semibold text-foreground mb-2">
+                    Diet Type
+                  </label>
+                  <select
+                    id="editItemDietType"
+                    value={dietType}
+                    onChange={(e) => setDietType(e.target.value as 'VEG' | 'NON_VEG')}
+                    className="w-full px-4 py-2 bg-background text-foreground border border-border rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+                  >
+                    <option value="VEG">🟢 Vegetarian</option>
+                    <option value="NON_VEG">🔴 Non-Vegetarian</option>
+                  </select>
+                </div>
+                <div>
+                  <label htmlFor="editItemStockQuantity" className="block text-sm font-semibold text-foreground mb-2">
+                    Stock Quantity (Optional - leave empty for unlimited)
+                  </label>
+                  <Input
+                    id="editItemStockQuantity"
+                    type="number"
+                    value={stockQuantity}
+                    onChange={(e) => setStockQuantity(e.target.value)}
+                    className="w-full"
+                    placeholder="Leave empty for unlimited stock"
+                    min="0"
+                  />
+                  <p className="text-xs text-muted-foreground mt-1">💡 When stock reaches 0, item will be automatically unavailable</p>
                 </div>
                 <div className="flex items-center gap-3 p-3 bg-muted/50 rounded-lg border border-border">
                   <input
@@ -616,22 +762,76 @@ export default function MenuPage() {
             <div
               key={item.id}
               onClick={() => {
-                setItemToEdit(item);
-                setName(item.name);
-                setCategory(item.category);
-                setPrice(item.price.toString());
-                setImageUrl(item.imageUrl);
-                setAvailable(item.available);
-                setShowEditModal(true);
+                // ADMIN: full edit, STAFF: restock only
+                if (isAdmin === true) {
+                  setItemToEdit(item);
+                  setName(item.name);
+                  setCategory(item.category);
+                  setPrice(item.price.toString());
+                  setPriceHalf(item.priceHalf ? item.priceHalf.toString() : '');
+                  setHasHalfFullOption(item.hasHalfFullOption || false);
+                  setImageUrl(item.imageUrl);
+                  setAvailable(item.available);
+                  setDietType(item.dietType || 'VEG');
+                  setStockQuantity(item.stockQuantity !== null && item.stockQuantity !== undefined ? item.stockQuantity.toString() : '');
+                  setShowEditModal(true);
+                }
+                // STAFF can't edit via card click (only use toggle availability button)
               }}
-              className={`border rounded-xl p-4 transition-all cursor-pointer hover:border-primary/50 group card-enhanced ${
+              className={`border rounded-xl p-4 transition-all group card-enhanced ${
                 item.available ? 'border-border' : 'border-border/50 opacity-60'
-              }`}
+              } ${isAdmin === true ? 'cursor-pointer hover:border-primary/50' : ''}`}
             >
               <div className="flex items-start justify-between mb-3">
                 <div className="flex-1 pr-2">
-                  <h3 className="font-bold text-foreground text-lg leading-tight group-hover:text-primary transition-colors">{item.name}</h3>
+                  <div className="flex items-center gap-2 mb-1">
+                    <DietIndicator dietType={item.dietType || 'VEG'} />
+                    <h3 className="font-bold text-foreground text-lg leading-tight group-hover:text-primary transition-colors">{item.name}</h3>
+                  </div>
                   <p className="text-xs text-muted-foreground mt-1">{item.category}</p>
+                  {item.stockQuantity !== null && item.stockQuantity !== undefined && (
+                    <div className="flex items-center gap-2 mt-2">
+                      <p className={`text-xs font-semibold ${
+                        item.stockQuantity === 0 
+                          ? 'text-red-600 dark:text-red-400' 
+                          : item.stockQuantity < 10 
+                          ? 'text-amber-600 dark:text-amber-400' 
+                          : 'text-muted-foreground'
+                      }`}>
+                        {item.stockQuantity === 0 ? '⚠️ OUT OF STOCK' : `📦 Stock: ${item.stockQuantity}`}
+                      </p>
+                      {/* Quick restock buttons for STAFF */}
+                      {(isStaff === true) && (
+                        <div className="flex gap-1">
+                          {[10, 25, 50].map((amount) => (
+                            <button
+                              key={amount}
+                              onClick={async (e) => {
+                                e.stopPropagation();
+                                try {
+                                  const response = await fetch(`/api/menu/${item.id}`, {
+                                    method: 'PATCH',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify({ 
+                                      stockQuantity: (item.stockQuantity || 0) + amount 
+                                    })
+                                  });
+                                  if (!response.ok) throw new Error('Failed to restock');
+                                  toast.success(`Added ${amount} units to stock`);
+                                  fetchMenuItems();
+                                } catch (err) {
+                                  toast.error('Failed to restock item');
+                                }
+                              }}
+                              className="text-[10px] px-1.5 py-0.5 rounded bg-primary/10 text-primary hover:bg-primary/20 font-semibold"
+                            >
+                              +{amount}
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
                 <span
                   className={`px-2 py-1 text-xs font-semibold rounded-full ${
@@ -649,6 +849,7 @@ export default function MenuPage() {
                   ₹{item.price.toFixed(2)}
                 </p>
                 <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                  {/* Availability toggle - visible to all */}
                   <Button
                     onClick={(e) => {
                       e.stopPropagation();
@@ -657,21 +858,26 @@ export default function MenuPage() {
                     variant="ghost"
                     size="icon"
                     className="h-8 w-8 text-muted-foreground hover:text-foreground"
+                    title="Toggle availability"
                   >
                     {item.available ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
                   </Button>
-                  <Button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setItemToDelete(item.id);
-                      setShowDeleteModal(true);
-                    }}
-                    variant="ghost"
-                    size="icon"
-                    className="h-8 w-8 text-destructive hover:bg-destructive/10"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
+                  {/* Delete button - ADMIN only */}
+                  {(isAdmin === true) && (
+                    <Button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setItemToDelete(item.id);
+                        setShowDeleteModal(true);
+                      }}
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8 text-destructive hover:bg-destructive/10"
+                      title="Delete item"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  )}
                 </div>
               </div>
             </div>

@@ -3,8 +3,16 @@
 import { useEffect, useState, useRef, useCallback } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Flame, UtensilsCrossed, ShoppingBag, Bike, Package } from 'lucide-react';
+import { Flame, UtensilsCrossed, ShoppingBag, Bike, Package, Volume2, VolumeX } from 'lucide-react';
 import { toast } from 'sonner';
+
+// Sound notification queue item
+interface SoundNotification {
+  id: string;
+  type: 'new' | 'urgent';
+  timestamp: number;
+  repeatCount: number;
+}
 
 const SkeletonCard = () => (
   <div className="p-4 bg-zinc-900/50 border border-zinc-800/80 rounded-2xl space-y-4 ">
@@ -36,11 +44,129 @@ export default function KitchenDisplaySystem() {
     return true;
   });
   const [now, setNow] = useState(new Date());
+  const [soundQueue, setSoundQueue] = useState<SoundNotification[]>([]);
+  const [soundEnabled, setSoundEnabled] = useState(true);
   const previousOrdersRef = useRef<any[]>([]);
+  const soundTimersRef = useRef<Map<string, NodeJS.Timeout>>(new Map());
+  const audioContextRef = useRef<{ new: HTMLAudioElement | null; urgent: HTMLAudioElement | null }>({
+    new: null,
+    urgent: null
+  });
 
   useEffect(() => {
     const timer = setInterval(() => setNow(new Date()), 1000);
     return () => clearInterval(timer);
+  }, []);
+
+  // Preload audio files
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      audioContextRef.current.new = new Audio('/sounds/new-order.mp3');
+      audioContextRef.current.urgent = new Audio('/sounds/urgent.mp3');
+      
+      // Preload
+      audioContextRef.current.new.load();
+      audioContextRef.current.urgent.load();
+    }
+  }, []);
+
+  // Play sound with queue management
+  const playSound = useCallback((type: 'new' | 'urgent', notificationId?: string) => {
+    if (!soundEnabled) return;
+    
+    try {
+      const audio = type === 'new' ? audioContextRef.current.new : audioContextRef.current.urgent;
+      if (!audio) return;
+      
+      // Clone the audio to allow overlapping sounds
+      const soundClone = audio.cloneNode() as HTMLAudioElement;
+      
+      if (type === 'urgent') {
+        // Play 2-3 quick beeps for urgent
+        soundClone.play().catch(() => {});
+        setTimeout(() => {
+          const beep2 = audio.cloneNode() as HTMLAudioElement;
+          beep2.play().catch(() => {});
+        }, 200);
+        setTimeout(() => {
+          const beep3 = audio.cloneNode() as HTMLAudioElement;
+          beep3.play().catch(() => {});
+        }, 400);
+      } else {
+        soundClone.play().catch(() => {});
+      }
+    } catch (e) {
+      console.error('Error playing sound:', e);
+    }
+  }, [soundEnabled]);
+
+  // Add sound notification to queue with repeat logic
+  const addSoundNotification = useCallback((type: 'new' | 'urgent', orderId: string) => {
+    const notificationId = `${type}-${orderId}-${Date.now()}`;
+    
+    const notification: SoundNotification = {
+      id: notificationId,
+      type,
+      timestamp: Date.now(),
+      repeatCount: 0
+    };
+
+    setSoundQueue(prev => [...prev, notification]);
+    
+    // Play immediately
+    playSound(type, notificationId);
+    
+    // Set up repeat timer (every 30 seconds, max 4 times = 2 minutes)
+    const repeatTimer = setInterval(() => {
+      setSoundQueue(prev => {
+        const existing = prev.find(n => n.id === notificationId);
+        if (!existing) {
+          clearInterval(repeatTimer);
+          soundTimersRef.current.delete(notificationId);
+          return prev;
+        }
+        
+        if (existing.repeatCount >= 3) { // 0, 1, 2, 3 = 4 times total over 2 minutes
+          clearInterval(repeatTimer);
+          soundTimersRef.current.delete(notificationId);
+          return prev.filter(n => n.id !== notificationId);
+        }
+        
+        playSound(type, notificationId);
+        
+        return prev.map(n => 
+          n.id === notificationId 
+            ? { ...n, repeatCount: n.repeatCount + 1 }
+            : n
+        );
+      });
+    }, 30000); // 30 seconds
+    
+    soundTimersRef.current.set(notificationId, repeatTimer);
+  }, [playSound]);
+
+  // Acknowledge all sounds
+  const acknowledgeAllSounds = useCallback(() => {
+    // Clear all timers
+    soundTimersRef.current.forEach((timer) => {
+      clearInterval(timer);
+    });
+    soundTimersRef.current.clear();
+    
+    // Clear queue
+    setSoundQueue([]);
+    
+    toast.success('All notifications acknowledged');
+  }, []);
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      soundTimersRef.current.forEach((timer) => {
+        clearInterval(timer);
+      });
+      soundTimersRef.current.clear();
+    };
   }, []);
 
   const fetchOrders = useCallback(async () => {
@@ -53,32 +179,44 @@ export default function KitchenDisplaySystem() {
       // Detect new urgent additions or new orders to play sound
       const prev = previousOrdersRef.current;
       if (prev.length > 0) {
-        let playUrgentSound = false;
-        let playNewSound = false;
+        let hasUrgent = false;
+        let hasNew = false;
+        const urgentOrderIds: string[] = [];
+        const newOrderIds: string[] = [];
 
         finalOrders.forEach((order: any) => {
           const oldOrder = prev.find(o => o.id === order.id);
           if (!oldOrder) {
-            playNewSound = true;
+            hasNew = true;
+            newOrderIds.push(order.id);
           } else if (order.items.length > oldOrder.items.length) {
             // Check if any item was added significantly after order creation
             const orderTime = new Date(order.createdAt).getTime();
-            const hasUrgent = order.items.some((i: any) => {
+            const hasUrgentItem = order.items.some((i: any) => {
               return new Date(i.createdAt).getTime() - orderTime > 60000; // > 1 min diff
             });
-            if (hasUrgent) playUrgentSound = true;
-            else playNewSound = true;
+            if (hasUrgentItem) {
+              hasUrgent = true;
+              urgentOrderIds.push(order.id);
+            } else {
+              hasNew = true;
+              newOrderIds.push(order.id);
+            }
           }
         });
 
-        if (playUrgentSound) {
+        if (hasUrgent) {
           toast.error('🔥 URGENT RUNNING TABLE ADDITION!', { duration: 5000 });
-          playSound('/urgent.mp3');
-          setTimeout(() => playSound('/urgent.mp3'), 200);
-          setTimeout(() => playSound('/urgent.mp3'), 400);
-        } else if (playNewSound) {
+          urgentOrderIds.forEach(orderId => {
+            addSoundNotification('urgent', orderId);
+          });
+        }
+        
+        if (hasNew) {
           toast.success('🔔 NEW ORDER RECEIVED', { duration: 3000 });
-          playSound('/new-order.mp3');
+          newOrderIds.forEach(orderId => {
+            addSoundNotification('new', orderId);
+          });
         }
       }
 
@@ -96,15 +234,7 @@ export default function KitchenDisplaySystem() {
     } finally {
       setLoading(false);
     }
-  }, []);
-
-  const playSound = (src: string) => {
-    try {
-      const audio = new Audio(src);
-      // We ignore play errors (e.g. browser autoplay policies or missing files)
-      audio.play().catch(() => {});
-    } catch (e) {}
-  };
+  }, [addSoundNotification]);
 
   const handleUpdateStatus = async (orderId: string, newStatus: string) => {
     try {
@@ -191,6 +321,13 @@ export default function KitchenDisplaySystem() {
     const secs = diffSecs % 60;
     
     const timeColor = mins >= 10 ? 'text-red-500' : mins >= 5 ? 'text-amber-500' : 'text-green-500';
+    
+    // Determine which items are newly added (within last 5 seconds)
+    const isItemNew = (itemCreatedAt: string) => {
+      const itemTime = new Date(itemCreatedAt).getTime();
+      const nowTime = now.getTime();
+      return (nowTime - itemTime) < 5000; // 5 seconds
+    };
 
     return (
       <Card className={`p-4 border-2 ${isUrgent ? 'bg-red-950 border-red-500 shadow-lg shadow-red-500/20' : 'bg-zinc-900 border-zinc-800'} flex flex-col justify-between h-full`}>
@@ -212,21 +349,64 @@ export default function KitchenDisplaySystem() {
             </div>
           </div>
           <div className="space-y-3">
-            {order.items.map((item: any, i: number) => (
-              <div key={i} className="flex justify-between items-start">
-                <div className="flex-1">
-                  <p className={`font-bold text-lg ${isUrgent ? 'text-red-100' : 'text-zinc-100'}`}>
-                    <span className={`${isUrgent ? 'text-red-400' : 'text-primary'} mr-2`}>{item.quantity}×</span>
-                    {item.menuItem?.name || 'Unknown'}
-                  </p>
-                  {item.specialInstructions && (
-                    <p className={`text-sm mt-1 font-medium ${isUrgent ? 'text-red-300' : 'text-zinc-400'}`}>
-                      📝 {item.specialInstructions}
+            {order.items.map((item: any, i: number) => {
+              const isNew = isItemNew(item.createdAt);
+              const isCancelled = item.status === 'CANCELLED';
+              
+              return (
+                <div 
+                  key={i} 
+                  className={`flex justify-between items-start ${
+                    isNew ? 'animate-pulse bg-green-500/20 p-2 rounded-lg border-2 border-green-500' : ''
+                  } ${
+                    isCancelled ? 'opacity-40 line-through' : ''
+                  }`}
+                >
+                  <div className="flex-1">
+                    <p className={`font-bold text-lg ${
+                      isCancelled 
+                        ? 'text-red-400' 
+                        : isUrgent 
+                          ? 'text-red-100' 
+                          : 'text-zinc-100'
+                    }`}>
+                      <span className={`${
+                        isCancelled 
+                          ? 'text-red-500' 
+                          : isUrgent 
+                            ? 'text-red-400' 
+                            : 'text-primary'
+                      } mr-2`}>
+                        {isCancelled ? '❌' : ''}{item.quantity}×
+                      </span>
+                      {item.menuItem?.name || 'Unknown'}
+                      {isNew && <span className="ml-2 text-xs font-black text-green-400 uppercase">NEW</span>}
+                      {isCancelled && <span className="ml-2 text-xs font-black text-red-400 uppercase">CANCELLED</span>}
                     </p>
-                  )}
+                    {item.portionType && (
+                      <span className={`text-xs font-semibold px-2 py-0.5 rounded inline-block mt-1 ${
+                        isCancelled 
+                          ? 'bg-red-500/20 text-red-400' 
+                          : 'bg-primary/20 text-primary'
+                      }`}>
+                        {item.portionType}
+                      </span>
+                    )}
+                    {item.specialInstructions && (
+                      <p className={`text-sm mt-1 font-medium ${
+                        isCancelled 
+                          ? 'text-red-400' 
+                          : isUrgent 
+                            ? 'text-red-300' 
+                            : 'text-zinc-400'
+                      }`}>
+                        📝 {item.specialInstructions}
+                      </p>
+                    )}
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
         
@@ -261,9 +441,36 @@ export default function KitchenDisplaySystem() {
     <div className="min-h-screen bg-black p-6 overflow-x-hidden font-sans">
       <div className="flex justify-between items-center mb-8 pb-4 border-b border-zinc-800">
         <h1 className="text-4xl font-black text-white tracking-tight">KITCHEN DISPLAY</h1>
-        <div className="flex gap-4">
+        <div className="flex gap-4 items-center">
+          {/* Sound Toggle */}
+          <button
+            onClick={() => setSoundEnabled(!soundEnabled)}
+            className={`flex items-center gap-2 px-4 py-2 rounded-full border transition-all ${
+              soundEnabled 
+                ? 'bg-zinc-900 border-zinc-800 text-zinc-300 hover:bg-zinc-800' 
+                : 'bg-red-900/20 border-red-500/50 text-red-400'
+            }`}
+            title={soundEnabled ? 'Sounds Enabled' : 'Sounds Muted'}
+          >
+            {soundEnabled ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4" />}
+            <span className="font-bold text-sm tracking-wider">
+              {soundEnabled ? 'SOUND ON' : 'MUTED'}
+            </span>
+          </button>
+
+          {/* Acknowledge Button */}
+          {soundQueue.length > 0 && (
+            <button
+              onClick={acknowledgeAllSounds}
+              className="flex items-center gap-2 px-6 py-2 bg-amber-500 hover:bg-amber-600 text-white rounded-full border-2 border-amber-400 font-black text-sm tracking-wider uppercase shadow-lg shadow-amber-500/30 animate-pulse"
+            >
+              🔔 Acknowledge ({soundQueue.length})
+            </button>
+          )}
+
+          {/* Live Indicator */}
           <div className="flex items-center gap-2 px-4 py-2 bg-zinc-900 rounded-full border border-zinc-800">
-            <div className="w-3 h-3 rounded-full bg-green-500 " />
+            <div className="w-3 h-3 rounded-full bg-green-500 animate-pulse" />
             <span className="text-zinc-300 font-bold text-sm tracking-wider">LIVE</span>
           </div>
         </div>

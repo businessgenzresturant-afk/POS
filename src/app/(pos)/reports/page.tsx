@@ -111,20 +111,20 @@ export default function ReportsPage() {
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             <Card className="p-6 bg-gradient-to-br from-primary/10 to-primary/5">
               <h3 className="text-sm font-medium text-gray-500 uppercase tracking-wider mb-2">Total Sales</h3>
-              <p className="text-3xl font-bold text-primary">₹{reportData.totals.sales.toFixed(2)}</p>
+              <p className="text-3xl font-bold text-primary">₹{reportData.dailySalesTotal.toFixed(2)}</p>
             </Card>
             <Card className="p-6">
-              <h3 className="text-sm font-medium text-gray-500 uppercase tracking-wider mb-2">Total Bills</h3>
-              <p className="text-3xl font-bold">{reportData.totals.bills}</p>
+              <h3 className="text-sm font-medium text-gray-500 uppercase tracking-wider mb-2">Total Orders</h3>
+              <p className="text-3xl font-bold">{reportData.ordersCount}</p>
             </Card>
             <Card className="p-6">
               <h3 className="text-sm font-medium text-gray-500 uppercase tracking-wider mb-2">Total Tax Collected</h3>
-              <p className="text-3xl font-bold">₹{reportData.totals.tax.toFixed(2)}</p>
+              <p className="text-3xl font-bold">₹{(reportData.dailySalesTotal * 0.18 / 1.18).toFixed(2)}</p>
             </Card>
             <Card className="p-6">
               <h3 className="text-sm font-medium text-gray-500 uppercase tracking-wider mb-2">Avg Order Value</h3>
               <p className="text-3xl font-bold">
-                ₹{reportData.totals.bills > 0 ? (reportData.totals.sales / reportData.totals.bills).toFixed(2) : '0.00'}
+                ₹{reportData.ordersCount > 0 ? (reportData.dailySalesTotal / reportData.ordersCount).toFixed(2) : '0.00'}
               </p>
             </Card>
           </div>

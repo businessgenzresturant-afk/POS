@@ -22,6 +22,26 @@ export async function POST(
       return NextResponse.json({ error: 'Table not found' }, { status: 404 });
     }
 
+    // Check for unpaid bills on any order linked to this table
+    const unpaidBill = await prisma.bill.findFirst({
+      where: {
+        tableId,
+        status: 'PENDING'
+      },
+      include: {
+        order: true
+      }
+    });
+
+    if (unpaidBill) {
+      return NextResponse.json(
+        { 
+          error: `Cannot clear table - unpaid bill exists for Order #${unpaidBill.orderId}. Collect payment first.` 
+        },
+        { status: 400 }
+      );
+    }
+
     // Force clear table
     const updatedTable = await prisma.table.update({
       where: { id: tableId },

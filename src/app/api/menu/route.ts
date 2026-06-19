@@ -53,6 +53,10 @@ export async function POST(request: Request) {
         name: validation.data.name,
         category: validation.data.category,
         price: validation.data.price,
+        priceHalf: validation.data.priceHalf || null,
+        hasHalfFullOption: validation.data.hasHalfFullOption || false,
+        dietType: validation.data.dietType || 'VEG',
+        stockQuantity: validation.data.stockQuantity || null,
         imageUrl: validation.data.imageUrl || '',
         available: validation.data.available !== false,
         restaurantId: (auth.session.user as any).restaurantId

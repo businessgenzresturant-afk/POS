@@ -1,0 +1,18 @@
+This directory needs actual MP3 sound files.
+
+Currently, the following files are required:
+1. new-order.mp3 - Standard notification beep
+2. urgent.mp3 - Urgent alert sound (shorter, more attention-grabbing)
+
+You can:
+1. Record your own sounds
+2. Download from free sound libraries:
+   - https://freesound.org/
+   - https://www.zapsplat.com/
+   - https://mixkit.co/free-sound-effects/
+
+For testing purposes, you can use any short MP3 files and rename them to:
+- new-order.mp3
+- urgent.mp3
+
+The system will work without these files (it will fail silently), but sounds won't play.

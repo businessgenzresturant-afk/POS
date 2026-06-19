@@ -2,6 +2,20 @@ import { getServerSession } from "next-auth";
 import { NextResponse } from "next/server";
 import { authOptions } from "./auth-config";
 
+/**
+ * Authentication helper for API routes
+ * 
+ * SECURITY NOTES:
+ * - All API routes requiring authentication MUST call checkAuth()
+ * - Session-based authentication provides sufficient security for this internal POS
+ * - CSRF protection: Not implemented as this is an internal, same-origin tool
+ *   - NextAuth provides CSRF protection for /api/auth/* routes
+ *   - Custom API routes are internal-only (no public exposure)
+ *   - Same-origin policy prevents cross-site attacks
+ *   - If this becomes a public API, implement CSRF tokens
+ * - For production: Ensure NEXTAUTH_SECRET is set (validated in auth-config.ts)
+ */
+
 export async function checkAuth(req?: any) {
   try {
     const session = await getServerSession(authOptions);

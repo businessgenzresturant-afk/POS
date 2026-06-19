@@ -9,8 +9,11 @@ import { Input } from '@/components/ui/input';
 import { QRCodeSVG } from 'qrcode.react';
 import Image from 'next/image';
 import { Portal } from '@/components/ui/portal';
+import { useAuth } from '@/lib/useAuth';
 
 export default function BillsPage() {
+  const { user, isAdmin, isStaff } = useAuth();
+  const router = useRouter();
   const [bills, setBills] = useState<any[]>(() => {
     if (typeof window !== 'undefined' && (window as any).__pos_bills_cache?.bills) {
       return (window as any).__pos_bills_cache.bills;
@@ -34,12 +37,53 @@ export default function BillsPage() {
   const [showGenerateModal, setShowGenerateModal] = useState(false);
   const [selectedBill, setSelectedBill] = useState<any>(null);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
-  const [paymentConfirmed, setPaymentConfirmed] = useState(false);
+  const [paymentConfirmed, setPaymentConfirmed] = useState<'CASH' | 'CARD' | 'UPI' | null>(null);
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<'CASH' | 'ONLINE'>('CASH');
+  const [isSplitPayment, setIsSplitPayment] = useState(false);
+  const [cashAmount, setCashAmount] = useState<string>('');
+  const [onlineAmount, setOnlineAmount] = useState<string>('');
+  
+  // Customer and loyalty state
+  const [customerPhone, setCustomerPhone] = useState('');
+  const [customerData, setCustomerData] = useState<any>(null);
+  const [isCheckingCustomer, setIsCheckingCustomer] = useState(false);
+  
+  // Discount state
+  const [discountPercent, setDiscountPercent] = useState<string>('');
+  const [pointsToRedeem, setPointsToRedeem] = useState<string>('');
+  const [discountError, setDiscountError] = useState<string>('');
 
   useEffect(() => {
     fetchBills();
   }, []);
+
+  // Debounced customer lookup
+  useEffect(() => {
+    if (!customerPhone || customerPhone.length < 10) {
+      setCustomerData(null);
+      return;
+    }
+
+    const timeoutId = setTimeout(async () => {
+      setIsCheckingCustomer(true);
+      try {
+        const response = await fetch(`/api/customers/lookup?phone=${encodeURIComponent(customerPhone)}`);
+        if (response.ok) {
+          const data = await response.json();
+          setCustomerData(data);
+        } else {
+          setCustomerData(null);
+        }
+      } catch (error) {
+        console.error('Error looking up customer:', error);
+        setCustomerData(null);
+      } finally {
+        setIsCheckingCustomer(false);
+      }
+    }, 500);
+
+    return () => clearTimeout(timeoutId);
+  }, [customerPhone]);
 
   const fetchBills = async () => {
     setError(null);
@@ -121,6 +165,53 @@ export default function BillsPage() {
   };
 
   const handleMarkPaid = async (billId: string, paymentMethod: string) => {
+    // Block if discount error exists
+    if (discountError) {
+      toast.error(discountError);
+      return;
+    }
+    
+    // Validate discount percent
+    const discountPct = discountPercent ? parseFloat(discountPercent) : 0;
+    const maxDiscount = isStaff ? 15 : 30;
+    if (discountPct < 0 || discountPct > maxDiscount) {
+      toast.error(`Discount must be between 0% and ${maxDiscount}%`);
+      return;
+    }
+
+    // Validate points redemption
+    const pointsRedeem = pointsToRedeem ? parseInt(pointsToRedeem) : 0;
+    if (customerData && pointsRedeem > customerData.pointsBalance) {
+      toast.error(`Cannot redeem more than ${customerData.pointsBalance} points`);
+      return;
+    }
+
+    // Calculate final total
+    const discountAmt = (selectedBill.subtotal * discountPct) / 100;
+    const pointsAmt = pointsRedeem;
+    const finalTotal = Math.max(0, selectedBill.subtotal - discountAmt - pointsAmt);
+
+    // Validate split payment amounts
+    let cash = 0;
+    let online = 0;
+    
+    if (isSplitPayment) {
+      cash = cashAmount ? parseFloat(cashAmount) : 0;
+      online = onlineAmount ? parseFloat(onlineAmount) : 0;
+      
+      if (Math.abs(cash + online - finalTotal) > 0.01) { // Allow small floating point differences
+        toast.error(`Payment amounts must equal ₹${finalTotal.toFixed(2)}. Current: ₹${(cash + online).toFixed(2)}`);
+        return;
+      }
+    } else {
+      // Single payment mode
+      if (paymentMethod === 'CASH') {
+        cash = finalTotal;
+      } else {
+        online = finalTotal;
+      }
+    }
+
     setLoading(true);
     try {
       const response = await fetch(`/api/bills/${billId}`, {
@@ -128,7 +219,12 @@ export default function BillsPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           status: 'PAID',
-          paymentMethod
+          paymentMethod: isSplitPayment ? 'SPLIT' : paymentMethod,
+          cashAmount: cash,
+          onlineAmount: online,
+          customerPhone: customerPhone || null,
+          discountPercent: discountPct,
+          pointsToRedeem: pointsRedeem
         })
       });
 
@@ -140,6 +236,14 @@ export default function BillsPage() {
       setShowPaymentModal(false);
       setShowBillModal(false);
       setSelectedBill(null);
+      setCustomerPhone('');
+      setCustomerData(null);
+      setDiscountPercent('');
+      setPointsToRedeem('');
+      setPaymentConfirmed(null);
+      setIsSplitPayment(false);
+      setCashAmount('');
+      setOnlineAmount('');
       await fetchBills();
     } catch (err) {
       setError('Failed to update bill status. Please try again.');
@@ -151,6 +255,52 @@ export default function BillsPage() {
   };
 
   const handlePayAndPrint = async (billId: string, paymentMethod: string) => {
+    // Block if discount error exists
+    if (discountError) {
+      toast.error(discountError);
+      return;
+    }
+    
+    // Validate discount percent
+    const discountPct = discountPercent ? parseFloat(discountPercent) : 0;
+    const maxDiscount = isStaff ? 15 : 30;
+    if (discountPct < 0 || discountPct > maxDiscount) {
+      toast.error(`Discount must be between 0% and ${maxDiscount}%`);
+      return;
+    }
+
+    // Validate points redemption
+    const pointsRedeem = pointsToRedeem ? parseInt(pointsToRedeem) : 0;
+    if (customerData && pointsRedeem > customerData.pointsBalance) {
+      toast.error(`Cannot redeem more than ${customerData.pointsBalance} points`);
+      return;
+    }
+
+    // Calculate final total
+    const discountAmt = (selectedBill.subtotal * discountPct) / 100;
+    const pointsAmt = pointsRedeem;
+    const finalTotal = Math.max(0, selectedBill.subtotal - discountAmt - pointsAmt);
+
+    // Validate split payment amounts
+    let cash = 0;
+    let online = 0;
+    
+    if (isSplitPayment) {
+      cash = cashAmount ? parseFloat(cashAmount) : 0;
+      online = onlineAmount ? parseFloat(onlineAmount) : 0;
+      
+      if (Math.abs(cash + online - finalTotal) > 0.01) {
+        toast.error(`Payment amounts must equal ₹${finalTotal.toFixed(2)}. Current: ₹${(cash + online).toFixed(2)}`);
+        return;
+      }
+    } else {
+      if (paymentMethod === 'CASH') {
+        cash = finalTotal;
+      } else {
+        online = finalTotal;
+      }
+    }
+
     // 1. Get print contents first before closing
     const printContents = document.getElementById('print-receipt')?.innerHTML;
     
@@ -161,7 +311,12 @@ export default function BillsPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           status: 'PAID',
-          paymentMethod
+          paymentMethod: isSplitPayment ? 'SPLIT' : paymentMethod,
+          cashAmount: cash,
+          onlineAmount: online,
+          customerPhone: customerPhone || null,
+          discountPercent: discountPct,
+          pointsToRedeem: pointsRedeem
         })
       });
 
@@ -173,6 +328,19 @@ export default function BillsPage() {
       
       // Refresh bill list
       await fetchBills();
+
+      // Reset state
+      setShowPaymentModal(false);
+      setShowBillModal(false);
+      setSelectedBill(null);
+      setCustomerPhone('');
+      setCustomerData(null);
+      setDiscountPercent('');
+      setPointsToRedeem('');
+      setPaymentConfirmed(null);
+      setIsSplitPayment(false);
+      setCashAmount('');
+      setOnlineAmount('');
 
       // 2. Trigger Printing
       if (printContents) {
@@ -248,7 +416,7 @@ export default function BillsPage() {
   const handleInitiatePayment = (bill: any) => {
     setSelectedBill(bill);
     setShowPaymentModal(true);
-    setPaymentConfirmed(false);
+    setPaymentConfirmed(null);
   };
 
   // UPI QR Code payload format: upi://pay?pa=ADDRESS&pn=NAME&am=AMOUNT&cu=INR
@@ -373,54 +541,288 @@ export default function BillsPage() {
               {/* Payment Details Summary */}
               <div className="bg-muted/50 rounded-xl p-4 mb-6 border border-border">
                 <div className="flex justify-between items-center mb-2">
-                  <span className="text-sm text-muted-foreground">Total Amount Due</span>
+                  <span className="text-sm text-muted-foreground">Subtotal</span>
+                  <span className="font-bold text-foreground">₹{selectedBill.subtotal.toFixed(2)}</span>
+                </div>
+                {discountPercent && parseFloat(discountPercent) > 0 && (
+                  <div className="flex justify-between items-center mb-2 text-green-600">
+                    <span className="text-sm">Discount ({discountPercent}%)</span>
+                    <span className="font-bold">-₹{((selectedBill.subtotal * parseFloat(discountPercent)) / 100).toFixed(2)}</span>
+                  </div>
+                )}
+                {pointsToRedeem && parseInt(pointsToRedeem) > 0 && (
+                  <div className="flex justify-between items-center mb-2 text-green-600">
+                    <span className="text-sm">Points Redeemed ({pointsToRedeem})</span>
+                    <span className="font-bold">-₹{parseInt(pointsToRedeem).toFixed(2)}</span>
+                  </div>
+                )}
+                <div className="flex justify-between items-center pt-2 border-t border-border">
+                  <span className="text-sm font-bold text-foreground">Total Amount Due</span>
                   <span className="font-black text-2xl text-transparent bg-clip-text bg-gradient-to-r from-orange-600 to-amber-600">
-                    ₹{selectedBill.total.toFixed(2)}
+                    ₹{(() => {
+                      const discountAmt = discountPercent ? (selectedBill.subtotal * parseFloat(discountPercent)) / 100 : 0;
+                      const pointsAmt = pointsToRedeem ? parseInt(pointsToRedeem) : 0;
+                      return Math.max(0, selectedBill.subtotal - discountAmt - pointsAmt).toFixed(2);
+                    })()}
                   </span>
                 </div>
-                <div className="flex justify-between text-xs text-muted-foreground/80">
+                <div className="flex justify-between text-xs text-muted-foreground/80 mt-2">
                   <span>Table {selectedBill.order.table?.number}</span>
                   <span>{selectedBill.order.customerName || 'Walk-in'}</span>
                 </div>
               </div>
 
+              {/* Customer Phone Field */}
+              <div className="mb-4">
+                <label htmlFor="customerPhone" className="block text-sm font-semibold text-foreground mb-2">
+                  Customer Phone Number (Optional)
+                </label>
+                <Input
+                  id="customerPhone"
+                  type="tel"
+                  value={customerPhone}
+                  onChange={(e) => setCustomerPhone(e.target.value)}
+                  placeholder="Enter 10-digit phone number"
+                  className="w-full"
+                  maxLength={10}
+                />
+                {isCheckingCustomer && (
+                  <p className="text-xs text-muted-foreground mt-1">Checking customer...</p>
+                )}
+                {customerData && (
+                  <div className="mt-2 p-3 bg-green-500/10 border border-green-500/30 rounded-lg">
+                    <p className="text-sm font-bold text-green-600">Welcome back, {customerData.name || 'Valued Customer'}!</p>
+                    <p className="text-xs text-muted-foreground">Visit #{customerData.totalVisits + 1} · {customerData.pointsBalance} points available (worth ₹{customerData.pointsBalance})</p>
+                  </div>
+                )}
+              </div>
+
+              {/* Discount Section */}
+              <div className="mb-4">
+                <label htmlFor="discountPercent" className="block text-sm font-semibold text-foreground mb-2">
+                  Apply Discount (%) {isStaff && <span className="text-xs text-amber-600">(Staff max: 15%)</span>}
+                </label>
+                <Input
+                  id="discountPercent"
+                  type="number"
+                  value={discountPercent}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    const numVal = parseFloat(val);
+                    const maxDiscount = isStaff ? 15 : 30;
+                    
+                    if (!val || (numVal >= 0 && numVal <= 30)) {
+                      setDiscountPercent(val);
+                      
+                      // Show error if STAFF tries to exceed 15%
+                      if (isStaff && numVal > 15) {
+                        setDiscountError('Discounts above 15% require admin approval');
+                      } else {
+                        setDiscountError('');
+                      }
+                    }
+                  }}
+                  placeholder="0"
+                  className={`w-full ${discountError ? 'border-red-500' : ''}`}
+                  min="0"
+                  max={isStaff ? 15 : 30}
+                  step="0.1"
+                />
+                {discountError ? (
+                  <p className="text-xs text-red-500 mt-1">{discountError}</p>
+                ) : (
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Maximum discount: {isStaff ? '15%' : '30%'}
+                  </p>
+                )}
+              </div>
+
+              {/* Points Redemption - ADMIN ONLY */}
+              {(isAdmin === true) && customerData && customerData.pointsBalance > 0 && (
+                <div className="mb-4">
+                  <label htmlFor="pointsToRedeem" className="block text-sm font-semibold text-foreground mb-2">
+                    Redeem Points (1 point = ₹1)
+                  </label>
+                  <Input
+                    id="pointsToRedeem"
+                    type="number"
+                    value={pointsToRedeem}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      const numVal = val ? parseInt(val) : 0;
+                      const maxRedeem = Math.min(
+                        customerData.pointsBalance,
+                        selectedBill.subtotal - (discountPercent ? (selectedBill.subtotal * parseFloat(discountPercent)) / 100 : 0)
+                      );
+                      if (!val || (numVal >= 0 && numVal <= maxRedeem)) {
+                        setPointsToRedeem(val);
+                      }
+                    }}
+                    placeholder="0"
+                    className="w-full"
+                    min="0"
+                    max={Math.min(customerData.pointsBalance, selectedBill.subtotal)}
+                  />
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Available: {customerData.pointsBalance} points · Max redeemable for this bill: {Math.floor(Math.min(
+                      customerData.pointsBalance,
+                      selectedBill.subtotal - (discountPercent ? (selectedBill.subtotal * parseFloat(discountPercent)) / 100 : 0)
+                    ))}
+                  </p>
+                </div>
+              )}
+
               {/* Payment Method Selection */}
               <div className="space-y-3 mb-6">
                 <h3 className="text-sm font-bold text-foreground/80">Select Method</h3>
                 
-                <div className="grid grid-cols-3 gap-3">
+                <div className="grid grid-cols-4 gap-3">
                   <button
-                    onClick={() => setPaymentConfirmed('CASH' as any)}
+                    onClick={() => {
+                      setPaymentConfirmed('CASH');
+                      setIsSplitPayment(false);
+                      setCashAmount('');
+                      setOnlineAmount('');
+                    }}
                     className={`p-3 rounded-xl border-2 flex flex-col items-center justify-center gap-2 transition-all ${
-                      paymentConfirmed === ('CASH' as any) ? 'border-green-500/50 bg-green-500/10 text-green-500' : 'border-border hover:border-green-500/30 hover:bg-muted text-muted-foreground'
+                      paymentConfirmed === 'CASH' && !isSplitPayment ? 'border-green-500/50 bg-green-500/10 text-green-500' : 'border-border hover:border-green-500/30 hover:bg-muted text-muted-foreground'
                     }`}
                   >
                     <span className="text-2xl">💵</span>
                     <span className="text-xs font-bold">Cash</span>
                   </button>
                   <button
-                    onClick={() => setPaymentConfirmed('CARD' as any)}
+                    onClick={() => {
+                      setPaymentConfirmed('CARD');
+                      setIsSplitPayment(false);
+                      setCashAmount('');
+                      setOnlineAmount('');
+                    }}
                     className={`p-3 rounded-xl border-2 flex flex-col items-center justify-center gap-2 transition-all ${
-                      paymentConfirmed === ('CARD' as any) ? 'border-blue-500/50 bg-blue-500/10 text-blue-500' : 'border-border hover:border-blue-500/30 hover:bg-muted text-muted-foreground'
+                      paymentConfirmed === 'CARD' && !isSplitPayment ? 'border-blue-500/50 bg-blue-500/10 text-blue-500' : 'border-border hover:border-blue-500/30 hover:bg-muted text-muted-foreground'
                     }`}
                   >
                     <span className="text-2xl">💳</span>
                     <span className="text-xs font-bold">Card</span>
                   </button>
                   <button
-                    onClick={() => setPaymentConfirmed('UPI' as any)}
+                    onClick={() => {
+                      setPaymentConfirmed('UPI');
+                      setIsSplitPayment(false);
+                      setCashAmount('');
+                      setOnlineAmount('');
+                    }}
                     className={`p-3 rounded-xl border-2 flex flex-col items-center justify-center gap-2 transition-all ${
-                      paymentConfirmed === ('UPI' as any) ? 'border-orange-500/50 bg-orange-500/10 text-orange-500' : 'border-border hover:border-orange-500/30 hover:bg-muted text-muted-foreground'
+                      paymentConfirmed === 'UPI' && !isSplitPayment ? 'border-orange-500/50 bg-orange-500/10 text-orange-500' : 'border-border hover:border-orange-500/30 hover:bg-muted text-muted-foreground'
                     }`}
                   >
                     <span className="text-2xl">📱</span>
                     <span className="text-xs font-bold">UPI</span>
                   </button>
+                  <button
+                    onClick={() => {
+                      setIsSplitPayment(true);
+                      setPaymentConfirmed('CASH'); // Set to enable button
+                      setCashAmount('');
+                      setOnlineAmount('');
+                    }}
+                    className={`p-3 rounded-xl border-2 flex flex-col items-center justify-center gap-2 transition-all ${
+                      isSplitPayment ? 'border-purple-500/50 bg-purple-500/10 text-purple-500' : 'border-border hover:border-purple-500/30 hover:bg-muted text-muted-foreground'
+                    }`}
+                  >
+                    <span className="text-2xl">💰</span>
+                    <span className="text-xs font-bold">Split</span>
+                  </button>
                 </div>
               </div>
 
+              {/* Split Payment Inputs */}
+              {isSplitPayment && (
+                <div className="mb-6 p-4 bg-purple-500/10 border border-purple-500/30 rounded-xl space-y-3">
+                  <h4 className="text-sm font-bold text-purple-600">Split Payment</h4>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label htmlFor="cashAmount" className="block text-xs font-semibold text-foreground mb-1">
+                        Cash Amount (₹)
+                      </label>
+                      <Input
+                        id="cashAmount"
+                        type="number"
+                        value={cashAmount}
+                        onChange={(e) => {
+                          setCashAmount(e.target.value);
+                          // Auto-calculate other amount
+                          const finalTotal = (() => {
+                            const discountAmt = discountPercent ? (selectedBill.subtotal * parseFloat(discountPercent)) / 100 : 0;
+                            const pointsAmt = pointsToRedeem ? parseInt(pointsToRedeem) : 0;
+                            return Math.max(0, selectedBill.subtotal - discountAmt - pointsAmt);
+                          })();
+                          const cash = e.target.value ? parseFloat(e.target.value) : 0;
+                          const remaining = finalTotal - cash;
+                          if (remaining >= 0) {
+                            setOnlineAmount(remaining.toFixed(2));
+                          }
+                        }}
+                        placeholder="0.00"
+                        min="0"
+                        step="0.01"
+                        className="w-full"
+                      />
+                    </div>
+                    <div>
+                      <label htmlFor="onlineAmount" className="block text-xs font-semibold text-foreground mb-1">
+                        Online Amount (₹)
+                      </label>
+                      <Input
+                        id="onlineAmount"
+                        type="number"
+                        value={onlineAmount}
+                        onChange={(e) => {
+                          setOnlineAmount(e.target.value);
+                          // Auto-calculate other amount
+                          const finalTotal = (() => {
+                            const discountAmt = discountPercent ? (selectedBill.subtotal * parseFloat(discountPercent)) / 100 : 0;
+                            const pointsAmt = pointsToRedeem ? parseInt(pointsToRedeem) : 0;
+                            return Math.max(0, selectedBill.subtotal - discountAmt - pointsAmt);
+                          })();
+                          const online = e.target.value ? parseFloat(e.target.value) : 0;
+                          const remaining = finalTotal - online;
+                          if (remaining >= 0) {
+                            setCashAmount(remaining.toFixed(2));
+                          }
+                        }}
+                        placeholder="0.00"
+                        min="0"
+                        step="0.01"
+                        className="w-full"
+                      />
+                    </div>
+                  </div>
+                  {(() => {
+                    const finalTotal = (() => {
+                      const discountAmt = discountPercent ? (selectedBill.subtotal * parseFloat(discountPercent)) / 100 : 0;
+                      const pointsAmt = pointsToRedeem ? parseInt(pointsToRedeem) : 0;
+                      return Math.max(0, selectedBill.subtotal - discountAmt - pointsAmt);
+                    })();
+                    const cash = cashAmount ? parseFloat(cashAmount) : 0;
+                    const online = onlineAmount ? parseFloat(onlineAmount) : 0;
+                    const total = cash + online;
+                    const difference = total - finalTotal;
+                    
+                    if (Math.abs(difference) > 0.01) {
+                      return (
+                        <p className="text-xs text-red-600 font-medium">
+                          ⚠️ Amounts don&apos;t match bill total. Difference: ₹{Math.abs(difference).toFixed(2)} {difference > 0 ? 'excess' : 'short'}
+                        </p>
+                      );
+                    }
+                    return null;
+                  })()}
+                </div>
+              )}
+
               {/* UPI QR Code Section */}
-              {paymentConfirmed === ('UPI' as any) && (
+              {paymentConfirmed === 'UPI' && (
                 <div className="bg-primary/10 rounded-xl p-4 mb-6 flex flex-col items-center animate-fade-in border border-primary/20">
                   <div className="bg-white p-2 rounded-lg shadow-sm mb-2">
                     <QRCodeSVG
@@ -436,7 +838,7 @@ export default function BillsPage() {
 
               {/* Actions */}
               <Button
-                onClick={() => handleMarkPaid(selectedBill.id, paymentConfirmed as any)}
+                onClick={() => handleMarkPaid(selectedBill.id, paymentConfirmed!)}
                 variant="gradient"
                 className="w-full h-12 text-lg font-bold"
                 disabled={!paymentConfirmed}

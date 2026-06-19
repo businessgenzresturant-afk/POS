@@ -22,8 +22,19 @@ export const authOptions: NextAuthOptions = {
         try {
           let user = await prisma.user.findUnique({ where: { email: credentials.email } });
 
-          // Resilient auto-seed for Demo Accounts
+          // Resilient auto-seed for Demo Accounts (DEVELOPMENT ONLY)
+          // This creates demo admin/staff accounts for local development and demos
+          // SECURITY: This is disabled in production to prevent known credentials from being auto-created
           if (!user && (credentials.email === 'admin@genz.com' || credentials.email === 'staff@genz.com')) {
+            // Only allow auto-seeding in non-production environments OR if explicitly enabled
+            const isAutoSeedAllowed = process.env.NODE_ENV !== 'production' || process.env.ALLOW_DEMO_SEED === 'true';
+            
+            if (!isAutoSeedAllowed) {
+              // In production without explicit flag, reject the login attempt
+              console.warn(`SECURITY: Blocked auto-seed attempt for ${credentials.email} in production mode`);
+              return null;
+            }
+
             const { hash } = await import('bcryptjs');
             const roleToUse = credentials.email === 'admin@genz.com' ? 'ADMIN' : 'STAFF';
             const passwordToUse = credentials.email === 'admin@genz.com' ? 'admin123' : 'staff123';
@@ -69,5 +80,13 @@ export const authOptions: NextAuthOptions = {
       user: { ...session.user, role: token.role as string, id: token.id as string, restaurantId: token.restaurantId as string }
     })
   },
-  secret: process.env.NEXTAUTH_SECRET || "fallback-secret-for-demo-purposes-only-12345",
+  secret: process.env.NEXTAUTH_SECRET,
 };
+
+// Production safety check: Fail fast if NEXTAUTH_SECRET is missing in production
+if (process.env.NODE_ENV === 'production' && !process.env.NEXTAUTH_SECRET) {
+  throw new Error(
+    'CRITICAL SECURITY ERROR: NEXTAUTH_SECRET environment variable is not set in production. ' +
+    'Sessions cannot be secured without this secret. Add NEXTAUTH_SECRET to your environment variables immediately.'
+  );
+}

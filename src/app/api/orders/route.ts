@@ -139,18 +139,27 @@ export async function POST(request: Request) {
       );
     }
 
-    // Create a map for quick price lookup
-    const priceMap = new Map(menuItems.map(m => [m.id, m.price]));
+    // Create a map for quick lookup
+    const menuItemMap = new Map(menuItems.map(m => [m.id, m]));
 
     // Calculate total amount and prepare items for creation
     let totalAmount = 0;
     const orderItemsData = items.map((item: any) => {
-      const price = priceMap.get(item.menuItemId) || 0;
+      const menuItem = menuItemMap.get(item.menuItemId);
+      if (!menuItem) throw new Error('Menu item not found');
+      
+      // Determine price based on portion type
+      let price = menuItem.price;
+      if (item.portionType === 'HALF' && menuItem.priceHalf) {
+        price = menuItem.priceHalf;
+      }
+      
       totalAmount += price * item.quantity;
       return {
         menuItemId: item.menuItemId,
         quantity: item.quantity,
         price: price,
+        portionType: item.portionType || null,
         specialInstructions: item.specialInstructions || null
       };
     });
@@ -174,6 +183,22 @@ export async function POST(request: Request) {
               orderId: activeOrder.id
             }))
           });
+
+          // Decrement stock for items that are stock-tracked
+          for (const item of orderItemsData) {
+            const menuItem = menuItemMap.get(item.menuItemId);
+            if (menuItem && menuItem.stockQuantity !== null && menuItem.stockQuantity !== undefined) {
+              const newStock = menuItem.stockQuantity - item.quantity;
+              await tx.menuItem.update({
+                where: { id: item.menuItemId },
+                data: {
+                  stockQuantity: Math.max(0, newStock),
+                  // Auto-set to unavailable if stock reaches 0
+                  available: newStock > 0 ? menuItem.available : false
+                }
+              });
+            }
+          }
 
           return tx.order.update({
             where: { id: activeOrder.id },
@@ -229,6 +254,22 @@ export async function POST(request: Request) {
           where: { id: tableId },
           data: { status: 'OCCUPIED' }
         });
+      }
+
+      // Decrement stock for items that are stock-tracked
+      for (const item of orderItemsData) {
+        const menuItem = menuItemMap.get(item.menuItemId);
+        if (menuItem && menuItem.stockQuantity !== null && menuItem.stockQuantity !== undefined) {
+          const newStock = menuItem.stockQuantity - item.quantity;
+          await tx.menuItem.update({
+            where: { id: item.menuItemId },
+            data: {
+              stockQuantity: Math.max(0, newStock),
+              // Auto-set to unavailable if stock reaches 0
+              available: newStock > 0 ? menuItem.available : false
+            }
+          });
+        }
       }
 
       return newOrder;
