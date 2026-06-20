@@ -72,28 +72,39 @@ export default function KitchenDisplaySystem() {
 
   // Play sound with queue management
   const playSound = useCallback((type: 'new' | 'urgent', notificationId?: string) => {
-    if (!soundEnabled) return;
+    if (!soundEnabled) {
+      console.log('🔇 Sound disabled, skipping');
+      return;
+    }
     
     try {
       const audio = type === 'new' ? audioContextRef.current.new : audioContextRef.current.urgent;
-      if (!audio) return;
+      if (!audio) {
+        console.error('❌ Audio element not found for type:', type);
+        return;
+      }
+      
+      console.log(`🔊 Playing ${type} sound`);
       
       // Clone the audio to allow overlapping sounds
       const soundClone = audio.cloneNode() as HTMLAudioElement;
+      soundClone.volume = 0.7; // Set volume
       
       if (type === 'urgent') {
-        // Play 2-3 quick beeps for urgent
-        soundClone.play().catch(() => {});
+        // Play 3 quick beeps for urgent
+        soundClone.play().catch((e) => console.error('Sound play error:', e));
         setTimeout(() => {
           const beep2 = audio.cloneNode() as HTMLAudioElement;
+          beep2.volume = 0.7;
           beep2.play().catch(() => {});
-        }, 200);
+        }, 300);
         setTimeout(() => {
           const beep3 = audio.cloneNode() as HTMLAudioElement;
+          beep3.volume = 0.7;
           beep3.play().catch(() => {});
-        }, 400);
+        }, 600);
       } else {
-        soundClone.play().catch(() => {});
+        soundClone.play().catch((e) => console.error('Sound play error:', e));
       }
     } catch (e) {
       console.error('Error playing sound:', e);
@@ -186,26 +197,25 @@ export default function KitchenDisplaySystem() {
 
         finalOrders.forEach((order: any) => {
           const oldOrder = prev.find(o => o.id === order.id);
+          
+          // Case 1: Completely new order
           if (!oldOrder) {
             hasNew = true;
             newOrderIds.push(order.id);
-          } else if (order.items.length > oldOrder.items.length) {
-            // Check if any item was added significantly after order creation
-            const orderTime = new Date(order.createdAt).getTime();
-            const hasUrgentItem = order.items.some((i: any) => {
-              return new Date(i.createdAt).getTime() - orderTime > 60000; // > 1 min diff
-            });
-            if (hasUrgentItem) {
-              hasUrgent = true;
-              urgentOrderIds.push(order.id);
-            } else {
-              hasNew = true;
-              newOrderIds.push(order.id);
-            }
+            console.log('🆕 New order detected:', order.id, order.table?.number || 'No table');
+          } 
+          // Case 2: Existing order with more items (Running Table)
+          else if (order.items.length > oldOrder.items.length) {
+            const newItemsCount = order.items.length - oldOrder.items.length;
+            console.log(`🔥 Running table: Order ${order.id} has ${newItemsCount} new items`);
+            
+            hasUrgent = true;
+            urgentOrderIds.push(order.id);
           }
         });
 
         if (hasUrgent) {
+          console.log('🔥 URGENT: Running table additions detected!');
           toast.error('🔥 URGENT RUNNING TABLE ADDITION!', { duration: 5000 });
           urgentOrderIds.forEach(orderId => {
             addSoundNotification('urgent', orderId);
@@ -213,11 +223,15 @@ export default function KitchenDisplaySystem() {
         }
         
         if (hasNew) {
+          console.log('🔔 NEW: Fresh orders detected!');
           toast.success('🔔 NEW ORDER RECEIVED', { duration: 3000 });
           newOrderIds.forEach(orderId => {
             addSoundNotification('new', orderId);
           });
         }
+      } else {
+        // First load - don't play sound for existing orders
+        console.log('📊 Initial load - no sound played');
       }
 
       previousOrdersRef.current = finalOrders;
@@ -259,21 +273,24 @@ export default function KitchenDisplaySystem() {
   };
 
   useEffect(() => {
+    // Initial fetch
     fetchOrders();
 
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'visible') {
+        console.log('👀 Tab visible, fetching orders...');
         fetchOrders();
       }
     };
 
     document.addEventListener('visibilitychange', handleVisibilityChange);
 
+    // More aggressive polling - every 3 seconds when active
     const interval = setInterval(() => {
       if (document.visibilityState === 'visible') {
         fetchOrders();
       }
-    }, 2000); // 2 second aggressive polling when tab is active
+    }, 3000); // 3 seconds
 
     return () => {
       clearInterval(interval);
@@ -288,8 +305,19 @@ export default function KitchenDisplaySystem() {
     const urgentItems: any[] = [];
     const orderTime = new Date(order.createdAt).getTime();
     
+    // Find the earliest item creation time
+    let earliestItemTime = orderTime;
+    if (order.items.length > 0) {
+      earliestItemTime = Math.min(
+        ...order.items.map((i: any) => new Date(i.createdAt).getTime())
+      );
+    }
+    
     order.items.forEach((item: any) => {
-      const isUrgent = new Date(item.createdAt).getTime() - orderTime > 60000;
+      const itemTime = new Date(item.createdAt).getTime();
+      // Item is "urgent" if it was added more than 2 minutes after the earliest item
+      const isUrgent = itemTime - earliestItemTime > 120000; // 2 minutes
+      
       if (isUrgent) {
         urgentItems.push(item);
       } else {
@@ -453,9 +481,9 @@ export default function KitchenDisplaySystem() {
           </div>
           
           {isUrgent && (
-            <div className="">
-              <span className="bg-red-500 text-white text-[10px] font-black px-3 py-1.5 rounded-xl tracking-widest uppercase">
-                RUNNING TABLE
+            <div className="flex-1 flex justify-end">
+              <span className="bg-gradient-to-r from-red-600 to-red-500 text-white text-xs font-black px-4 py-2 rounded-xl tracking-widest uppercase shadow-lg shadow-red-500/50 animate-pulse border-2 border-red-400">
+                🔥 RUNNING TABLE
               </span>
             </div>
           )}
