@@ -624,6 +624,10 @@ export function Dashboard() {
               setGeneratedBill(null);
             }}
             onPaymentSuccess={handlePaymentSuccess}
+            onAddItem={() => {
+              setPaymentModalOpen(false);
+              setMenuDrawerOpen(true);
+            }}
           />
         )}
       </Portal>

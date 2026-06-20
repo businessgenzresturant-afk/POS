@@ -281,7 +281,7 @@ export default function KitchenDisplaySystem() {
     };
   }, [fetchOrders]);
 
-  // Extract Urgent Additions
+  // Extract Urgent Additions & categorize orders
   const urgentAdditions: any[] = [];
   const normalOrders = orders.map(order => {
     const normalItems: any[] = [];
@@ -310,11 +310,17 @@ export default function KitchenDisplaySystem() {
     };
   }).filter(o => o.items.length > 0);
 
-  const dineIn = normalOrders.filter(o => o.orderType === 'DINE_IN');
-  const takeaway = normalOrders.filter(o => o.orderType === 'TAKEAWAY');
-  const delivery = normalOrders.filter(o => o.orderType === 'DELIVERY');
+  // Count by order type
+  const dineInCount = normalOrders.filter(o => o.orderType === 'DINE_IN').length;
+  const takeawayCount = normalOrders.filter(o => o.orderType === 'TAKEAWAY').length;
+  const deliveryCount = normalOrders.filter(o => o.orderType === 'DELIVERY').length;
 
-  const OrderCard = ({ order, type, icon: Icon, isUrgent = false }: any) => {
+  // Sort all orders by creation time (oldest first)
+  const allOrdersSorted = [...normalOrders].sort((a, b) => 
+    new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+  );
+
+  const OrderCard = ({ order, isUrgent = false }: any) => {
     const diffSecs = Math.floor((now.getTime() - new Date(order.createdAt).getTime()) / 1000);
     const mins = Math.floor(diffSecs / 60);
     const secs = diffSecs % 60;
@@ -328,14 +334,38 @@ export default function KitchenDisplaySystem() {
       return (nowTime - itemTime) < 5000; // 5 seconds
     };
 
+    // Determine badge color and icon based on order type
+    const getOrderTypeBadge = () => {
+      switch (order.orderType) {
+        case 'DINE_IN':
+          return { label: 'DINE IN', color: 'bg-blue-500/20 text-blue-400 border-blue-500/30', icon: UtensilsCrossed };
+        case 'TAKEAWAY':
+          return { label: 'TAKEAWAY', color: 'bg-amber-500/20 text-amber-400 border-amber-500/30', icon: ShoppingBag };
+        case 'DELIVERY':
+          return { label: 'DELIVERY', color: 'bg-rose-500/20 text-rose-400 border-rose-500/30', icon: Bike };
+        default:
+          return { label: 'ORDER', color: 'bg-zinc-500/20 text-zinc-400 border-zinc-500/30', icon: Package };
+      }
+    };
+
+    const badge = getOrderTypeBadge();
+    const BadgeIcon = badge.icon;
+
     return (
       <Card className={`p-4 border-2 ${isUrgent ? 'bg-red-950 border-red-500 shadow-lg shadow-red-500/20' : 'bg-zinc-900 border-zinc-800'} flex flex-col justify-between h-full`}>
         <div>
+          {/* Order Type Badge */}
+          <div className="mb-3">
+            <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-black border ${badge.color} uppercase tracking-wider`}>
+              <BadgeIcon className="w-3.5 h-3.5" />
+              {badge.label}
+            </span>
+          </div>
+
           <div className={`flex justify-between items-start pb-3 border-b ${isUrgent ? 'border-red-800' : 'border-zinc-800'} mb-3`}>
             <div className="flex items-center gap-2">
-              {Icon && <Icon className={`w-6 h-6 ${isUrgent ? 'text-red-500' : 'text-zinc-400'}`} />}
               <span className={`text-xl font-black ${isUrgent ? 'text-red-500' : 'text-white'}`}>
-                {order.table ? `Table ${order.table.number}` : type}
+                {order.table ? `Table ${order.table.number}` : `#${order.id.slice(-4).toUpperCase()}`}
               </span>
             </div>
             <div className="flex flex-col items-end">
@@ -477,7 +507,7 @@ export default function KitchenDisplaySystem() {
 
       <div className="space-y-8">
         
-        {/* Urgent Additions Row */}
+        {/* Urgent Additions Row - Only shown if there are urgent items */}
         {urgentAdditions.length > 0 && (
           <div className="space-y-4">
             <h2 className="text-2xl font-black text-red-500 flex items-center gap-2">
@@ -486,64 +516,51 @@ export default function KitchenDisplaySystem() {
             </h2>
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
               {urgentAdditions.map(order => (
-                <OrderCard key={`${order.id}-urgent`} order={order} type="Dine In" icon={UtensilsCrossed} isUrgent={true} />
+                <OrderCard key={`${order.id}-urgent`} order={order} isUrgent={true} />
               ))}
             </div>
           </div>
         )}
 
-        {/* Regular Queues */}
-        <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
-          
-          {/* Dine In */}
-          <div className="space-y-4">
-            <h2 className="text-xl font-black text-blue-400 flex items-center gap-2 border-b border-zinc-800 pb-2">
-              <UtensilsCrossed /> DINE IN ({dineIn.length})
-            </h2>
-            <div className="space-y-4">
-              {showSkeletons ? (
-                <>
-                  <SkeletonCard />
-                  <SkeletonCard />
-                </>
-              ) : (
-                dineIn.map(order => <OrderCard key={order.id} order={order} type="Dine In" icon={UtensilsCrossed} />)
-              )}
-              {!showSkeletons && dineIn.length === 0 && <p className="text-zinc-600 font-bold italic">No active orders</p>}
-            </div>
+        {/* Category Summary - Compact single line */}
+        {!showSkeletons && allOrdersSorted.length > 0 && (
+          <div className="flex items-center gap-6 text-sm">
+            <span className="text-zinc-500 font-bold">Active Orders:</span>
+            <span className="text-blue-400 font-bold flex items-center gap-1.5">
+              <UtensilsCrossed className="w-4 h-4" />
+              Dine In: {dineInCount}
+            </span>
+            <span className="text-amber-400 font-bold flex items-center gap-1.5">
+              <ShoppingBag className="w-4 h-4" />
+              Takeaway: {takeawayCount}
+            </span>
+            <span className="text-rose-400 font-bold flex items-center gap-1.5">
+              <Bike className="w-4 h-4" />
+              Delivery: {deliveryCount}
+            </span>
           </div>
+        )}
 
-          {/* Takeaway */}
-          <div className="space-y-4">
-            <h2 className="text-xl font-black text-amber-400 flex items-center gap-2 border-b border-zinc-800 pb-2">
-              <ShoppingBag /> TAKEAWAY ({takeaway.length})
-            </h2>
-            <div className="space-y-4">
-              {showSkeletons ? (
-                <SkeletonCard />
-              ) : (
-                takeaway.map(order => <OrderCard key={order.id} order={order} type="Takeaway" icon={ShoppingBag} />)
-              )}
-              {!showSkeletons && takeaway.length === 0 && <p className="text-zinc-600 font-bold italic">No active orders</p>}
-            </div>
+        {/* Unified Grid - All Orders Sorted by Time (Oldest First) */}
+        {showSkeletons ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
+            <SkeletonCard />
+            <SkeletonCard />
+            <SkeletonCard />
+            <SkeletonCard />
           </div>
-
-          {/* Delivery */}
-          <div className="space-y-4">
-            <h2 className="text-xl font-black text-rose-400 flex items-center gap-2 border-b border-zinc-800 pb-2">
-              <Bike /> DELIVERY ({delivery.length})
-            </h2>
-            <div className="space-y-4">
-              {showSkeletons ? (
-                <SkeletonCard />
-              ) : (
-                delivery.map(order => <OrderCard key={order.id} order={order} type="Delivery" icon={Bike} />)
-              )}
-              {!showSkeletons && delivery.length === 0 && <p className="text-zinc-600 font-bold italic">No active orders</p>}
-            </div>
+        ) : allOrdersSorted.length > 0 ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
+            {allOrdersSorted.map(order => (
+              <OrderCard key={order.id} order={order} />
+            ))}
           </div>
+        ) : (
+          <div className="text-center py-20">
+            <p className="text-zinc-500 text-xl font-bold">No active orders</p>
+          </div>
+        )}
 
-        </div>
       </div>
     </div>
   );
