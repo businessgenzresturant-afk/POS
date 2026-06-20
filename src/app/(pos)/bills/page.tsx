@@ -585,7 +585,7 @@ export default function BillsPage() {
           <div className="fixed inset-0 z-[150] flex items-center justify-center bg-background/80 backdrop-blur-sm">
             <div className="bg-card text-card-foreground rounded-2xl shadow-xl border border-border w-full max-w-2xl p-6">
               <div className="flex justify-between items-start mb-4">
-                <h2 className="text-xl font-bold text-foreground">Bill #{selectedBill.id}</h2>
+                <h2 className="text-xl font-bold text-foreground">Bill #{selectedBill.id.slice(-8).toUpperCase()}</h2>
                 <Button
                   onClick={() => setShowBillModal(false)}
                   variant="outline"
@@ -818,9 +818,9 @@ export default function BillsPage() {
               <div key={bill.id} className="border border-border bg-card rounded-lg p-4 transition-all duration-200 hover:border-primary/40 hover:shadow-md">
                 <div className="flex justify-between items-start mb-3">
                   <div className="flex-1">
-                    <h3 className="text-lg font-medium text-foreground">Bill #{bill.id}</h3>
+                    <h3 className="text-lg font-medium text-foreground">Bill #{bill.id.slice(-8).toUpperCase()}</h3>
                     <p className="text-sm text-muted-foreground">
-                      Order #{bill.order.id} • {bill.order.table ? `Table #${bill.order.table.number}` : bill.order.orderType} •
+                      Order #{bill.order.id.slice(-8).toUpperCase()} • {bill.order.table ? `Table #${bill.order.table.number}` : bill.order.orderType} •
                       {new Date(bill.createdAt).toLocaleDateString()}
                     </p>
                   </div>

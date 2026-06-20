@@ -25,14 +25,6 @@ const calculateFinalTotal = (bill: any, discountPct: number = 0, pointsAmt: numb
   return Math.max(0, baseAmount - discountAmt - pointsAmt);
 };
 
-const generateUPIPayload = (bill: any) => {
-  const upiId = 'merchant@upi'; // Replace with actual UPI ID
-  const name = 'GenZ Restaurant';
-  const amount = bill.finalAmount.toFixed(2);
-  const txnNote = `Bill #${bill.id.slice(-4)}`;
-  return `upi://pay?pa=${upiId}&pn=${encodeURIComponent(name)}&am=${amount}&tn=${encodeURIComponent(txnNote)}&cu=INR`;
-};
-
 // Helper function to print receipt
 const printReceipt = (bill: any) => {
   const printWindow = window.open('', '_blank', 'width=800,height=600');
@@ -212,7 +204,7 @@ const printReceipt = (bill: any) => {
 export function PaymentModal({ bill, isOpen, onClose, onPaymentSuccess, onAddItem }: PaymentModalProps) {
   const { user, isAdmin, isStaff } = useAuth();
   
-  const [paymentConfirmed, setPaymentConfirmed] = useState<'CASH' | 'CARD' | 'UPI' | null>(null);
+  const [paymentConfirmed, setPaymentConfirmed] = useState<'CASH' | 'CARD' | null>(null);
   const [isSplitPayment, setIsSplitPayment] = useState(false);
   const [cashAmount, setCashAmount] = useState<string>('');
   const [onlineAmount, setOnlineAmount] = useState<string>('');
@@ -304,7 +296,7 @@ export function PaymentModal({ bill, isOpen, onClose, onPaymentSuccess, onAddIte
           discountPercent: discount || 0,
           pointsRedeemed: pointsToRedeem ? parseInt(pointsToRedeem) : 0,
           cashAmount: isSplitPayment && cashAmount ? parseFloat(cashAmount) : paymentConfirmed === 'CASH' ? calculateFinalTotal(bill, discount, pointsToRedeem ? parseInt(pointsToRedeem) : 0, gstApplied) : 0,
-          onlineAmount: isSplitPayment && onlineAmount ? parseFloat(onlineAmount) : (paymentConfirmed === 'CARD' || paymentConfirmed === 'UPI') ? calculateFinalTotal(bill, discount, pointsToRedeem ? parseInt(pointsToRedeem) : 0, gstApplied) : 0,
+          onlineAmount: isSplitPayment && onlineAmount ? parseFloat(onlineAmount) : (paymentConfirmed === 'CARD') ? calculateFinalTotal(bill, discount, pointsToRedeem ? parseInt(pointsToRedeem) : 0, gstApplied) : 0,
         }),
       });
 
