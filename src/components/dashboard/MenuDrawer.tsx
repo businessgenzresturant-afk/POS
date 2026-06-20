@@ -2,6 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { X, Search, ShoppingCart, Send, ArrowLeft } from 'lucide-react';
+import { DietIndicator } from '@/components/ui/diet-indicator';
 
 interface MenuDrawerProps {
   isOpen: boolean;
@@ -67,6 +68,11 @@ export function MenuDrawer({ isOpen, onClose, onBack, menuItems, tableId, onPlac
   const getMenuItemName = (id: string) => {
     const item = menuItems.find(m => m.id === id);
     return item ? item.name : 'Unknown';
+  };
+
+  const getMenuItemDietType = (id: string) => {
+    const item = menuItems.find(m => m.id === id);
+    return item?.dietType || 'VEG';
   };
 
   const totalAmount = cart.reduce((sum, item) => sum + (getMenuItemPrice(item.menuItemId) * item.quantity), 0);
@@ -155,7 +161,10 @@ export function MenuDrawer({ isOpen, onClose, onBack, menuItems, tableId, onPlac
                         className="cursor-pointer flex-1"
                         onClick={() => handleAddItem(item)}
                       >
-                        <span className="block font-bold text-foreground group-hover:text-primary leading-tight transition-colors">{item.name}</span>
+                        <div className="flex items-center gap-2 mb-2">
+                          <DietIndicator dietType={item.dietType || 'VEG'} />
+                          <span className="block font-bold text-foreground group-hover:text-primary leading-tight transition-colors">{item.name}</span>
+                        </div>
                         <span className="text-xs text-muted-foreground mt-1 block">{item.category}</span>
                         <span className="block font-black text-primary mt-3">
                           ₹{item.price.toFixed(2)}
@@ -234,7 +243,10 @@ export function MenuDrawer({ isOpen, onClose, onBack, menuItems, tableId, onPlac
               cart.map((item, index) => (
                 <div key={index} className="flex flex-col p-3 bg-muted/30 rounded-xl border border-border">
                   <div className="flex justify-between items-start mb-2">
-                    <p className="font-bold text-foreground truncate pr-2">{getMenuItemName(item.menuItemId)}</p>
+                    <div className="flex items-center gap-2 flex-1 min-w-0 pr-2">
+                      <DietIndicator dietType={getMenuItemDietType(item.menuItemId)} />
+                      <p className="font-bold text-foreground truncate">{getMenuItemName(item.menuItemId)}</p>
+                    </div>
                     <p className="font-semibold whitespace-nowrap">₹{(getMenuItemPrice(item.menuItemId) * item.quantity).toFixed(2)}</p>
                   </div>
                   <div className="flex justify-between items-center">
