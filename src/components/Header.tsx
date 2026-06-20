@@ -6,20 +6,32 @@ import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import { signOut } from 'next-auth/react';
 import { 
-  LayoutDashboard, 
-  ChefHat, 
-  Receipt, 
-  ClipboardList, 
-  BarChart3, 
   Settings, 
   LogOut,
-  ChevronDown
+  ChevronDown,
+  Utensils,
+  Store,
+  Users,
+  Receipt as ReceiptIcon,
+  LayoutGrid
 } from 'lucide-react';
 import { ThemeToggle } from '@/components/theme-toggle';
+import ManageTablesModal from '@/components/modals/ManageTablesModal';
+import ManageMenuModal from '@/components/modals/ManageMenuModal';
+import RestaurantSettingsModal from '@/components/modals/RestaurantSettingsModal';
+import ManageStaffModal from '@/components/modals/ManageStaffModal';
+import TaxPricingModal from '@/components/modals/TaxPricingModal';
 
 export default function Header() {
   const pathname = usePathname();
   const [isDropdownOpen, setDropdownOpen] = useState(false);
+  
+  // Modal states
+  const [showTablesModal, setShowTablesModal] = useState(false);
+  const [showMenuModal, setShowMenuModal] = useState(false);
+  const [showRestaurantSettingsModal, setShowRestaurantSettingsModal] = useState(false);
+  const [showStaffModal, setShowStaffModal] = useState(false);
+  const [showTaxPricingModal, setShowTaxPricingModal] = useState(false);
 
   const getPageTitle = () => {
     switch (pathname) {
@@ -101,60 +113,61 @@ export default function Header() {
                 <p className="text-[10px] text-muted-foreground truncate">admin@genz.com</p>
               </div>
               
-              <Link 
-                href="/dashboard" 
-                onClick={() => setDropdownOpen(false)} 
-                className={`flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-bold transition-colors ${
-                  pathname === '/dashboard' ? 'bg-primary/10 text-primary' : 'hover:bg-muted text-foreground'
-                }`}
+              {/* Management Options */}
+              <button 
+                onClick={() => {
+                  setDropdownOpen(false);
+                  setShowTablesModal(true);
+                }}
+                className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-bold transition-colors hover:bg-muted text-foreground"
               >
-                <LayoutDashboard className="w-4 h-4 text-muted-foreground" />
-                Dashboard
-              </Link>
+                <LayoutGrid className="w-4 h-4 text-muted-foreground" />
+                Manage Tables
+              </button>
               
-              <Link 
-                href="/kds" 
-                onClick={() => setDropdownOpen(false)} 
-                className={`flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-bold transition-colors ${
-                  pathname === '/kds' ? 'bg-primary/10 text-primary' : 'hover:bg-muted text-foreground'
-                }`}
+              <button 
+                onClick={() => {
+                  setDropdownOpen(false);
+                  setShowMenuModal(true);
+                }}
+                className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-bold transition-colors hover:bg-muted text-foreground"
               >
-                <ChefHat className="w-4 h-4 text-muted-foreground" />
-                Kitchen Display (KDS)
-              </Link>
+                <Utensils className="w-4 h-4 text-muted-foreground" />
+                Manage Menu
+              </button>
               
-              <Link 
-                href="/bills" 
-                onClick={() => setDropdownOpen(false)} 
-                className={`flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-bold transition-colors ${
-                  pathname === '/bills' ? 'bg-primary/10 text-primary' : 'hover:bg-muted text-foreground'
-                }`}
+              <button 
+                onClick={() => {
+                  setDropdownOpen(false);
+                  setShowRestaurantSettingsModal(true);
+                }}
+                className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-bold transition-colors hover:bg-muted text-foreground"
               >
-                <Receipt className="w-4 h-4 text-muted-foreground" />
-                Bills & Receipts
-              </Link>
+                <Store className="w-4 h-4 text-muted-foreground" />
+                Restaurant Settings
+              </button>
               
-              <Link 
-                href="/orders" 
-                onClick={() => setDropdownOpen(false)} 
-                className={`flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-bold transition-colors ${
-                  pathname === '/orders' ? 'bg-primary/10 text-primary' : 'hover:bg-muted text-foreground'
-                }`}
+              <button 
+                onClick={() => {
+                  setDropdownOpen(false);
+                  setShowStaffModal(true);
+                }}
+                className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-bold transition-colors hover:bg-muted text-foreground"
               >
-                <ClipboardList className="w-4 h-4 text-muted-foreground" />
-                Order History
-              </Link>
+                <Users className="w-4 h-4 text-muted-foreground" />
+                Manage Staff
+              </button>
               
-              <Link 
-                href="/reports" 
-                onClick={() => setDropdownOpen(false)} 
-                className={`flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-bold transition-colors ${
-                  pathname === '/reports' ? 'bg-primary/10 text-primary' : 'hover:bg-muted text-foreground'
-                }`}
+              <button 
+                onClick={() => {
+                  setDropdownOpen(false);
+                  setShowTaxPricingModal(true);
+                }}
+                className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-bold transition-colors hover:bg-muted text-foreground"
               >
-                <BarChart3 className="w-4 h-4 text-muted-foreground" />
-                Reports & Analytics
-              </Link>
+                <ReceiptIcon className="w-4 h-4 text-muted-foreground" />
+                Tax & Pricing
+              </button>
               
               <Link 
                 href="/settings" 
@@ -183,6 +196,28 @@ export default function Header() {
           </>
         )}
       </div>
+
+      {/* Modals */}
+      <ManageTablesModal 
+        isOpen={showTablesModal} 
+        onClose={() => setShowTablesModal(false)} 
+      />
+      <ManageMenuModal 
+        isOpen={showMenuModal} 
+        onClose={() => setShowMenuModal(false)} 
+      />
+      <RestaurantSettingsModal 
+        isOpen={showRestaurantSettingsModal} 
+        onClose={() => setShowRestaurantSettingsModal(false)} 
+      />
+      <ManageStaffModal 
+        isOpen={showStaffModal} 
+        onClose={() => setShowStaffModal(false)} 
+      />
+      <TaxPricingModal 
+        isOpen={showTaxPricingModal} 
+        onClose={() => setShowTaxPricingModal(false)} 
+      />
 
     </header>
   );
