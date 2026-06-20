@@ -15,17 +15,17 @@ interface SoundNotification {
 }
 
 const SkeletonCard = () => (
-  <div className="p-4 bg-zinc-900/50 border border-zinc-800/80 rounded-2xl space-y-4 ">
-    <div className="flex justify-between items-center pb-3 border-b border-zinc-800/40">
-      <div className="h-6 w-24 bg-zinc-800 rounded-lg" />
-      <div className="h-4 w-12 bg-zinc-800 rounded-lg" />
+  <div className="p-4 bg-muted/50 border border-border rounded-2xl space-y-4 animate-pulse">
+    <div className="flex justify-between items-center pb-3 border-b border-border">
+      <div className="h-6 w-24 bg-muted rounded-lg" />
+      <div className="h-4 w-12 bg-muted rounded-lg" />
     </div>
     <div className="space-y-2">
-      <div className="h-5 w-5/6 bg-zinc-800/80 rounded-lg" />
-      <div className="h-4 w-1/2 bg-zinc-800/50 rounded-lg" />
+      <div className="h-5 w-5/6 bg-muted rounded-lg" />
+      <div className="h-4 w-1/2 bg-muted/50 rounded-lg" />
     </div>
-    <div className="pt-3 border-t border-zinc-800/40">
-      <div className="h-9 w-full bg-zinc-800 rounded-xl" />
+    <div className="pt-3 border-t border-border">
+      <div className="h-9 w-full bg-muted rounded-xl" />
     </div>
   </div>
 );
@@ -352,7 +352,7 @@ export default function KitchenDisplaySystem() {
     const BadgeIcon = badge.icon;
 
     return (
-      <Card className={`p-4 border-2 ${isUrgent ? 'bg-red-950 border-red-500 shadow-lg shadow-red-500/20' : 'bg-zinc-900 border-zinc-800'} flex flex-col justify-between h-full`}>
+      <Card className={`p-4 border-2 ${isUrgent ? 'bg-red-950 border-red-500 shadow-lg shadow-red-500/20' : 'bg-card border-border'} flex flex-col justify-between h-full`}>
         <div>
           {/* Order Type Badge */}
           <div className="mb-3">
@@ -362,14 +362,14 @@ export default function KitchenDisplaySystem() {
             </span>
           </div>
 
-          <div className={`flex justify-between items-start pb-3 border-b ${isUrgent ? 'border-red-800' : 'border-zinc-800'} mb-3`}>
+          <div className={`flex justify-between items-start pb-3 border-b ${isUrgent ? 'border-red-800' : 'border-border'} mb-3`}>
             <div className="flex items-center gap-2">
-              <span className={`text-xl font-black ${isUrgent ? 'text-red-500' : 'text-white'}`}>
+              <span className={`text-xl font-black ${isUrgent ? 'text-red-500' : 'text-foreground'}`}>
                 {order.table ? `Table ${order.table.number}` : `#${order.id.slice(-4).toUpperCase()}`}
               </span>
             </div>
             <div className="flex flex-col items-end">
-              <span className="text-zinc-500 text-xs font-bold">
+              <span className="text-muted-foreground text-xs font-bold">
                 {new Date(order.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
               </span>
               <span className={`text-sm font-black ${timeColor}`}>
@@ -397,7 +397,7 @@ export default function KitchenDisplaySystem() {
                         ? 'text-red-400' 
                         : isUrgent 
                           ? 'text-red-100' 
-                          : 'text-zinc-100'
+                          : 'text-foreground'
                     }`}>
                       <span className={`${
                         isCancelled 
@@ -427,7 +427,7 @@ export default function KitchenDisplaySystem() {
                           ? 'text-red-400' 
                           : isUrgent 
                             ? 'text-red-300' 
-                            : 'text-zinc-400'
+                            : 'text-muted-foreground'
                       }`}>
                         📝 {item.specialInstructions}
                       </p>
@@ -439,7 +439,7 @@ export default function KitchenDisplaySystem() {
           </div>
         </div>
         
-        <div className="mt-4 pt-3 border-t border-zinc-800/80 flex flex-wrap gap-2 items-center justify-between">
+        <div className="mt-4 pt-3 border-t border-border flex flex-wrap gap-2 items-center justify-between">
           <div>
             {order.status === 'PENDING' ? (
               <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-black bg-amber-500/10 border border-amber-500/20 text-amber-400 uppercase tracking-wider">
@@ -467,16 +467,16 @@ export default function KitchenDisplaySystem() {
   const showSkeletons = loading && orders.length === 0;
 
   return (
-    <div className="min-h-screen bg-black p-6 overflow-x-hidden font-sans">
-      <div className="flex justify-between items-center mb-8 pb-4 border-b border-zinc-800">
-        <h1 className="text-4xl font-black text-white tracking-tight">KITCHEN DISPLAY</h1>
+    <div className="min-h-screen bg-background p-6 overflow-x-hidden font-sans">
+      <div className="flex justify-between items-center mb-8 pb-4 border-b border-border">
+        <h1 className="text-4xl font-black text-foreground tracking-tight">KITCHEN DISPLAY</h1>
         <div className="flex gap-4 items-center">
           {/* Sound Toggle */}
           <button
             onClick={() => setSoundEnabled(!soundEnabled)}
             className={`flex items-center gap-2 px-4 py-2 rounded-full border transition-all ${
               soundEnabled 
-                ? 'bg-zinc-900 border-zinc-800 text-zinc-300 hover:bg-zinc-800' 
+                ? 'bg-muted border-border text-muted-foreground hover:bg-muted/80' 
                 : 'bg-red-900/20 border-red-500/50 text-red-400'
             }`}
             title={soundEnabled ? 'Sounds Enabled' : 'Sounds Muted'}
@@ -498,9 +498,9 @@ export default function KitchenDisplaySystem() {
           )}
 
           {/* Live Indicator */}
-          <div className="flex items-center gap-2 px-4 py-2 bg-zinc-900 rounded-full border border-zinc-800">
+          <div className="flex items-center gap-2 px-4 py-2 bg-muted rounded-full border border-border">
             <div className="w-3 h-3 rounded-full bg-green-500 animate-pulse" />
-            <span className="text-zinc-300 font-bold text-sm tracking-wider">LIVE</span>
+            <span className="text-muted-foreground font-bold text-sm tracking-wider">LIVE</span>
           </div>
         </div>
       </div>
@@ -525,7 +525,7 @@ export default function KitchenDisplaySystem() {
         {/* Category Summary - Compact single line */}
         {!showSkeletons && allOrdersSorted.length > 0 && (
           <div className="flex items-center gap-6 text-sm">
-            <span className="text-zinc-500 font-bold">Active Orders:</span>
+            <span className="text-muted-foreground font-bold">Active Orders:</span>
             <span className="text-blue-400 font-bold flex items-center gap-1.5">
               <UtensilsCrossed className="w-4 h-4" />
               Dine In: {dineInCount}
@@ -557,7 +557,7 @@ export default function KitchenDisplaySystem() {
           </div>
         ) : (
           <div className="text-center py-20">
-            <p className="text-zinc-500 text-xl font-bold">No active orders</p>
+            <p className="text-muted-foreground text-xl font-bold">No active orders</p>
           </div>
         )}
 
