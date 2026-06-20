@@ -6,3 +6,8 @@ node_modules
 *.db-journal
 tsconfig.tsbuildinfo
 .env*
+.claude
+.kiro
+.remember
+.ragsbuild
+.playwright-mcp
