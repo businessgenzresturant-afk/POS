@@ -22,28 +22,46 @@ export async function GET(request: Request) {
     const startDateStr = searchParams.get('startDate') || searchParams.get('start');
     const endDateStr = searchParams.get('endDate') || searchParams.get('end');
     
-    // Default to today if no dates provided
-    const startDate = startDateStr ? new Date(startDateStr) : new Date();
-    const endDate = endDateStr ? new Date(endDateStr) : new Date();
+    // Default to today if no dates provided - use UTC start of day
+    const now = new Date();
+    const startDate = startDateStr ? new Date(startDateStr) : new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
+    const endDate = endDateStr ? new Date(endDateStr) : new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
     
-    // Set end date to end of day
-    endDate.setHours(23, 59, 59, 999);
+    console.log('[Reports API] Date range:', {
+      start: startDate.toISOString(),
+      end: endDate.toISOString(),
+      startStr: startDateStr,
+      endStr: endDateStr
+    });
     
     // Get completed orders within date range
     const restaurantId = (auth.session.user as any).restaurantId;
     
     // P0 FIX: Use bills (actual collected amounts) instead of orders for revenue calculation
+    // Use createdAt OR paidAt to catch all today's bills (both paid and pending)
     const bills = await prisma.bill.findMany({
       where: {
         status: 'PAID',
-        paidAt: {
-          gte: startDate,
-          lte: endDate,
-        },
         OR: [
-          { table: { restaurantId } },
-          { order: { items: { some: { menuItem: { restaurantId } } } } }
-        ]
+          {
+            createdAt: {
+              gte: startDate,
+              lte: endDate,
+            }
+          },
+          {
+            paidAt: {
+              gte: startDate,
+              lte: endDate,
+            }
+          }
+        ],
+        order: {
+          OR: [
+            { table: { restaurantId } },
+            { items: { some: { menuItem: { restaurantId } } } }
+          ]
+        }
       },
       include: {
         order: {
@@ -56,6 +74,11 @@ export async function GET(request: Request) {
           }
         }
       }
+    });
+
+    console.log('[Reports API] Found bills:', {
+      count: bills.length,
+      total: bills.reduce((sum, b) => sum + b.total, 0)
     });
 
     // Calculate daily sales total from actual collected amounts (bill.total includes GST, discounts, points)
