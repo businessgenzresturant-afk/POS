@@ -1,0 +1,47 @@
+{
+  "name": "Gen-Z Restaurant POS",
+  "short_name": "Gen-Z POS",
+  "description": "Modern Point of Sale system for Gen-Z Restaurant",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#10b981",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "256x256",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/apple-icon.svg",
+      "sizes": "180x180",
+      "type": "image/svg+xml"
+    }
+  ],
+  "categories": ["business", "productivity", "food"],
+  "shortcuts": [
+    {
+      "name": "Dashboard",
+      "short_name": "Dashboard",
+      "description": "View restaurant dashboard",
+      "url": "/dashboard",
+      "icons": [{ "src": "/icon.svg", "sizes": "256x256" }]
+    },
+    {
+      "name": "Kitchen Display",
+      "short_name": "KDS",
+      "description": "View kitchen display system",
+      "url": "/kds",
+      "icons": [{ "src": "/icon.svg", "sizes": "256x256" }]
+    },
+    {
+      "name": "Orders",
+      "short_name": "Orders",
+      "description": "Manage orders",
+      "url": "/orders",
+      "icons": [{ "src": "/icon.svg", "sizes": "256x256" }]
+    }
+  ]
+}

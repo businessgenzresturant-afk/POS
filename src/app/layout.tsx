@@ -10,8 +10,50 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "Gen-Z POS",
-  description: "Restaurant Management SaaS by Gen-Z",
+  title: {
+    default: "Gen-Z Restaurant POS",
+    template: "%s | Gen-Z POS"
+  },
+  description: "Modern Point of Sale system for Gen-Z Restaurant - Manage orders, billing, kitchen display, and customer loyalty with ease.",
+  keywords: ["restaurant", "POS", "point of sale", "Gen-Z", "food ordering", "kitchen display", "billing system"],
+  authors: [{ name: "Gen-Z Restaurant" }],
+  creator: "Gen-Z Restaurant",
+  publisher: "Gen-Z Restaurant",
+  metadataBase: new URL('https://pos.gen-z.online'),
+  alternates: {
+    canonical: '/',
+  },
+  openGraph: {
+    title: "Gen-Z Restaurant POS",
+    description: "Modern Point of Sale system for efficient restaurant management",
+    url: "https://pos.gen-z.online",
+    siteName: "Gen-Z POS",
+    locale: "en_US",
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Gen-Z Restaurant POS",
+    description: "Modern Point of Sale system for efficient restaurant management",
+  },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+    },
+  },
+  icons: {
+    icon: [
+      { url: '/favicon.svg', type: 'image/svg+xml' },
+      { url: '/icon.svg', type: 'image/svg+xml', sizes: '256x256' },
+    ],
+    apple: [
+      { url: '/apple-icon.svg', type: 'image/svg+xml', sizes: '180x180' },
+    ],
+  },
+  manifest: '/manifest.json',
 };
 
 import { Toaster } from 'sonner';
