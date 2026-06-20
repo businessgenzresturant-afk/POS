@@ -33,6 +33,182 @@ const generateUPIPayload = (bill: any) => {
   return `upi://pay?pa=${upiId}&pn=${encodeURIComponent(name)}&am=${amount}&tn=${encodeURIComponent(txnNote)}&cu=INR`;
 };
 
+// Helper function to print receipt
+const printReceipt = (bill: any) => {
+  const printWindow = window.open('', '_blank', 'width=800,height=600');
+  
+  if (!printWindow) {
+    alert('Please allow popups to print the receipt');
+    return;
+  }
+
+  // Merge items
+  const mergeItems = (items: any[]) => {
+    const merged: any[] = [];
+    items.forEach((item: any) => {
+      const cleanInstr = (item.specialInstructions || '').replace('[URGENT ADDITION]', '').trim();
+      const existing = merged.find(
+        i => i.menuItem?.id === item.menuItem?.id && i.cleanInstr === cleanInstr
+      );
+      if (existing) {
+        existing.quantity += item.quantity;
+      } else {
+        merged.push({ ...item, cleanInstr });
+      }
+    });
+    return merged;
+  };
+
+  const mergedItems = bill.order?.items ? mergeItems(bill.order.items) : [];
+
+  const receiptHTML = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <title>Receipt - ${bill.id.slice(-8).toUpperCase()}</title>
+      <style>
+        @page { margin: 10mm; size: 80mm auto; }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Courier New', monospace; font-size: 12px; line-height: 1.4; color: #000; background: #fff; padding: 10px; max-width: 300px; margin: 0 auto; }
+        .receipt-header { text-align: center; margin-bottom: 15px; border-bottom: 2px dashed #000; padding-bottom: 15px; }
+        .restaurant-name { font-size: 18px; font-weight: bold; text-transform: uppercase; letter-spacing: 2px; margin-bottom: 5px; }
+        .restaurant-info { font-size: 10px; line-height: 1.5; }
+        .bill-info { border-bottom: 1px dashed #000; padding-bottom: 10px; margin-bottom: 10px; font-size: 11px; }
+        .info-row { display: flex; justify-content: space-between; margin-bottom: 4px; }
+        .info-label { font-weight: bold; }
+        .items-section { border-bottom: 1px dashed #000; padding-bottom: 10px; margin-bottom: 10px; }
+        .items-header { display: flex; justify-content: space-between; font-weight: bold; border-bottom: 1px solid #000; padding-bottom: 5px; margin-bottom: 8px; font-size: 11px; text-transform: uppercase; }
+        .item-row { display: flex; justify-content: space-between; margin-bottom: 6px; font-size: 11px; }
+        .item-name { flex: 1; font-weight: 600; }
+        .item-price { font-weight: bold; min-width: 70px; text-align: right; }
+        .item-special { color: #666; font-size: 10px; margin-left: 15px; margin-top: 2px; }
+        .totals-section { padding-bottom: 10px; margin-bottom: 10px; font-size: 11px; }
+        .total-row { display: flex; justify-content: space-between; margin-bottom: 5px; }
+        .total-final { font-size: 16px; font-weight: bold; border-top: 2px solid #000; padding-top: 8px; margin-top: 8px; }
+        .payment-status { text-align: center; font-weight: bold; font-size: 12px; padding: 8px; border: 2px solid #000; margin: 10px 0; text-transform: uppercase; }
+        .footer { text-align: center; border-top: 2px dashed #000; padding-top: 10px; margin-top: 15px; font-size: 10px; }
+        .footer-message { font-weight: bold; margin-bottom: 5px; }
+        @media print { body { padding: 0; } }
+      </style>
+    </head>
+    <body onload="window.print(); window.close();">
+      <div class="receipt-header">
+        <div class="restaurant-name">Gen-Z Restaurant</div>
+        <div class="restaurant-info">
+          <div>123 Main Street, New Delhi, India</div>
+          <div>GST No: 07AABCG1234A1Z5</div>
+          <div>Tel: +91 98765 43210</div>
+        </div>
+      </div>
+
+      <div class="bill-info">
+        <div class="info-row">
+          <span class="info-label">Bill #:</span>
+          <span>${bill.id.slice(-8).toUpperCase()}</span>
+        </div>
+        <div class="info-row">
+          <span class="info-label">Date:</span>
+          <span>${new Date(bill.order?.createdAt || bill.createdAt).toLocaleString('en-IN')}</span>
+        </div>
+        ${bill.order?.table ? `
+        <div class="info-row">
+          <span class="info-label">Table:</span>
+          <span>Table ${bill.order.table.number}</span>
+        </div>
+        ` : ''}
+        <div class="info-row">
+          <span class="info-label">Customer:</span>
+          <span>${bill.order?.customerName || 'Walk-in Customer'}</span>
+        </div>
+        ${bill.order?.customerPhone ? `
+        <div class="info-row">
+          <span class="info-label">Phone:</span>
+          <span>${bill.order.customerPhone}</span>
+        </div>
+        ` : ''}
+      </div>
+
+      <div class="items-section">
+        <div class="items-header">
+          <span>Item</span>
+          <span>Amount</span>
+        </div>
+        ${mergedItems.map((item: any) => `
+          <div>
+            <div class="item-row">
+              <span class="item-name">${item.quantity}× ${item.menuItem?.name || 'Unknown Item'}</span>
+              <span class="item-price">₹${(item.quantity * (item.menuItem?.price || item.price || 0)).toFixed(2)}</span>
+            </div>
+            ${item.cleanInstr ? `<div class="item-special">Note: ${item.cleanInstr}</div>` : ''}
+          </div>
+        `).join('')}
+      </div>
+
+      <div class="totals-section">
+        <div class="total-row">
+          <span>Subtotal:</span>
+          <span>₹${bill.subtotal.toFixed(2)}</span>
+        </div>
+        ${bill.gstApplied !== false ? `
+        <div class="total-row">
+          <span>CGST (9%):</span>
+          <span>₹${((bill.tax || 0) / 2).toFixed(2)}</span>
+        </div>
+        <div class="total-row">
+          <span>SGST (9%):</span>
+          <span>₹${((bill.tax || 0) / 2).toFixed(2)}</span>
+        </div>
+        ` : ''}
+        ${bill.discountPercent > 0 ? `
+        <div class="total-row">
+          <span>Discount (${bill.discountPercent}%):</span>
+          <span>-₹${((bill.subtotal * bill.discountPercent) / 100).toFixed(2)}</span>
+        </div>
+        ` : ''}
+        ${bill.pointsRedeemed > 0 ? `
+        <div class="total-row">
+          <span>Points Redeemed:</span>
+          <span>-₹${bill.pointsRedeemed.toFixed(2)}</span>
+        </div>
+        ` : ''}
+        <div class="total-row total-final">
+          <span>TOTAL:</span>
+          <span>₹${bill.total.toFixed(2)}</span>
+        </div>
+      </div>
+
+      ${bill.status === 'PAID' ? `
+      <div class="payment-status">
+        ✓ PAID - ${bill.paymentMethod || 'CASH'}
+      </div>
+      ` : ''}
+
+      ${bill.paymentMethod === 'SPLIT' ? `
+      <div class="totals-section">
+        <div class="total-row">
+          <span>Cash:</span>
+          <span>₹${(bill.cashAmount || 0).toFixed(2)}</span>
+        </div>
+        <div class="total-row">
+          <span>Online:</span>
+          <span>₹${(bill.onlineAmount || 0).toFixed(2)}</span>
+        </div>
+      </div>
+      ` : ''}
+
+      <div class="footer">
+        <div class="footer-message">Thank you for dining with us! 💚</div>
+        <div>Visit us again soon!</div>
+        <div>www.genzrestaurant.com</div>
+      </div>
+    </body>
+    </html>
+  `;
+
+  printWindow.document.write(receiptHTML);
+  printWindow.document.close();
+};
+
 export function PaymentModal({ bill, isOpen, onClose, onPaymentSuccess, onAddItem }: PaymentModalProps) {
   const { user, isAdmin, isStaff } = useAuth();
   
@@ -125,9 +301,10 @@ export function PaymentModal({ bill, isOpen, onClose, onPaymentSuccess, onAddIte
           customerName: customerName || bill.order?.customerName || undefined,
           customerPhone: customerPhone || bill.order?.customerPhone || undefined,
           discount: discount || 0,
+          discountPercent: discount || 0,
           pointsRedeemed: pointsToRedeem ? parseInt(pointsToRedeem) : 0,
-          cashAmount: isSplitPayment && cashAmount ? parseFloat(cashAmount) : undefined,
-          onlineAmount: isSplitPayment && onlineAmount ? parseFloat(onlineAmount) : undefined,
+          cashAmount: isSplitPayment && cashAmount ? parseFloat(cashAmount) : paymentConfirmed === 'CASH' ? calculateFinalTotal(bill, discount, pointsToRedeem ? parseInt(pointsToRedeem) : 0, gstApplied) : 0,
+          onlineAmount: isSplitPayment && onlineAmount ? parseFloat(onlineAmount) : (paymentConfirmed === 'CARD' || paymentConfirmed === 'UPI') ? calculateFinalTotal(bill, discount, pointsToRedeem ? parseInt(pointsToRedeem) : 0, gstApplied) : 0,
         }),
       });
 
@@ -135,11 +312,13 @@ export function PaymentModal({ bill, isOpen, onClose, onPaymentSuccess, onAddIte
         throw new Error('Failed to update bill');
       }
 
+      const updatedBill = await updateResponse.json();
+      
       toast.success('Payment collected successfully! 💰');
       
-      // Trigger print after successful payment
+      // Trigger print with proper receipt content
       setTimeout(() => {
-        window.print();
+        printReceipt(updatedBill);
       }, 300);
 
       onPaymentSuccess();
