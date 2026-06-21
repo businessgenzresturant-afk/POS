@@ -18,7 +18,6 @@ export function TableDrawer({ isOpen, onClose, table, activeOrder, onAddItem, on
   const [isGeneratingBill, setIsGeneratingBill] = React.useState(false);
   const [isMarkingServed, setIsMarkingServed] = React.useState(false);
   const [isReordering, setIsReordering] = React.useState<string | null>(null);
-  const [showSuccessOverlay, setShowSuccessOverlay] = React.useState<'bill' | 'served' | null>(null);
 
   if (!isOpen) return null;
 
@@ -26,48 +25,6 @@ export function TableDrawer({ isOpen, onClose, table, activeOrder, onAddItem, on
     <>
       <div className="fixed inset-0 bg-black/60 z-[150] backdrop-blur-sm animate-fade-in" onClick={onClose} />
       
-      {/* Success Overlays - PROMINENT */}
-      {showSuccessOverlay === 'bill' && (
-        <div className="fixed inset-0 z-[170] flex items-center justify-center bg-indigo-500/95 backdrop-blur-md animate-fade-in">
-          <div className="text-center animate-scale-in">
-            <div className="text-8xl mb-6 animate-bounce">🧾</div>
-            <h2 className="text-4xl font-black text-white mb-3">Bill Generated!</h2>
-            <p className="text-xl text-white/90">Opening payment screen...</p>
-          </div>
-        </div>
-      )}
-
-      {showSuccessOverlay === 'served' && (
-        <div className="fixed inset-0 z-[170] flex items-center justify-center bg-emerald-500/95 backdrop-blur-md animate-fade-in">
-          <div className="text-center animate-scale-in">
-            <div className="text-8xl mb-6 animate-bounce">✅</div>
-            <h2 className="text-4xl font-black text-white mb-3">Marked as Served!</h2>
-            <p className="text-xl text-white/90">Order completed</p>
-          </div>
-        </div>
-      )}
-
-      {/* Loading Overlays */}
-      {isGeneratingBill && !showSuccessOverlay && (
-        <div className="fixed inset-0 z-[170] flex items-center justify-center bg-indigo-500/95 backdrop-blur-md animate-fade-in">
-          <div className="text-center">
-            <div className="w-20 h-20 mx-auto mb-6 border-8 border-white border-t-transparent rounded-full animate-spin" />
-            <h2 className="text-4xl font-black text-white mb-3">Generating Bill...</h2>
-            <p className="text-xl text-white/90">Please wait</p>
-          </div>
-        </div>
-      )}
-
-      {isMarkingServed && !showSuccessOverlay && (
-        <div className="fixed inset-0 z-[170] flex items-center justify-center bg-emerald-500/95 backdrop-blur-md animate-fade-in">
-          <div className="text-center">
-            <div className="w-20 h-20 mx-auto mb-6 border-8 border-white border-t-transparent rounded-full animate-spin" />
-            <h2 className="text-4xl font-black text-white mb-3">Marking as Served...</h2>
-            <p className="text-xl text-white/90">Please wait</p>
-          </div>
-        </div>
-      )}
-
       <div className={`fixed right-0 top-0 h-full w-full max-w-md bg-background border-l border-border shadow-2xl z-[160] transform transition-transform duration-300 ease-in-out ${isOpen ? 'translate-x-0' : 'translate-x-full'} flex flex-col`}>
         
         {/* Header */}
@@ -196,16 +153,12 @@ export function TableDrawer({ isOpen, onClose, table, activeOrder, onAddItem, on
               
               {activeOrder && activeOrder.status !== 'SERVED' && (
                 <Button 
-                  className="flex-1 h-14 text-lg font-bold shadow-lg shadow-emerald-500/20 bg-emerald-600 hover:bg-emerald-700 active:scale-[0.97] transition-transform disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="flex-1 h-14 text-lg font-bold shadow-lg shadow-emerald-500/20 bg-emerald-600 hover:bg-emerald-700 active:scale-[0.97] transition-transform disabled:opacity-50"
                   disabled={isMarkingServed}
                   onClick={async () => {
                     setIsMarkingServed(true);
                     try {
                       await onMarkAsServed(activeOrder.id);
-                      setShowSuccessOverlay('served');
-                      setTimeout(() => {
-                        setShowSuccessOverlay(null);
-                      }, 1500);
                     } finally {
                       setIsMarkingServed(false);
                     }
@@ -228,20 +181,14 @@ export function TableDrawer({ isOpen, onClose, table, activeOrder, onAddItem, on
             
             {activeOrder && (
               <Button 
-                className="w-full h-14 text-lg font-bold shadow-lg shadow-indigo-500/20 bg-indigo-600 hover:bg-indigo-700 active:scale-[0.97] transition-transform disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-full h-14 text-lg font-bold shadow-lg shadow-indigo-500/20 bg-indigo-600 hover:bg-indigo-700 active:scale-[0.97] transition-transform disabled:opacity-50"
                 disabled={isGeneratingBill}
                 onClick={async () => {
                   setIsGeneratingBill(true);
                   try {
                     await onGenerateBill(activeOrder.id);
-                    setShowSuccessOverlay('bill');
-                    setTimeout(() => {
-                      setShowSuccessOverlay(null);
-                    }, 1500);
                   } finally {
-                    // Don't reset here - drawer will close on success
-                    // Reset only runs if there's an error and drawer stays open
-                    setTimeout(() => setIsGeneratingBill(false), 500);
+                    setTimeout(() => setIsGeneratingBill(false), 300);
                   }
                 }}
               >
