@@ -76,7 +76,19 @@ export default function RootLayout({
           <main className="flex-1 flex flex-col p-0 m-0 w-full">
             {children}
           </main>
-          <Toaster richColors position="top-right" />
+          <Toaster 
+            richColors 
+            position="top-center" 
+            expand={true}
+            duration={2000}
+            toastOptions={{
+              style: {
+                fontSize: '16px',
+                fontWeight: '600',
+                padding: '16px 20px',
+              },
+            }}
+          />
         </ThemeProvider>
       </body>
     </html>

@@ -19,11 +19,13 @@ export function MenuDrawer({ isOpen, onClose, onBack, menuItems, tableId, onPlac
   const [cart, setCart] = useState<{menuItemId: string, quantity: number, specialInstructions: string, portionType?: 'HALF' | 'FULL'}[]>([]);
   const [activeTab, setActiveTab] = useState<'menu' | 'cart'>('menu');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showSuccessOverlay, setShowSuccessOverlay] = useState(false);
 
   React.useEffect(() => {
     if (isOpen) {
       setActiveTab('menu');
       setIsSubmitting(false); // Reset on open
+      setShowSuccessOverlay(false);
     }
   }, [isOpen]);
 
@@ -98,12 +100,18 @@ export function MenuDrawer({ isOpen, onClose, onBack, menuItems, tableId, onPlac
       setIsSubmitting(true);
       try {
         await onPlaceOrder(cart);
+        // Show success overlay
+        setShowSuccessOverlay(true);
         setCart([]);
-        // Success - parent will close drawer after toast
+        // Hide overlay and close after delay
+        setTimeout(() => {
+          setShowSuccessOverlay(false);
+        }, 1500);
       } catch (error) {
         console.error('Failed to place order:', error);
         // Re-enable button on error so user can retry
         setIsSubmitting(false);
+        setShowSuccessOverlay(false);
       }
     }
   };
@@ -113,6 +121,29 @@ export function MenuDrawer({ isOpen, onClose, onBack, menuItems, tableId, onPlac
   return (
     <div className="fixed inset-0 z-[150] flex items-center justify-center md:p-4">
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm animate-fade-in" onClick={onClose} />
+      
+      {/* Success Overlay - PROMINENT */}
+      {showSuccessOverlay && (
+        <div className="absolute inset-0 z-[170] flex items-center justify-center bg-emerald-500/95 backdrop-blur-md animate-fade-in">
+          <div className="text-center animate-scale-in">
+            <div className="text-8xl mb-6 animate-bounce">✅</div>
+            <h2 className="text-4xl font-black text-white mb-3">Order Sent!</h2>
+            <p className="text-xl text-white/90">Kitchen has received the order</p>
+          </div>
+        </div>
+      )}
+
+      {/* Loading Overlay - PROMINENT */}
+      {isSubmitting && !showSuccessOverlay && (
+        <div className="absolute inset-0 z-[170] flex items-center justify-center bg-orange-500/95 backdrop-blur-md animate-fade-in">
+          <div className="text-center">
+            <div className="w-20 h-20 mx-auto mb-6 border-8 border-white border-t-transparent rounded-full animate-spin" />
+            <h2 className="text-4xl font-black text-white mb-3">Sending to Kitchen...</h2>
+            <p className="text-xl text-white/90">Please wait</p>
+          </div>
+        </div>
+      )}
+
       <div 
         className="relative bg-background border-t md:border border-border shadow-2xl md:rounded-3xl z-[160] overflow-hidden animate-fade-in flex flex-col md:flex-row w-full h-full md:w-[95vw] md:max-w-[1152px] md:h-[85vh]"
       >
