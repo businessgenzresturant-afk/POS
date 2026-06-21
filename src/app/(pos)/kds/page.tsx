@@ -380,7 +380,7 @@ export default function KitchenDisplaySystem() {
     const BadgeIcon = badge.icon;
 
     return (
-      <Card className={`p-4 border-2 ${isUrgent ? 'bg-red-950 border-red-500 shadow-lg shadow-red-500/20' : 'bg-card border-border'} flex flex-col justify-between h-full hover:shadow-xl hover:shadow-border/10 transition-all active:scale-[0.98] animate-slide-up`}>
+      <Card className={`p-4 border-2 ${isUrgent ? 'bg-red-950 border-red-500 shadow-lg shadow-red-500/20' : 'bg-card border-border'} flex flex-col justify-between h-full hover:shadow-xl hover:shadow-border/10 transition-all active:scale-[0.98]`}>
         <div>
           {/* Order Type Badge */}
           <div className="mb-3">
