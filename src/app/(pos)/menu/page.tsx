@@ -128,13 +128,18 @@ export default function MenuPage() {
 
   const handleAddMenuItem = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!name || !category || !price) return;
+    if (!name || !category || !price) {
+      toast.error('Please fill all required fields');
+      return;
+    }
     if (hasHalfFullOption && !priceHalf) {
-      setError('Please provide half portion price');
+      toast.error('Please provide half portion price');
       return;
     }
 
     setLoading(true);
+    const toastId = toast.loading('➕ Adding menu item...', { duration: Infinity });
+    
     try {
       const response = await fetch('/api/menu', {
         method: 'POST',
@@ -156,6 +161,11 @@ export default function MenuPage() {
         throw new Error('Failed to create menu item');
       }
 
+      toast.success('✅ Menu item added successfully!', { 
+        id: toastId,
+        description: `${name} is now available`
+      });
+
       // Reset form
       setName('');
       setCategory('');
@@ -171,21 +181,30 @@ export default function MenuPage() {
       // Refresh menu items
       await fetchMenuItems();
     } catch (err) {
-      setError('Failed to create menu item. Please try again.');
+      toast.error('❌ Failed to add menu item', { 
+        id: toastId,
+        description: 'Please try again'
+      });
       console.error('Error creating menu item:', err);
     } finally {
       setLoading(false);
     }
   };
 
-  const handleUpdateMenuItem = async () => {
-    if (!itemToEdit?.id || !name || !category || !price) return;
+  const handleUpdateMenuItem = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!itemToEdit?.id || !name || !category || !price) {
+      toast.error('Please fill all required fields');
+      return;
+    }
     if (hasHalfFullOption && !priceHalf) {
-      setError('Please provide half portion price');
+      toast.error('Please provide half portion price');
       return;
     }
 
     setLoading(true);
+    const toastId = toast.loading('✏️ Updating menu item...', { duration: Infinity });
+    
     try {
       const response = await fetch(`/api/menu/${itemToEdit.id}`, {
         method: 'PUT',
@@ -207,6 +226,11 @@ export default function MenuPage() {
         throw new Error('Failed to update menu item');
       }
 
+      toast.success('✅ Menu item updated successfully!', { 
+        id: toastId,
+        description: `${name} has been updated`
+      });
+
       // Reset form
       setName('');
       setCategory('');
@@ -223,7 +247,10 @@ export default function MenuPage() {
       // Refresh menu items
       await fetchMenuItems();
     } catch (err) {
-      setError('Failed to update menu item. Please try again.');
+      toast.error('❌ Failed to update menu item', { 
+        id: toastId,
+        description: 'Please try again'
+      });
       console.error('Error updating menu item:', err);
     } finally {
       setLoading(false);
@@ -234,6 +261,8 @@ export default function MenuPage() {
     if (!itemToDelete) return;
 
     setLoading(true);
+    const toastId = toast.loading('🗑️ Deleting menu item...', { duration: Infinity });
+    
     try {
       const response = await fetch(`/api/menu/${itemToDelete}`, {
         method: 'DELETE',
@@ -243,11 +272,19 @@ export default function MenuPage() {
         throw new Error('Failed to delete menu item');
       }
 
+      toast.success('✅ Menu item deleted successfully!', { 
+        id: toastId,
+        description: 'Item removed from menu'
+      });
+
       setShowDeleteModal(false);
       setItemToDelete(null);
       await fetchMenuItems();
     } catch (err) {
-      setError('Failed to delete menu item. Please try again.');
+      toast.error('❌ Failed to delete menu item', { 
+        id: toastId,
+        description: 'Please try again'
+      });
       console.error('Error deleting menu item:', err);
     } finally {
       setLoading(false);
@@ -255,7 +292,8 @@ export default function MenuPage() {
   };
 
   const handleToggleAvailability = async (id: string, currentAvailability: boolean) => {
-    setLoading(true);
+    const toastId = toast.loading(currentAvailability ? '👁️ Hiding item...' : '👁️ Showing item...', { duration: Infinity });
+    
     try {
       const response = await fetch(`/api/menu/${id}`, {
         method: 'PATCH',
@@ -269,12 +307,21 @@ export default function MenuPage() {
         throw new Error('Failed to toggle availability');
       }
 
+      toast.success(
+        currentAvailability ? '✅ Item hidden from menu!' : '✅ Item now visible on menu!', 
+        { 
+          id: toastId,
+          description: currentAvailability ? 'Customers cannot order this' : 'Customers can order this now'
+        }
+      );
+
       await fetchMenuItems();
     } catch (err) {
-      setError('Failed to toggle availability. Please try again.');
+      toast.error('❌ Failed to toggle availability', { 
+        id: toastId,
+        description: 'Please try again'
+      });
       console.error('Error toggling availability:', err);
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -520,21 +567,26 @@ export default function MenuPage() {
                 </div>
                 <div className="flex gap-3 pt-4">
                   <Button
+                    type="button"
                     onClick={() => {
                       setShowAddModal(false);
                       setName('');
                       setCategory('');
                       setPrice('');
+                      setPriceHalf('');
+                      setHasHalfFullOption(false);
                       setImageUrl('');
                       setAvailable(true);
+                      setDietType('VEG');
+                      setStockQuantity('');
                     }}
                     variant="outline"
                     className="flex-1"
                   >
                     Cancel
                   </Button>
-                  <Button type="submit" variant="gradient" className="flex-1">
-                    Add Item
+                  <Button type="submit" variant="gradient" className="flex-1" disabled={loading}>
+                    {loading ? 'Adding...' : 'Add Item'}
                   </Button>
                 </div>
               </form>
@@ -596,6 +648,7 @@ export default function MenuPage() {
                     onChange={(e) => setPrice(e.target.value)}
                     className="w-full"
                     placeholder="Enter price"
+                    step="0.01"
                   />
                 </div>
                 <div className="flex items-center gap-3 p-3 bg-muted/50 rounded-lg border border-border">
@@ -622,6 +675,7 @@ export default function MenuPage() {
                       onChange={(e) => setPriceHalf(e.target.value)}
                       className="w-full"
                       placeholder="Enter half price"
+                      step="0.01"
                     />
                   </div>
                 )}
@@ -680,22 +734,27 @@ export default function MenuPage() {
                 </div>
                 <div className="flex gap-3 pt-4">
                   <Button
+                    type="button"
                     onClick={() => {
                       setShowEditModal(false);
                       setItemToEdit(null);
                       setName('');
                       setCategory('');
                       setPrice('');
+                      setPriceHalf('');
+                      setHasHalfFullOption(false);
                       setImageUrl('');
                       setAvailable(true);
+                      setDietType('VEG');
+                      setStockQuantity('');
                     }}
                     variant="outline"
                     className="flex-1"
                   >
                     Cancel
                   </Button>
-                  <Button type="submit" variant="gradient" className="flex-1">
-                    Update Item
+                  <Button type="submit" variant="gradient" className="flex-1" disabled={loading}>
+                    {loading ? 'Updating...' : 'Update Item'}
                   </Button>
                 </div>
               </form>
