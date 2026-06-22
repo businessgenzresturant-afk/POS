@@ -4,7 +4,7 @@ import { checkAuth } from '@/lib/api-auth';
 
 export async function POST(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   const auth = await checkAuth(request);
   if (auth.error) return auth.error;
@@ -22,7 +22,7 @@ export async function POST(
     // 1. Fetch the order
     const order = await prisma.order.findFirst({
       where: {
-        id: params.id,
+        id: id,
         table: { restaurantId }
       },
       include: { table: true }

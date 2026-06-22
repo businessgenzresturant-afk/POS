@@ -7,12 +7,13 @@ export const dynamic = 'force-dynamic';
 // PATCH - Cancel an order item (set status to CANCELLED)
 export async function PATCH(
   request: Request,
-  { params }: { params: { id: string; itemId: string } }
+  { params }: { params: Promise<{ id: string; itemId: string }> }
 ) {
   const auth = await checkAuth(request);
   if (auth.error) return auth.error;
 
   try {
+    const { id, itemId } = await params;
     const body = await request.json();
     const { status, cancelReason } = body;
 
@@ -38,8 +39,8 @@ export async function PATCH(
     const restaurantId = (auth.session.user as any).restaurantId;
     const orderItem = await prisma.orderItem.findFirst({
       where: {
-        id: params.itemId,
-        orderId: params.id,
+        id: itemId,
+        orderId: id,
         order: {
           OR: [
             { table: { restaurantId } },
@@ -61,7 +62,7 @@ export async function PATCH(
 
     // Don't allow cancelling items from already billed orders
     const bill = await prisma.bill.findFirst({
-      where: { orderId: params.id, status: 'PAID' }
+      where: { orderId: id, status: 'PAID' }
     });
 
     if (bill) {
@@ -75,7 +76,7 @@ export async function PATCH(
     const result = await prisma.$transaction(async (tx) => {
       // Cancel the item with reason and user ID
       const updatedItem = await tx.orderItem.update({
-        where: { id: params.itemId },
+        where: { id: itemId },
         data: { 
           status: 'CANCELLED',
           cancelReason: cancelReason.trim(),
@@ -86,7 +87,7 @@ export async function PATCH(
       // Recalculate order total (sum of ACTIVE items only)
       const activeItems = await tx.orderItem.findMany({
         where: {
-          orderId: params.id,
+          orderId: id,
           status: 'ACTIVE'
         }
       });
@@ -98,7 +99,7 @@ export async function PATCH(
 
       // Update order total
       await tx.order.update({
-        where: { id: params.id },
+        where: { id },
         data: { totalAmount: newTotal }
       });
 

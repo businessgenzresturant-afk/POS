@@ -13,7 +13,7 @@ export const revalidate = 0;
  */
 export async function PATCH(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   const rateLimit = checkRateLimit(request, RateLimitPresets.API);
   if (!rateLimit.success) {
@@ -24,9 +24,10 @@ export async function PATCH(
   if (auth.error) return auth.error;
 
   try {
+    const { id } = await params;
     const body = await request.json();
     const { itemId, status, cancelReason } = body;
-    const orderId = params.id;
+    const orderId = id;
     const userId = (auth.session.user as any).id;
 
     // Validation

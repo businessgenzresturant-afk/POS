@@ -5,13 +5,13 @@ import { checkAuth } from '@/lib/api-auth';
 // POST force clear table
 export async function POST(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   const auth = await checkAuth(request);
   if (auth.error) return auth.error;
 
   try {
-    const tableId = params.id;
+    const tableId = id;
 
     // Check if table exists
     const table = await prisma.table.findUnique({

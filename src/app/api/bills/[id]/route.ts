@@ -7,16 +7,17 @@ import { updateBillSchema } from '@/lib/validations';
 // GET single bill by ID
 export async function GET(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   const auth = await checkAuth(request);
   if (auth.error) return auth.error;
 
   try {
+    const { id } = await params;
     const restaurantId = (auth.session.user as any).restaurantId;
     const bill = await prisma.bill.findFirst({
       where: {
-        id: params.id,
+        id,
         OR: [
           { table: { restaurantId } },
           { order: { items: { some: { menuItem: { restaurantId } } } } }
@@ -50,12 +51,13 @@ export async function GET(
 // PATCH update bill status (mark as paid)
 export async function PATCH(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   const auth = await checkAuth(request);
   if (auth.error) return auth.error;
 
   try {
+    const { id } = await params;
     const body = await request.json();
     const { status, paymentMethod, customerPhone, customerName, discountPercent, pointsToRedeem, gstApplied } = body;
 
@@ -97,7 +99,7 @@ export async function PATCH(
     const restaurantId = (auth.session.user as any).restaurantId;
     const existingBill = await prisma.bill.findFirst({
       where: {
-        id: params.id,
+        id,
         OR: [
           { table: { restaurantId } },
           { order: { items: { some: { menuItem: { restaurantId } } } } }
@@ -178,7 +180,7 @@ export async function PATCH(
           await tx.pointTransaction.create({
             data: {
               customerId: customer.id,
-              billId: params.id,
+              billId: id,
               points: -pointsRedeemed,
               type: 'REDEEMED'
             }
@@ -201,7 +203,7 @@ export async function PATCH(
           await tx.pointTransaction.create({
             data: {
               customerId: customer.id,
-              billId: params.id,
+              billId: id,
               points: pointsEarned,
               type: 'EARNED'
             }
@@ -221,7 +223,7 @@ export async function PATCH(
 
       // Update the bill
       const updatedBill = await tx.bill.update({
-        where: { id: params.id },
+        where: { id },
         data: {
           status,
           paymentMethod: paymentMethod || null,

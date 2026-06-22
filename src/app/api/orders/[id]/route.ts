@@ -4,16 +4,17 @@ import { checkAuth } from '@/lib/api-auth';
 
 export async function GET(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   const auth = await checkAuth(request);
   if (auth.error) return auth.error;
 
   try {
+    const { id } = await params;
     const restaurantId = (auth.session.user as any).restaurantId;
     const order = await prisma.order.findFirst({
       where: {
-        id: params.id,
+        id,
         OR: [
           { table: { restaurantId } },
           { items: { some: { menuItem: { restaurantId } } } }
@@ -40,7 +41,7 @@ export async function GET(
 
 export async function PATCH(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   const auth = await checkAuth(request);
   if (auth.error) return auth.error;
@@ -52,7 +53,7 @@ export async function PATCH(
     const restaurantId = (auth.session.user as any).restaurantId;
     const existingOrder = await prisma.order.findFirst({
       where: {
-        id: params.id,
+        id: id,
         OR: [
           { table: { restaurantId } },
           { items: { some: { menuItem: { restaurantId } } } }
@@ -65,7 +66,7 @@ export async function PATCH(
     }
 
     const order = await prisma.order.update({
-      where: { id: params.id },
+      where: { id: id },
       data: {
         ...(status && { status }),
         ...(paymentStatus && { paymentStatus })
@@ -89,7 +90,7 @@ export async function PATCH(
 
 export async function DELETE(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   const auth = await checkAuth(request);
   if (auth.error) return auth.error;
@@ -98,7 +99,7 @@ export async function DELETE(
     const restaurantId = (auth.session.user as any).restaurantId;
     const order = await prisma.order.findFirst({
       where: {
-        id: params.id,
+        id: id,
         OR: [
           { table: { restaurantId } },
           { items: { some: { menuItem: { restaurantId } } } }
@@ -117,7 +118,7 @@ export async function DELETE(
     const deletedOrder = await prisma.$transaction(async (tx) => {
       // Delete the order (cascades to order items)
       const deleted = await tx.order.delete({
-        where: { id: params.id }
+        where: { id: id }
       });
 
       let activeOrders = 0;
@@ -127,7 +128,7 @@ export async function DELETE(
           where: {
             tableId: order.tableId,
             status: { notIn: ['COMPLETED'] },
-            id: { not: params.id }
+            id: { not: id }
           }
         });
 

@@ -23,7 +23,7 @@ export function CustomCursor() {
     Array(5).fill(null).map(() => ({ x: -100, y: -100 }))
   )
 
-  const rafId = useRef<number>()
+  const rafId = useRef<number | undefined>(undefined)
   const lastMoveTime = useRef<number>(Date.now())
 
   useEffect(() => {

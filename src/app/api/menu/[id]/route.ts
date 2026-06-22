@@ -8,15 +8,16 @@ export const dynamic = 'force-dynamic';
 
 export async function GET(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   const auth = await checkAuth(request);
   if (auth.error) return auth.error;
 
   try {
+    const { id } = await params;
     const menuItem = await prisma.menuItem.findFirst({
       where: { 
-        id: params.id,
+        id,
         restaurantId: (auth.session.user as any).restaurantId
       }
     });
@@ -32,12 +33,13 @@ export async function GET(
 
 export async function PATCH(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   const auth = await checkAuth(request);
   if (auth.error) return auth.error;
 
   try {
+    const { id } = await params;
     const body = await request.json();
     const userRole = (auth.session.user as any).role;
     
@@ -53,7 +55,7 @@ export async function PATCH(
     // Verify ownership
     const item = await prisma.menuItem.findFirst({
       where: {
-        id: params.id,
+        id,
         restaurantId: (auth.session.user as any).restaurantId
       }
     });
@@ -82,7 +84,7 @@ export async function PATCH(
     }
 
     const menuItem = await prisma.menuItem.update({
-      where: { id: params.id },
+      where: { id },
       data: validation.data
     });
     return NextResponse.json(menuItem);
@@ -95,14 +97,14 @@ export async function PATCH(
 // PUT is an alias for PATCH for backwards compatibility
 export async function PUT(
   request: Request,
-  { params }: { params: { id: string } }
+  context: { params: Promise<{ id: string }> }
 ) {
-  return PATCH(request, { params });
+  return PATCH(request, context);
 }
 
 export async function DELETE(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   const auth = await checkAuth(request);
   if (auth.error) return auth.error;
@@ -113,10 +115,11 @@ export async function DELETE(
   }
 
   try {
+    const { id } = await params;
     // Verify ownership
     const item = await prisma.menuItem.findFirst({
       where: {
-        id: params.id,
+        id,
         restaurantId: (auth.session.user as any).restaurantId
       }
     });
@@ -126,7 +129,7 @@ export async function DELETE(
     }
 
     await prisma.menuItem.delete({
-      where: { id: params.id }
+      where: { id }
     });
     return NextResponse.json({ message: 'Menu item deleted' });
   } catch (error) {
