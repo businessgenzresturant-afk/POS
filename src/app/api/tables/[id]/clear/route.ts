@@ -10,6 +10,8 @@ export async function POST(
   const auth = await checkAuth(request);
   if (auth.error) return auth.error;
 
+  const { id } = await params;
+
   try {
     const tableId = id;
 
