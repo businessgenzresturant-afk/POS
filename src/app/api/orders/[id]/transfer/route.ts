@@ -10,6 +10,7 @@ export async function POST(
   if (auth.error) return auth.error;
 
   try {
+    const { id } = await params;
     const body = await request.json();
     const { newTableId } = body;
 
@@ -22,7 +23,7 @@ export async function POST(
     // 1. Fetch the order
     const order = await prisma.order.findFirst({
       where: {
-        id: id,
+        id,
         table: { restaurantId }
       },
       include: { table: true }
