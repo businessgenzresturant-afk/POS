@@ -47,13 +47,14 @@ export async function PATCH(
   if (auth.error) return auth.error;
 
   try {
+    const { id } = await params;
     const body = await request.json();
     const { status, paymentStatus } = body;
 
     const restaurantId = (auth.session.user as any).restaurantId;
     const existingOrder = await prisma.order.findFirst({
       where: {
-        id: id,
+        id,
         OR: [
           { table: { restaurantId } },
           { items: { some: { menuItem: { restaurantId } } } }
@@ -66,7 +67,7 @@ export async function PATCH(
     }
 
     const order = await prisma.order.update({
-      where: { id: id },
+      where: { id },
       data: {
         ...(status && { status }),
         ...(paymentStatus && { paymentStatus })
