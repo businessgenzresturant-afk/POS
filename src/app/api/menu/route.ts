@@ -37,13 +37,9 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
-  const auth = await checkAuth(request);
+  // ADMIN-ONLY: Menu item creation
+  const auth = await checkAuth(request, 'ADMIN');
   if (auth.error) return auth.error;
-
-  // Restrict to ADMIN
-  if ((auth.session.user as any).role !== 'ADMIN') {
-    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-  }
 
   try {
     const body = await request.json();

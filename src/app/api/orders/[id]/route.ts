@@ -49,7 +49,7 @@ export async function PATCH(
   try {
     const { id } = await params;
     const body = await request.json();
-    const { status, paymentStatus } = body;
+    const { status, paymentStatus, version } = body;
 
     const restaurantId = (auth.session.user as any).restaurantId;
     const existingOrder = await prisma.order.findFirst({
@@ -66,11 +66,58 @@ export async function PATCH(
       return NextResponse.json({ error: 'Order not found' }, { status: 404 });
     }
 
+    // If version is provided, use optimistic locking
+    if (version !== undefined) {
+      try {
+        const updateResult = await prisma.order.updateMany({
+          where: { 
+            id,
+            version: version // Only update if version matches
+          },
+          data: {
+            ...(status && { status }),
+            ...(paymentStatus && { paymentStatus }),
+            version: { increment: 1 } // Increment version on every update
+          }
+        });
+
+        // If no rows were updated, version mismatch occurred (conflict)
+        if (updateResult.count === 0) {
+          return NextResponse.json(
+            { 
+              error: 'Conflict detected: Order was modified by another session. Please refresh and try again.',
+              code: 'VERSION_CONFLICT'
+            },
+            { status: 409 }
+          );
+        }
+
+        // Fetch the updated order with relations
+        const order = await prisma.order.findUnique({
+          where: { id },
+          include: {
+            table: true,
+            items: {
+              include: {
+                menuItem: true
+              }
+            }
+          }
+        });
+
+        return NextResponse.json(order);
+      } catch (error) {
+        throw error;
+      }
+    }
+
+    // Fallback to regular update without optimistic locking (for backward compatibility)
     const order = await prisma.order.update({
       where: { id },
       data: {
         ...(status && { status }),
-        ...(paymentStatus && { paymentStatus })
+        ...(paymentStatus && { paymentStatus }),
+        version: { increment: 1 } // Still increment version
       },
       include: {
         table: true,

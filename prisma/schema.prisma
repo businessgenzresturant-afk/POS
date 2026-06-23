@@ -8,13 +8,14 @@ datasource db {
 }
 
 model Restaurant {
-  id        String     @id @default(dbgenerated("(gen_random_uuid())::text"))
-  name      String
-  address   String
-  createdAt DateTime   @default(now())
-  menuItems MenuItem[]
-  tables    Table[]
-  users     User[]
+  id               String     @id @default(dbgenerated("(gen_random_uuid())::text"))
+  name             String
+  address          String
+  kdsDisplayToken  String?    @unique
+  createdAt        DateTime   @default(now())
+  menuItems        MenuItem[]
+  tables           Table[]
+  users            User[]
 }
 
 model Table {
@@ -64,6 +65,7 @@ model Order {
   paymentStatus PaymentStatus @default(PENDING)
   orderType     OrderType     @default(DINE_IN)
   guests        Int?
+  version       Int           @default(0)
   createdAt     DateTime      @default(now())
   updatedAt     DateTime      @default(now()) @updatedAt
   customerName  String?
@@ -112,6 +114,8 @@ model Bill {
   discount          Float              @default(0)
   total             Float
   gstApplied        Boolean            @default(true)
+  serviceChargeApplied Boolean         @default(false)
+  serviceChargeAmount  Float           @default(0)
   status            BillStatus         @default(PENDING)
   paymentMethod     String?
   cashAmount        Float              @default(0)

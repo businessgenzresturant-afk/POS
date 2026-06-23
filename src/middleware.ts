@@ -6,13 +6,14 @@ export async function middleware(req: NextRequest) {
   const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET });
   const { pathname } = req.nextUrl;
 
-  // Allow access to auth routes, api routes, and static files without authentication
+  // Allow access to auth routes, api routes, static files, and PUBLIC KDS DISPLAY without authentication
   if (
     pathname.startsWith('/api/') ||
     pathname.startsWith('/_next/') ||
     pathname.startsWith('/images/') ||
     pathname.startsWith('/login') ||
     pathname.startsWith('/register') ||
+    pathname.startsWith('/kds-display/') || // NEW: Allow public KDS display
     pathname.startsWith('/favicon.ico')
   ) {
     return NextResponse.next();

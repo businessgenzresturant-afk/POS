@@ -15,12 +15,33 @@ export function TodayRevenueModal({ isOpen, onClose, todayRevenue }: TodayRevenu
   const [bills, setBills] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [selectedBill, setSelectedBill] = useState<any | null>(null);
+  const [breakdown, setBreakdown] = useState<any>(null);
 
   useEffect(() => {
     if (isOpen) {
       fetchTodayBills();
+      fetchReportsBreakdown();
     }
   }, [isOpen]);
+
+  const fetchReportsBreakdown = async () => {
+    try {
+      const today = new Date();
+      const startDate = today.toISOString().split('T')[0];
+      const endDate = today.toISOString().split('T')[0];
+      
+      const res = await fetch(`/api/reports?startDate=${startDate}&endDate=${endDate}`);
+      if (!res.ok) throw new Error('Failed to fetch reports');
+      const data = await res.json();
+      
+      if (data.breakdown) {
+        setBreakdown(data.breakdown);
+      }
+    } catch (e) {
+      console.error('Failed to fetch breakdown:', e);
+      // Silent fail - breakdown is optional
+    }
+  };
 
   const fetchTodayBills = async () => {
     setLoading(true);
@@ -169,6 +190,57 @@ export function TodayRevenueModal({ isOpen, onClose, todayRevenue }: TodayRevenu
                 <Sparkles className="w-8 h-8" />
               </div>
             </div>
+
+            {/* Payment Method Breakdown */}
+            {breakdown && (
+              <div className="bg-gradient-to-br from-blue-500/10 to-indigo-500/5 border border-blue-500/20 rounded-2xl p-5 shadow-md shadow-blue-500/5">
+                <h4 className="text-[10px] font-bold uppercase tracking-wider text-blue-600 dark:text-blue-400 mb-3">Payment Method Breakdown</h4>
+                <div className="space-y-2 text-sm">
+                  {breakdown.cash > 0 && (
+                    <div className="flex justify-between items-center">
+                      <span className="flex items-center gap-2 text-muted-foreground">
+                        <DollarSign className="w-4 h-4 text-green-500" />
+                        <span>Cash</span>
+                      </span>
+                      <span className="font-bold text-foreground">₹{breakdown.cash.toFixed(2)}</span>
+                    </div>
+                  )}
+                  {breakdown.upi > 0 && (
+                    <div className="flex justify-between items-center">
+                      <span className="flex items-center gap-2 text-muted-foreground">
+                        <Wallet className="w-4 h-4 text-orange-500" />
+                        <span>UPI</span>
+                      </span>
+                      <span className="font-bold text-foreground">₹{breakdown.upi.toFixed(2)}</span>
+                    </div>
+                  )}
+                  {breakdown.card > 0 && (
+                    <div className="flex justify-between items-center">
+                      <span className="flex items-center gap-2 text-muted-foreground">
+                        <CreditCard className="w-4 h-4 text-blue-500" />
+                        <span>Card</span>
+                      </span>
+                      <span className="font-bold text-foreground">₹{breakdown.card.toFixed(2)}</span>
+                    </div>
+                  )}
+                  {breakdown.split > 0 && (
+                    <div className="flex justify-between items-center">
+                      <span className="flex items-center gap-2 text-muted-foreground">
+                        <Receipt className="w-4 h-4 text-purple-500" />
+                        <span>Split Payment</span>
+                      </span>
+                      <span className="font-bold text-foreground">₹{breakdown.split.toFixed(2)}</span>
+                    </div>
+                  )}
+                  {breakdown.total > 0 && (
+                    <div className="flex justify-between items-center pt-2 border-t border-blue-500/20 font-bold text-base">
+                      <span className="text-foreground">Total Revenue</span>
+                      <span className="text-emerald-600 dark:text-emerald-400">₹{breakdown.total.toFixed(2)}</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
 
             {/* Bills Section */}
             <div className="space-y-4">

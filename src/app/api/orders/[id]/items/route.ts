@@ -120,10 +120,26 @@ export async function PATCH(
         return sum + (item.price * item.quantity);
       }, 0);
 
-      // Update order total
-      const updatedOrder = await tx.order.update({
+      // Update order total with optimistic locking
+      const updateResult = await tx.order.updateMany({
+        where: { 
+          id: orderId,
+          version: order.version // Only update if version matches
+        },
+        data: { 
+          totalAmount: newTotal,
+          version: { increment: 1 } // Increment version on every update
+        }
+      });
+
+      // If no rows were updated, version mismatch occurred (conflict)
+      if (updateResult.count === 0) {
+        throw new Error('VERSION_CONFLICT');
+      }
+
+      // Fetch the updated order with relations
+      const updatedOrder = await tx.order.findUnique({
         where: { id: orderId },
-        data: { totalAmount: newTotal },
         include: {
           table: true,
           items: {
@@ -149,7 +165,16 @@ export async function PATCH(
     });
 
     return NextResponse.json(result, { status: 200 });
-  } catch (error) {
+  } catch (error: any) {
+    if (error.message === 'VERSION_CONFLICT') {
+      return NextResponse.json(
+        { 
+          error: 'Conflict detected: Order was modified by another session. Please refresh and try again.',
+          code: 'VERSION_CONFLICT'
+        },
+        { status: 409 }
+      );
+    }
     console.error('Error updating order item:', error);
     return NextResponse.json(
       { error: 'Failed to update order item' },

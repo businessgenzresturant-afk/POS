@@ -17,10 +17,10 @@ interface PaymentModalProps {
   onAddItem?: () => void; // Optional callback to add items
 }
 
-// Helper function to calculate final total including GST
-const calculateFinalTotal = (bill: any, discountPct: number = 0, pointsAmt: number = 0, includeGst: boolean = true) => {
-  // Base amount with optional GST
-  const baseAmount = bill.subtotal + (includeGst ? (bill.tax || 0) : 0);
+// Helper function to calculate final total including GST and service charge
+const calculateFinalTotal = (bill: any, discountPct: number = 0, pointsAmt: number = 0, includeGst: boolean = true, serviceCharge: number = 0) => {
+  // Base amount with optional GST and service charge
+  const baseAmount = bill.subtotal + serviceCharge + (includeGst ? (bill.tax || 0) : 0);
   const discountAmt = (bill.subtotal * discountPct) / 100;
   return Math.max(0, baseAmount - discountAmt - pointsAmt);
 };
@@ -59,28 +59,64 @@ const printReceipt = (bill: any) => {
     <head>
       <title>Receipt - ${bill.id.slice(-8).toUpperCase()}</title>
       <style>
-        @page { margin: 10mm; size: 80mm auto; }
+        @page { 
+          size: 80mm auto;
+          margin: 0; 
+        }
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: 'Courier New', monospace; font-size: 12px; line-height: 1.4; color: #000; background: #fff; padding: 10px; max-width: 300px; margin: 0 auto; }
-        .receipt-header { text-align: center; margin-bottom: 15px; border-bottom: 2px dashed #000; padding-bottom: 15px; }
+        body { 
+          font-family: 'Courier New', monospace; 
+          font-size: 12px; 
+          line-height: 1.4; 
+          color: #000; 
+          background: #fff; 
+          padding: 10px; 
+          width: 72mm;
+          max-width: 72mm; 
+          margin: 0 auto;
+          position: relative;
+        }
+        
+        /* Watermark */
+        body::before {
+          content: '';
+          position: absolute;
+          top: 50%;
+          left: 50%;
+          transform: translate(-50%, -50%);
+          width: 60%;
+          height: 60%;
+          background-image: url('/images/Gen-z-logo.png');
+          background-position: center;
+          background-repeat: no-repeat;
+          background-size: contain;
+          opacity: 0.05;
+          z-index: -1;
+          pointer-events: none;
+        }
+        
+        .receipt-header { text-align: center; margin-bottom: 15px; border-bottom: 2px dashed #000; padding-bottom: 15px; position: relative; z-index: 1; }
         .restaurant-name { font-size: 18px; font-weight: bold; text-transform: uppercase; letter-spacing: 2px; margin-bottom: 5px; }
         .restaurant-info { font-size: 10px; line-height: 1.5; }
-        .bill-info { border-bottom: 1px dashed #000; padding-bottom: 10px; margin-bottom: 10px; font-size: 11px; }
+        .bill-info { border-bottom: 1px dashed #000; padding-bottom: 10px; margin-bottom: 10px; font-size: 11px; position: relative; z-index: 1; }
         .info-row { display: flex; justify-content: space-between; margin-bottom: 4px; }
         .info-label { font-weight: bold; }
-        .items-section { border-bottom: 1px dashed #000; padding-bottom: 10px; margin-bottom: 10px; }
+        .items-section { border-bottom: 1px dashed #000; padding-bottom: 10px; margin-bottom: 10px; position: relative; z-index: 1; }
         .items-header { display: flex; justify-content: space-between; font-weight: bold; border-bottom: 1px solid #000; padding-bottom: 5px; margin-bottom: 8px; font-size: 11px; text-transform: uppercase; }
-        .item-row { display: flex; justify-content: space-between; margin-bottom: 6px; font-size: 11px; }
+        .item-row { display: flex; justify-content: space-between; margin-bottom: 6px; font-size: 11px; font-family: 'Courier New', monospace; }
         .item-name { flex: 1; font-weight: 600; }
-        .item-price { font-weight: bold; min-width: 70px; text-align: right; }
+        .item-price { font-weight: bold; min-width: 70px; text-align: right; font-family: 'Courier New', monospace; }
         .item-special { color: #666; font-size: 10px; margin-left: 15px; margin-top: 2px; }
-        .totals-section { padding-bottom: 10px; margin-bottom: 10px; font-size: 11px; }
-        .total-row { display: flex; justify-content: space-between; margin-bottom: 5px; }
+        .totals-section { padding-bottom: 10px; margin-bottom: 10px; font-size: 11px; position: relative; z-index: 1; }
+        .total-row { display: flex; justify-content: space-between; margin-bottom: 5px; font-family: 'Courier New', monospace; }
         .total-final { font-size: 16px; font-weight: bold; border-top: 2px solid #000; padding-top: 8px; margin-top: 8px; }
-        .payment-status { text-align: center; font-weight: bold; font-size: 12px; padding: 8px; border: 2px solid #000; margin: 10px 0; text-transform: uppercase; }
-        .footer { text-align: center; border-top: 2px dashed #000; padding-top: 10px; margin-top: 15px; font-size: 10px; }
+        .payment-status { text-align: center; font-weight: bold; font-size: 12px; padding: 8px; border: 2px solid #000; margin: 10px 0; text-transform: uppercase; position: relative; z-index: 1; }
+        .footer { text-align: center; border-top: 2px dashed #000; padding-top: 10px; margin-top: 15px; font-size: 10px; position: relative; z-index: 1; }
         .footer-message { font-weight: bold; margin-bottom: 5px; }
-        @media print { body { padding: 0; } }
+        @media print { 
+          body { padding: 0; } 
+          body::before { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+        }
       </style>
     </head>
     <body onload="window.print(); window.close();">
@@ -141,6 +177,12 @@ const printReceipt = (bill: any) => {
           <span>Subtotal:</span>
           <span>₹${bill.subtotal.toFixed(2)}</span>
         </div>
+        ${bill.serviceChargeApplied ? `
+        <div class="total-row">
+          <span>Service Charge (10%):</span>
+          <span>₹${(bill.serviceChargeAmount || 0).toFixed(2)}</span>
+        </div>
+        ` : ''}
         ${bill.gstApplied !== false ? `
         <div class="total-row">
           <span>CGST (9%):</span>
@@ -204,7 +246,7 @@ const printReceipt = (bill: any) => {
 export function PaymentModal({ bill, isOpen, onClose, onPaymentSuccess, onAddItem }: PaymentModalProps) {
   const { user, isAdmin, isStaff } = useAuth();
   
-  const [paymentConfirmed, setPaymentConfirmed] = useState<'CASH' | 'CARD' | null>(null);
+  const [paymentConfirmed, setPaymentConfirmed] = useState<'CASH' | 'CARD' | 'UPI' | null>(null);
   const [isSplitPayment, setIsSplitPayment] = useState(false);
   const [cashAmount, setCashAmount] = useState<string>('');
   const [onlineAmount, setOnlineAmount] = useState<string>('');
@@ -222,6 +264,11 @@ export function PaymentModal({ bill, isOpen, onClose, onPaymentSuccess, onAddIte
   
   // GST toggle state
   const [gstApplied, setGstApplied] = useState(true);
+  
+  // Service charge state
+  const [serviceChargeApplied, setServiceChargeApplied] = useState(false);
+  const [serviceChargeAmount, setServiceChargeAmount] = useState(0);
+  const SERVICE_CHARGE_RATE = 0.10; // 10%
   
   const [isProcessing, setIsProcessing] = useState(false);
 
@@ -264,7 +311,8 @@ export function PaymentModal({ bill, isOpen, onClose, onPaymentSuccess, onAddIte
         bill,
         discountPercent ? parseFloat(discountPercent) : 0,
         pointsToRedeem ? parseInt(pointsToRedeem) : 0,
-        gstApplied
+        gstApplied,
+        serviceChargeAmount
       );
       
       if (Math.abs(cash + online - finalTotal) > 0.01) {
@@ -290,13 +338,15 @@ export function PaymentModal({ bill, isOpen, onClose, onPaymentSuccess, onAddIte
           status: 'PAID',
           paymentMethod: isSplitPayment ? 'SPLIT' : paymentConfirmed,
           gstApplied,
+          serviceChargeApplied,
+          serviceChargeAmount,
           customerName: customerName || bill.order?.customerName || undefined,
           customerPhone: customerPhone || bill.order?.customerPhone || undefined,
           discount: discount || 0,
           discountPercent: discount || 0,
           pointsRedeemed: pointsToRedeem ? parseInt(pointsToRedeem) : 0,
-          cashAmount: isSplitPayment && cashAmount ? parseFloat(cashAmount) : paymentConfirmed === 'CASH' ? calculateFinalTotal(bill, discount, pointsToRedeem ? parseInt(pointsToRedeem) : 0, gstApplied) : 0,
-          onlineAmount: isSplitPayment && onlineAmount ? parseFloat(onlineAmount) : (paymentConfirmed === 'CARD') ? calculateFinalTotal(bill, discount, pointsToRedeem ? parseInt(pointsToRedeem) : 0, gstApplied) : 0,
+          cashAmount: isSplitPayment && cashAmount ? parseFloat(cashAmount) : paymentConfirmed === 'CASH' ? calculateFinalTotal(bill, discount, pointsToRedeem ? parseInt(pointsToRedeem) : 0, gstApplied, serviceChargeAmount) : 0,
+          onlineAmount: isSplitPayment && onlineAmount ? parseFloat(onlineAmount) : (paymentConfirmed === 'CARD' || paymentConfirmed === 'UPI') ? calculateFinalTotal(bill, discount, pointsToRedeem ? parseInt(pointsToRedeem) : 0, gstApplied, serviceChargeAmount) : 0,
         }),
       });
 
@@ -418,6 +468,12 @@ export function PaymentModal({ bill, isOpen, onClose, onPaymentSuccess, onAddIte
                     <span className="text-sm text-muted-foreground">Subtotal</span>
                     <span className="font-bold text-foreground">₹{bill.subtotal.toFixed(2)}</span>
                   </div>
+                  {serviceChargeApplied && (
+                    <div className="flex justify-between items-center mb-2">
+                      <span className="text-sm text-muted-foreground">Service Charge (10%)</span>
+                      <span className="font-bold text-foreground">₹{serviceChargeAmount.toFixed(2)}</span>
+                    </div>
+                  )}
                   {gstApplied && (
                     <div className="flex justify-between items-center mb-2">
                       <span className="text-sm text-muted-foreground">GST (18%)</span>
@@ -442,7 +498,7 @@ export function PaymentModal({ bill, isOpen, onClose, onPaymentSuccess, onAddIte
                       ₹{(() => {
                         const discountPct = discountPercent ? parseFloat(discountPercent) : 0;
                         const pointsAmt = pointsToRedeem ? parseInt(pointsToRedeem) : 0;
-                        return calculateFinalTotal(bill, discountPct, pointsAmt, gstApplied).toFixed(2);
+                        return calculateFinalTotal(bill, discountPct, pointsAmt, gstApplied, serviceChargeAmount).toFixed(2);
                       })()}
                     </span>
                   </div>
@@ -545,6 +601,35 @@ export function PaymentModal({ bill, isOpen, onClose, onPaymentSuccess, onAddIte
                   </p>
                 </div>
 
+                {/* Service Charge Toggle */}
+                <div>
+                  <label className="flex items-center justify-between cursor-pointer p-3 bg-muted/30 rounded-xl border border-border hover:bg-muted/50 transition-colors">
+                    <div>
+                      <span className="text-sm font-semibold text-foreground">Apply Service Charge (10%)</span>
+                      <div className="text-xs text-muted-foreground mt-0.5">
+                        ₹{(bill.subtotal * SERVICE_CHARGE_RATE).toFixed(2)}
+                      </div>
+                    </div>
+                    <div className="relative">
+                      <input
+                        type="checkbox"
+                        checked={serviceChargeApplied}
+                        onChange={(e) => {
+                          const newValue = e.target.checked;
+                          setServiceChargeApplied(newValue);
+                          const newServiceCharge = newValue ? bill.subtotal * SERVICE_CHARGE_RATE : 0;
+                          setServiceChargeAmount(newServiceCharge);
+                        }}
+                        className="sr-only peer"
+                      />
+                      <div className="w-11 h-6 bg-zinc-700 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary/20 rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
+                    </div>
+                  </label>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {serviceChargeApplied ? 'Service charge will be added to this bill' : 'Bill will be generated without service charge'}
+                  </p>
+                </div>
+
                 {/* Points Redemption - ADMIN ONLY */}
                 {(isAdmin === true) && customerData && customerData.pointsBalance > 0 && (
                   <div>
@@ -584,7 +669,7 @@ export function PaymentModal({ bill, isOpen, onClose, onPaymentSuccess, onAddIte
                 <div className="space-y-3">
                   <h3 className="text-sm font-bold text-foreground/80">Select Payment Method</h3>
                   
-                  <div className="grid grid-cols-3 gap-3">
+                  <div className="grid grid-cols-4 gap-3">
                     <button
                       onClick={() => {
                         setPaymentConfirmed('CASH');
@@ -598,6 +683,20 @@ export function PaymentModal({ bill, isOpen, onClose, onPaymentSuccess, onAddIte
                     >
                       <span className="text-2xl">💵</span>
                       <span className="text-xs font-bold">Cash</span>
+                    </button>
+                    <button
+                      onClick={() => {
+                        setPaymentConfirmed('UPI');
+                        setIsSplitPayment(false);
+                        setCashAmount('');
+                        setOnlineAmount('');
+                      }}
+                      className={`p-3 rounded-xl border-2 flex flex-col items-center justify-center gap-2 transition-all ${
+                        paymentConfirmed === 'UPI' && !isSplitPayment ? 'border-indigo-500/50 bg-indigo-500/10 text-indigo-500' : 'border-border hover:border-indigo-500/30 hover:bg-muted text-muted-foreground'
+                      }`}
+                    >
+                      <span className="text-2xl">📱</span>
+                      <span className="text-xs font-bold">UPI</span>
                     </button>
                     <button
                       onClick={() => {
@@ -649,7 +748,8 @@ export function PaymentModal({ bill, isOpen, onClose, onPaymentSuccess, onAddIte
                               bill,
                               discountPercent ? parseFloat(discountPercent) : 0,
                               pointsToRedeem ? parseInt(pointsToRedeem) : 0,
-                              gstApplied
+                              gstApplied,
+                              serviceChargeAmount
                             );
                             const cash = e.target.value ? parseFloat(e.target.value) : 0;
                             const remaining = finalTotal - cash;
@@ -677,7 +777,8 @@ export function PaymentModal({ bill, isOpen, onClose, onPaymentSuccess, onAddIte
                               bill,
                               discountPercent ? parseFloat(discountPercent) : 0,
                               pointsToRedeem ? parseInt(pointsToRedeem) : 0,
-                              gstApplied
+                              gstApplied,
+                              serviceChargeAmount
                             );
                             const online = e.target.value ? parseFloat(e.target.value) : 0;
                             const remaining = finalTotal - online;

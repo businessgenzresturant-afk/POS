@@ -25,6 +25,9 @@ export default function ManageMenuModal({ isOpen, onClose }: ManageMenuModalProp
   const [searchQuery, setSearchQuery] = useState('');
   const [filterCategory, setFilterCategory] = useState('ALL');
   const [showAddForm, setShowAddForm] = useState(false);
+  const [showEditForm, setShowEditForm] = useState(false);
+  const [editingItem, setEditingItem] = useState<MenuItem | null>(null);
+  const [categories, setCategories] = useState<string[]>([]);
   const [newItem, setNewItem] = useState({
     name: '',
     category: '',
@@ -37,8 +40,19 @@ export default function ManageMenuModal({ isOpen, onClose }: ManageMenuModalProp
   useEffect(() => {
     if (isOpen) {
       fetchMenuItems();
+      fetchCategories();
     }
   }, [isOpen]);
+
+  const fetchCategories = async () => {
+    try {
+      const response = await fetch('/api/menu/categories');
+      const data = await response.json();
+      setCategories(data);
+    } catch (error) {
+      console.error('Failed to fetch categories:', error);
+    }
+  };
 
   const fetchMenuItems = async () => {
     try {
@@ -100,10 +114,51 @@ export default function ManageMenuModal({ isOpen, onClose }: ManageMenuModalProp
     if (!confirm('Are you sure you want to delete this menu item?')) return;
 
     try {
-      await fetch(`/api/menu/${id}`, { method: 'DELETE' });
-      fetchMenuItems();
+      const response = await fetch(`/api/menu/${id}`, { method: 'DELETE' });
+      if (response.ok) {
+        fetchMenuItems();
+      } else {
+        alert('Failed to delete item. Please try again.');
+      }
     } catch (error) {
       console.error('Failed to delete menu item:', error);
+      alert('Error deleting item. Please try again.');
+    }
+  };
+
+  const handleEditItem = (item: MenuItem) => {
+    setEditingItem(item);
+    setShowEditForm(true);
+    setShowAddForm(false);
+  };
+
+  const handleUpdateItem = async () => {
+    if (!editingItem || !editingItem.name || !editingItem.category || !editingItem.price) return;
+
+    try {
+      const response = await fetch(`/api/menu/${editingItem.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: editingItem.name,
+          category: editingItem.category,
+          price: editingItem.price,
+          dietType: editingItem.dietType,
+          hasHalfFullOption: editingItem.hasHalfFullOption,
+          priceHalf: editingItem.hasHalfFullOption ? editingItem.priceHalf : null,
+        }),
+      });
+
+      if (response.ok) {
+        setShowEditForm(false);
+        setEditingItem(null);
+        fetchMenuItems();
+      } else {
+        alert('Failed to update item. Please try again.');
+      }
+    } catch (error) {
+      console.error('Failed to update menu item:', error);
+      alert('Error updating item. Please try again.');
     }
   };
 
@@ -113,7 +168,7 @@ export default function ManageMenuModal({ isOpen, onClose }: ManageMenuModalProp
     return matchesSearch && matchesCategory;
   });
 
-  const categories = ['ALL', ...new Set(menuItems.map((item) => item.category))];
+  const allCategories = ['ALL', ...categories];
 
   if (!isOpen) return null;
 
@@ -162,7 +217,7 @@ export default function ManageMenuModal({ isOpen, onClose }: ManageMenuModalProp
           </div>
 
           <div className="flex gap-2 overflow-x-auto pb-2">
-            {categories.map((category) => (
+            {allCategories.map((category) => (
               <button
                 key={category}
                 onClick={() => setFilterCategory(category)}
@@ -192,13 +247,16 @@ export default function ManageMenuModal({ isOpen, onClose }: ManageMenuModalProp
                   onChange={(e) => setNewItem({ ...newItem, name: e.target.value })}
                   className="px-3 py-2 bg-background border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary"
                 />
-                <input
-                  type="text"
-                  placeholder="Category"
+                <select
                   value={newItem.category}
                   onChange={(e) => setNewItem({ ...newItem, category: e.target.value })}
                   className="px-3 py-2 bg-background border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary"
-                />
+                >
+                  <option value="">Select Category</option>
+                  {categories.map((cat) => (
+                    <option key={cat} value={cat}>{cat}</option>
+                  ))}
+                </select>
                 <input
                   type="number"
                   placeholder="Price"
@@ -259,6 +317,98 @@ export default function ManageMenuModal({ isOpen, onClose }: ManageMenuModalProp
             </div>
           )}
 
+          {/* Edit Form */}
+          {showEditForm && editingItem && (
+            <div className="bg-blue-500/10 border-2 border-blue-500/30 rounded-xl p-4 mb-6 animate-fade-in">
+              <h3 className="text-sm font-bold text-foreground mb-3 flex items-center gap-2">
+                <Edit2 className="w-4 h-4" />
+                Edit Menu Item
+              </h3>
+              <div className="grid grid-cols-2 gap-3 mb-3">
+                <input
+                  type="text"
+                  placeholder="Item Name"
+                  value={editingItem.name}
+                  onChange={(e) => setEditingItem({ ...editingItem, name: e.target.value })}
+                  className="px-3 py-2 bg-background border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                />
+                <select
+                  value={editingItem.category}
+                  onChange={(e) => setEditingItem({ ...editingItem, category: e.target.value })}
+                  className="px-3 py-2 bg-background border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                >
+                  <option value="">Select Category</option>
+                  {categories.map((cat) => (
+                    <option key={cat} value={cat}>{cat}</option>
+                  ))}
+                </select>
+                <input
+                  type="number"
+                  placeholder="Price"
+                  value={editingItem.price}
+                  onChange={(e) => setEditingItem({ ...editingItem, price: parseFloat(e.target.value) || 0 })}
+                  className="px-3 py-2 bg-background border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                />
+                <select
+                  value={editingItem.dietType}
+                  onChange={(e) => setEditingItem({ ...editingItem, dietType: e.target.value as 'VEG' | 'NON_VEG' })}
+                  className="px-3 py-2 bg-background border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                >
+                  <option value="VEG">🟢 Vegetarian</option>
+                  <option value="NON_VEG">🔴 Non-Vegetarian</option>
+                </select>
+              </div>
+
+              {/* Half/Full Portion Toggle */}
+              <div className="flex items-center gap-3 mb-3">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={editingItem.hasHalfFullOption}
+                    onChange={(e) =>
+                      setEditingItem({ 
+                        ...editingItem, 
+                        hasHalfFullOption: e.target.checked, 
+                        priceHalf: e.target.checked ? editingItem.priceHalf : undefined 
+                      })
+                    }
+                    className="w-4 h-4 rounded border-border text-primary focus:ring-primary accent-primary"
+                  />
+                  <span className="text-sm font-bold text-foreground">Enable Half Plate option</span>
+                </label>
+              </div>
+
+              {editingItem.hasHalfFullOption && (
+                <div className="mb-3">
+                  <input
+                    type="number"
+                    placeholder="Half Plate Price"
+                    value={editingItem.priceHalf || ''}
+                    onChange={(e) => setEditingItem({ ...editingItem, priceHalf: parseFloat(e.target.value) || 0 })}
+                    className="px-3 py-2 bg-background border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary w-full sm:w-1/2"
+                  />
+                </div>
+              )}
+              <div className="flex gap-2">
+                <button
+                  onClick={handleUpdateItem}
+                  className="px-4 py-2 bg-blue-600 text-white rounded-lg font-bold text-sm hover:bg-blue-700 transition-colors active:scale-[0.97]"
+                >
+                  Update Item
+                </button>
+                <button
+                  onClick={() => {
+                    setShowEditForm(false);
+                    setEditingItem(null);
+                  }}
+                  className="px-4 py-2 bg-muted text-foreground rounded-lg font-bold text-sm hover:bg-muted/80 transition-colors"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          )}
+
           {/* Menu Items List */}
           {loading ? (
             <div className="text-center py-8 text-muted-foreground">Loading...</div>
@@ -303,6 +453,13 @@ export default function ManageMenuModal({ isOpen, onClose }: ManageMenuModalProp
                   </div>
                   <div className="flex items-center gap-2">
                     <button
+                      onClick={() => handleEditItem(item)}
+                      className="p-2 text-blue-500 hover:bg-blue-500/10 rounded-lg transition-colors"
+                      title="Edit item"
+                    >
+                      <Edit2 className="w-4 h-4" />
+                    </button>
+                    <button
                       onClick={() => handleToggleAvailability(item.id, item.available)}
                       className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-colors ${
                         item.available
@@ -315,6 +472,7 @@ export default function ManageMenuModal({ isOpen, onClose }: ManageMenuModalProp
                     <button
                       onClick={() => handleDeleteItem(item.id)}
                       className="p-2 text-red-500 hover:bg-red-500/10 rounded-lg transition-colors"
+                      title="Delete item"
                     >
                       <Trash2 className="w-4 h-4" />
                     </button>

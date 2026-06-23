@@ -1,29 +1,30 @@
 import { prisma } from '@/lib/prisma';
 import { NextResponse } from 'next/server';
 import { checkAuth } from '@/lib/api-auth';
-import { updateMenuItemSchema } from '@/lib/validations';
 
-// Force dynamic route
 export const dynamic = 'force-dynamic';
 
+// GET single menu item
 export async function GET(
   request: Request,
-  { params }: { params: Promise<{ id: string }> }
+  context: { params: Promise<{ id: string }> }
 ) {
   const auth = await checkAuth(request);
   if (auth.error) return auth.error;
 
   try {
-    const { id } = await params;
-    const menuItem = await prisma.menuItem.findFirst({
+    const params = await context.params;
+    const menuItem = await prisma.menuItem.findUnique({
       where: { 
-        id,
+        id: params.id,
         restaurantId: (auth.session.user as any).restaurantId
       }
     });
+
     if (!menuItem) {
       return NextResponse.json({ error: 'Menu item not found' }, { status: 404 });
     }
+
     return NextResponse.json(menuItem);
   } catch (error) {
     console.error('Error fetching menu item:', error);
@@ -31,109 +32,68 @@ export async function GET(
   }
 }
 
+// PATCH - Update menu item (ADMIN only)
 export async function PATCH(
-  request: Request,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  const auth = await checkAuth(request);
-  if (auth.error) return auth.error;
-
-  try {
-    const { id } = await params;
-    const body = await request.json();
-    const userRole = (auth.session.user as any).role;
-    
-    // Validate request using partial schema (so fields not present are optional)
-    const validation = updateMenuItemSchema.partial().safeParse(body);
-    if (!validation.success) {
-      return NextResponse.json(
-        { error: validation.error.issues[0].message },
-        { status: 400 }
-      );
-    }
-
-    // Verify ownership
-    const item = await prisma.menuItem.findFirst({
-      where: {
-        id,
-        restaurantId: (auth.session.user as any).restaurantId
-      }
-    });
-
-    if (!item) {
-      return NextResponse.json({ error: 'Menu item not found' }, { status: 404 });
-    }
-
-    // RBAC: Check what fields are being updated
-    const updatingFields = Object.keys(body);
-    const isOnlyTogglingAvailability = updatingFields.length === 1 && updatingFields.includes('available');
-    const isOnlyRestocking = updatingFields.length === 1 && 
-                             updatingFields.includes('stockQuantity') && 
-                             body.stockQuantity !== null &&
-                             body.stockQuantity > (item.stockQuantity || 0);
-
-    // STAFF can only: toggle availability OR restock (increase stock only)
-    // ADMIN can do anything
-    if (userRole !== 'ADMIN') {
-      if (!isOnlyTogglingAvailability && !isOnlyRestocking) {
-        return NextResponse.json(
-          { error: 'Forbidden: STAFF can only toggle availability or restock items. Contact ADMIN to edit menu details.' },
-          { status: 403 }
-        );
-      }
-    }
-
-    const menuItem = await prisma.menuItem.update({
-      where: { id },
-      data: validation.data
-    });
-    return NextResponse.json(menuItem);
-  } catch (error) {
-    console.error('Error updating menu item:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
-  }
-}
-
-// PUT is an alias for PATCH for backwards compatibility
-export async function PUT(
   request: Request,
   context: { params: Promise<{ id: string }> }
 ) {
-  return PATCH(request, context);
-}
-
-export async function DELETE(
-  request: Request,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  const auth = await checkAuth(request);
+  // ADMIN-ONLY: Menu item editing
+  const auth = await checkAuth(request, 'ADMIN');
   if (auth.error) return auth.error;
 
-  // Restrict to ADMIN
-  if ((auth.session.user as any).role !== 'ADMIN') {
-    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  try {
+    const params = await context.params;
+    const body = await request.json();
+    const { name, price, priceHalf, category, dietType, hasHalfFullOption, stockQuantity, available, imageUrl } = body;
+
+    // Build update data object (only include provided fields)
+    const updateData: any = {};
+    if (name !== undefined) updateData.name = name;
+    if (price !== undefined) updateData.price = parseFloat(price);
+    if (priceHalf !== undefined) updateData.priceHalf = priceHalf ? parseFloat(priceHalf) : null;
+    if (category !== undefined) updateData.category = category;
+    if (dietType !== undefined) updateData.dietType = dietType;
+    if (hasHalfFullOption !== undefined) updateData.hasHalfFullOption = hasHalfFullOption;
+    if (stockQuantity !== undefined) updateData.stockQuantity = stockQuantity ? parseInt(stockQuantity) : null;
+    if (available !== undefined) updateData.available = available;
+    if (imageUrl !== undefined) updateData.imageUrl = imageUrl;
+
+    const menuItem = await prisma.menuItem.update({
+      where: { 
+        id: params.id,
+        restaurantId: (auth.session.user as any).restaurantId
+      },
+      data: updateData
+    });
+
+    return NextResponse.json(menuItem);
+  } catch (error) {
+    console.error('Error updating menu item:', error);
+    return NextResponse.json({ error: 'Failed to update menu item' }, { status: 500 });
   }
+}
+
+// DELETE menu item (ADMIN only)
+export async function DELETE(
+  request: Request,
+  context: { params: Promise<{ id: string }> }
+) {
+  // ADMIN-ONLY: Menu item deletion
+  const auth = await checkAuth(request, 'ADMIN');
+  if (auth.error) return auth.error;
 
   try {
-    const { id } = await params;
-    // Verify ownership
-    const item = await prisma.menuItem.findFirst({
-      where: {
-        id,
+    const params = await context.params;
+    await prisma.menuItem.delete({
+      where: { 
+        id: params.id,
         restaurantId: (auth.session.user as any).restaurantId
       }
     });
 
-    if (!item) {
-      return NextResponse.json({ error: 'Menu item not found' }, { status: 404 });
-    }
-
-    await prisma.menuItem.delete({
-      where: { id }
-    });
-    return NextResponse.json({ message: 'Menu item deleted' });
+    return NextResponse.json({ message: 'Menu item deleted successfully' });
   } catch (error) {
     console.error('Error deleting menu item:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return NextResponse.json({ error: 'Failed to delete menu item' }, { status: 500 });
   }
 }

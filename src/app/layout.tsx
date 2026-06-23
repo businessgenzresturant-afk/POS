@@ -59,6 +59,7 @@ export const metadata: Metadata = {
 };
 
 import { Toaster } from 'sonner';
+import { Providers } from './providers';
 
 export default function RootLayout({
   children,
@@ -68,30 +69,32 @@ export default function RootLayout({
   return (
     <html lang="en" className={`${inter.variable} h-full antialiased`} suppressHydrationWarning>
       <body className="min-h-full flex font-sans">
-        <ThemeProvider
-          attribute="class"
-          defaultTheme="system"
-          enableSystem
-          disableTransitionOnChange
-        >
-          <GrainOverlay />
-          <main className="flex-1 flex flex-col p-0 m-0 w-full">
-            {children}
-          </main>
-          <Toaster 
-            richColors 
-            position="top-center" 
-            expand={true}
-            duration={2000}
-            toastOptions={{
-              style: {
-                fontSize: '16px',
-                fontWeight: '600',
-                padding: '16px 20px',
-              },
-            }}
-          />
-        </ThemeProvider>
+        <Providers>
+          <ThemeProvider
+            attribute="class"
+            defaultTheme="system"
+            enableSystem
+            disableTransitionOnChange
+          >
+            <GrainOverlay />
+            <main className="flex-1 flex flex-col p-0 m-0 w-full">
+              {children}
+            </main>
+            <Toaster 
+              richColors 
+              position="top-center" 
+              expand={true}
+              duration={2000}
+              toastOptions={{
+                style: {
+                  fontSize: '16px',
+                  fontWeight: '600',
+                  padding: '16px 20px',
+                },
+              }}
+            />
+          </ThemeProvider>
+        </Providers>
       </body>
     </html>
   );

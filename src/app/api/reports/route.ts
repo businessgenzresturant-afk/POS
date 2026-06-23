@@ -109,13 +109,24 @@ export async function GET(request: Request) {
       .sort((a, b) => b.quantity - a.quantity)
       .slice(0, 3);
     
-    // Calculate payment methods breakdown (if we had payment status on orders)
-    // For simplicity, we'll skip this for now since we don't have paymentStatus field in order yet
+    // Calculate payment methods breakdown
+    const breakdown = bills.reduce((acc: any, bill: any) => {
+      const method = bill.paymentMethod || 'CASH';
+      acc[method] = (acc[method] || 0) + bill.total;
+      return acc;
+    }, {});
     
     return NextResponse.json({
       dailySalesTotal,
       ordersCount,
       topItems,
+      breakdown: {
+        cash: breakdown['CASH'] || 0,
+        upi: breakdown['UPI'] || 0,
+        card: breakdown['CARD'] || 0,
+        split: breakdown['SPLIT'] || 0,
+        total: dailySalesTotal
+      },
       dateRange: {
         start: startDate.toISOString().split('T')[0],
         end: endDate.toISOString().split('T')[0]

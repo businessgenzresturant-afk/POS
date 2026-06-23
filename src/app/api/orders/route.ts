@@ -69,13 +69,19 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
+  console.time('⏱️ TOTAL-ORDER-CREATION');
+  
   const rateLimit = checkRateLimit(request, RateLimitPresets.API);
   if (!rateLimit.success) {
+    console.timeEnd('⏱️ TOTAL-ORDER-CREATION');
     return createRateLimitResponse(rateLimit.resetAt);
   }
 
   const auth = await checkAuth(request);
-  if (auth.error) return auth.error;
+  if (auth.error) {
+    console.timeEnd('⏱️ TOTAL-ORDER-CREATION');
+    return auth.error;
+  }
 
   try {
     const body = await request.json();
@@ -138,6 +144,7 @@ export async function POST(request: Request) {
     }
 
     // Fetch all menu items to get prices and validate - WITH RESTAURANT VALIDATION
+    console.time('⏱️ DB-MENU-FETCH');
     const menuItems = await prisma.menuItem.findMany({
       where: {
         id: {
@@ -146,6 +153,7 @@ export async function POST(request: Request) {
         restaurantId: restaurantId // Ensure menu items belong to user's restaurant
       }
     });
+    console.timeEnd('⏱️ DB-MENU-FETCH');
 
     if (menuItems.length !== items.length) {
       return NextResponse.json(
@@ -179,19 +187,29 @@ export async function POST(request: Request) {
       };
     });
 
-    if (table && table.status === 'OCCUPIED') {
-      // Find the active order for this table
-      const activeOrder = await prisma.order.findFirst({
-        where: {
-          tableId,
-          status: { notIn: ['COMPLETED', 'SERVED'] }
-        },
-        orderBy: { createdAt: 'desc' }
-      });
+    // CRITICAL FIX: Move table status check and order lookup INSIDE transaction
+    // This prevents TOCTOU race condition where multiple devices see "AVAILABLE"
+    // and each create separate orders for the same table
+    try {
+      console.time('⏱️ TRANSACTION');
+      const result = await prisma.$transaction(async (tx) => {
+        // Check table status INSIDE transaction (CRITICAL FIX)
+        const currentTable = tableId ? await tx.table.findUnique({
+          where: { id: tableId }
+        }) : null;
 
-      if (activeOrder) {
-        // Append items to the active order
-        const updatedOrder = await prisma.$transaction(async (tx) => {
+        // Find active order INSIDE transaction (CRITICAL FIX)
+        const activeOrder = tableId ? await tx.order.findFirst({
+          where: {
+            tableId,
+            status: { notIn: ['COMPLETED', 'SERVED'] }
+          },
+          orderBy: { createdAt: 'desc' }
+        }) : null;
+
+        // If table is OCCUPIED and has active order, append items
+        if (currentTable && currentTable.status === 'OCCUPIED' && activeOrder) {
+          // Create new order items
           await tx.orderItem.createMany({
             data: orderItemsData.map(item => ({ 
               ...item, 
@@ -199,28 +217,49 @@ export async function POST(request: Request) {
             }))
           });
 
-          // Decrement stock for items that are stock-tracked
-          for (const item of orderItemsData) {
-            const menuItem = menuItemMap.get(item.menuItemId);
-            if (menuItem && menuItem.stockQuantity !== null && menuItem.stockQuantity !== undefined) {
-              const newStock = menuItem.stockQuantity - item.quantity;
-              await tx.menuItem.update({
-                where: { id: item.menuItemId },
-                data: {
-                  stockQuantity: Math.max(0, newStock),
-                  // Auto-set to unavailable if stock reaches 0
-                  available: newStock > 0 ? menuItem.available : false
-                }
-              });
-            }
-          }
+          // Decrement stock for items that are stock-tracked (PARALLEL)
+          console.time('⏱️ STOCK-UPDATES');
+          await Promise.all(
+            orderItemsData
+              .filter(item => {
+                const menuItem = menuItemMap.get(item.menuItemId);
+                return menuItem && menuItem.stockQuantity !== null && menuItem.stockQuantity !== undefined;
+              })
+              .map(item => {
+                const menuItem = menuItemMap.get(item.menuItemId)!;
+                const newStock = menuItem.stockQuantity! - item.quantity;
+                return tx.menuItem.update({
+                  where: { id: item.menuItemId },
+                  data: {
+                    stockQuantity: Math.max(0, newStock),
+                    available: newStock > 0 ? menuItem.available : false
+                  }
+                });
+              })
+          );
+          console.timeEnd('⏱️ STOCK-UPDATES');
 
-          return tx.order.update({
-            where: { id: activeOrder.id },
+          // Optimistic locking: Check version before update
+          const updatedOrderCount = await tx.order.updateMany({
+            where: { 
+              id: activeOrder.id,
+              version: activeOrder.version // Only update if version matches
+            },
             data: {
               totalAmount: { increment: totalAmount },
-              status: 'PENDING' // Reset to PENDING so kitchen gets notified
-            },
+              status: 'PENDING', // Reset to PENDING so kitchen gets notified
+              version: { increment: 1 } // Increment version on every update
+            }
+          });
+
+          // If no rows were updated, version mismatch occurred (conflict)
+          if (updatedOrderCount.count === 0) {
+            throw new Error('VERSION_CONFLICT');
+          }
+
+          // Fetch the updated order with relations
+          const updatedOrder = await tx.order.findUnique({
+            where: { id: activeOrder.id },
             include: {
               table: true,
               items: {
@@ -230,72 +269,91 @@ export async function POST(request: Request) {
               }
             }
           });
-        });
 
-        return NextResponse.json(updatedOrder, { status: 201 });
-      }
-    }
-
-    // Create order and update table status in a transaction
-    const order = await prisma.$transaction(async (tx) => {
-      // Create the order
-      const newOrder = await tx.order.create({
-        data: {
-          tableId: tableId || null,
-          orderType: orderType || 'DINE_IN',
-          guests: guests ? parseInt(guests) : null,
-          customerName: customerName || 'Walk-in Customer',
-          customerPhone: customerPhone || null,
-          totalAmount,
-          status: 'PENDING',
-          paymentStatus: 'PENDING',
-          items: {
-            create: orderItemsData
-          }
-        },
-        include: {
-          table: true,
-          items: {
-            include: {
-              menuItem: true
-            }
-          }
+          return { type: 'UPDATE', order: updatedOrder };
         }
-      });
 
-      // Update table status to OCCUPIED if applicable
-      if (tableId) {
-        await tx.table.update({
-          where: { id: tableId },
-          data: { status: 'OCCUPIED' }
-        });
-      }
-
-      // Decrement stock for items that are stock-tracked
-      for (const item of orderItemsData) {
-        const menuItem = menuItemMap.get(item.menuItemId);
-        if (menuItem && menuItem.stockQuantity !== null && menuItem.stockQuantity !== undefined) {
-          const newStock = menuItem.stockQuantity - item.quantity;
-          await tx.menuItem.update({
-            where: { id: item.menuItemId },
-            data: {
-              stockQuantity: Math.max(0, newStock),
-              // Auto-set to unavailable if stock reaches 0
-              available: newStock > 0 ? menuItem.available : false
+        // Otherwise, create NEW order (table not occupied or no active order)
+        // Otherwise, create NEW order (table not occupied or no active order)
+        const newOrder = await tx.order.create({
+          data: {
+            tableId: tableId || null,
+            orderType: orderType || 'DINE_IN',
+            guests: guests ? parseInt(guests) : null,
+            customerName: customerName || 'Walk-in Customer',
+            customerPhone: customerPhone || null,
+            totalAmount,
+            status: 'PENDING',
+            paymentStatus: 'PENDING',
+            version: 0, // Initial version
+            items: {
+              create: orderItemsData
             }
+          },
+          include: {
+            table: true,
+            items: {
+              include: {
+                menuItem: true
+              }
+            }
+          }
+        });
+
+        // Update table status to OCCUPIED if applicable
+        if (tableId) {
+          await tx.table.update({
+            where: { id: tableId },
+            data: { status: 'OCCUPIED' }
           });
         }
+
+        // Decrement stock for new order items (PARALLEL)
+        console.time('⏱️ STOCK-UPDATES');
+        await Promise.all(
+          orderItemsData
+            .filter(item => {
+              const menuItem = menuItemMap.get(item.menuItemId);
+              return menuItem && menuItem.stockQuantity !== null && menuItem.stockQuantity !== undefined;
+            })
+            .map(item => {
+              const menuItem = menuItemMap.get(item.menuItemId)!;
+              const newStock = menuItem.stockQuantity! - item.quantity;
+              return tx.menuItem.update({
+                where: { id: item.menuItemId },
+                data: {
+                  stockQuantity: Math.max(0, newStock),
+                  available: newStock > 0 ? menuItem.available : false
+                }
+              });
+            })
+        );
+        console.timeEnd('⏱️ STOCK-UPDATES');
+
+        return { type: 'CREATE', order: newOrder };
+      });
+      console.timeEnd('⏱️ TRANSACTION');
+
+      console.timeEnd('⏱️ TOTAL-ORDER-CREATION');
+      return NextResponse.json(result.order, { status: 201 });
+    } catch (error: any) {
+      console.timeEnd('⏱️ TRANSACTION');
+      console.timeEnd('⏱️ TOTAL-ORDER-CREATION');
+      
+      if (error.message === 'VERSION_CONFLICT') {
+        return NextResponse.json(
+          { 
+            error: 'Conflict detected: Order was modified by another session. Please refresh and try again.',
+            code: 'VERSION_CONFLICT'
+          },
+          { status: 409 }
+        );
       }
-
-      return newOrder;
-    });
-
-    return NextResponse.json(order, { status: 201 });
+      throw error; // Re-throw other errors
+    }
   } catch (error) {
-    console.error('Error creating order:', error);
-    return NextResponse.json(
-      { error: 'Failed to create order. Please try again.' },
-      { status: 500 }
-    );
+    console.timeEnd('⏱️ TOTAL-ORDER-CREATION');
+    console.error('Order creation error:', error);
+    return NextResponse.json({ error: 'Failed to create order' }, { status: 500 });
   }
 }

@@ -1,13 +1,22 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
+import { useSession } from 'next-auth/react';
+import { Copy, RefreshCw, Eye, EyeOff } from 'lucide-react';
+
+// Force dynamic rendering
+export const dynamic = 'force-dynamic';
 
 export default function SettingsPage() {
+  const { data: session, status } = useSession();
   const [loading, setLoading] = useState(false);
+  const [kdsToken, setKdsToken] = useState<string | null>(null);
+  const [showKdsToken, setShowKdsToken] = useState(false);
+  const [regeneratingToken, setRegeneratingToken] = useState(false);
   
   // Restaurant settings
   const [restaurantName, setRestaurantName] = useState('GenZ Restaurant');
@@ -29,6 +38,72 @@ export default function SettingsPage() {
   const [showLogo, setShowLogo] = useState(true);
   const [showGST, setShowGST] = useState(true);
   const [printKOTAuto, setPrintKOTAuto] = useState(false);
+
+  // Fetch KDS token on mount
+  useEffect(() => {
+    async function fetchKDSToken() {
+      try {
+        const response = await fetch('/api/settings/kds-token');
+        if (response.ok) {
+          const data = await response.json();
+          setKdsToken(data.token);
+        }
+      } catch (error) {
+        console.error('Failed to fetch KDS token:', error);
+      }
+    }
+
+    // Only fetch if user is ADMIN
+    if (session?.user && (session.user as any).role === 'ADMIN') {
+      fetchKDSToken();
+    }
+  }, [session]);
+
+  const handleCopyKDSURL = () => {
+    if (!kdsToken) return;
+    const url = `https://pos.gen-z.online/kds-display/${kdsToken}`;
+    navigator.clipboard.writeText(url);
+    toast.success('KDS Display URL copied to clipboard! 📋');
+  };
+
+  const handleRegenerateToken = async () => {
+    if (!confirm('Regenerating the token will invalidate the old TV display URL. Continue?')) {
+      return;
+    }
+
+    setRegeneratingToken(true);
+    try {
+      const response = await fetch('/api/settings/kds-token/regenerate', {
+        method: 'POST'
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        setKdsToken(data.token);
+        toast.success('KDS Display Token regenerated successfully! 🔄');
+      } else {
+        toast.error('Failed to regenerate token');
+      }
+    } catch (error) {
+      console.error('Failed to regenerate token:', error);
+      toast.error('Failed to regenerate token');
+    } finally {
+      setRegeneratingToken(false);
+    }
+  };
+
+  const maskedToken = kdsToken ? `${kdsToken.substring(0, 12)}...${kdsToken.substring(kdsToken.length - 12)}` : 'Loading...';
+  const kdsURL = kdsToken ? `https://pos.gen-z.online/kds-display/${kdsToken}` : '';
+  const isAdmin = session?.user ? (session.user as any).role === 'ADMIN' : false;
+
+  // Show loading state while session is being fetched or during SSR
+  if (typeof window === 'undefined' || status === 'loading') {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <p className="text-muted-foreground text-xl font-bold">Loading...</p>
+      </div>
+    );
+  }
 
   const handleSaveSettings = async () => {
     setLoading(true);
@@ -264,6 +339,75 @@ export default function SettingsPage() {
           </div>
         </div>
       </Card>
+
+      {/* KDS Display Link - ADMIN ONLY */}
+      {isAdmin && (
+        <Card className="p-6 border-border/60">
+          <div className="flex items-center gap-3 mb-6">
+            <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center text-2xl">
+              📺
+            </div>
+            <div>
+              <h2 className="text-xl font-bold text-foreground">Kitchen Display Link</h2>
+              <p className="text-sm text-muted-foreground">Public URL for TV displays (no login required)</p>
+            </div>
+          </div>
+
+          <div className="space-y-4">
+            <div className="bg-muted/50 rounded-lg p-4 border border-border">
+              <label className="block text-sm font-semibold text-foreground mb-2">Display URL</label>
+              <div className="flex gap-2">
+                <Input
+                  value={showKdsToken ? kdsURL : `https://pos.gen-z.online/kds-display/${maskedToken}`}
+                  readOnly
+                  className="font-mono text-xs"
+                />
+                <Button
+                  onClick={() => setShowKdsToken(!showKdsToken)}
+                  variant="outline"
+                  size="sm"
+                  className="shrink-0"
+                  title={showKdsToken ? 'Hide token' : 'Show token'}
+                >
+                  {showKdsToken ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </Button>
+                <Button
+                  onClick={handleCopyKDSURL}
+                  variant="outline"
+                  size="sm"
+                  className="shrink-0"
+                  disabled={!kdsToken}
+                >
+                  <Copy className="w-4 h-4" />
+                </Button>
+              </div>
+              <p className="text-xs text-muted-foreground mt-2">
+                📱 Open this URL on your kitchen TV to display live orders without requiring login
+              </p>
+            </div>
+
+            <div className="bg-amber-500/10 border border-amber-500/30 rounded-lg p-4">
+              <p className="text-sm font-semibold text-amber-400 mb-2">🔒 Security Notice</p>
+              <ul className="text-xs text-amber-300/90 space-y-1 list-disc list-inside">
+                <li>This URL provides READ-ONLY access to kitchen orders</li>
+                <li>Keep this URL secure - anyone with it can view your orders</li>
+                <li>Regenerate the token if you suspect unauthorized access</li>
+                <li>The TV display automatically reconnects if network drops</li>
+              </ul>
+            </div>
+
+            <Button
+              onClick={handleRegenerateToken}
+              variant="outline"
+              disabled={regeneratingToken || !kdsToken}
+              className="w-full"
+            >
+              <RefreshCw className={`w-4 h-4 mr-2 ${regeneratingToken ? 'animate-spin' : ''}`} />
+              {regeneratingToken ? 'Regenerating...' : 'Regenerate Token'}
+            </Button>
+          </div>
+        </Card>
+      )}
 
       {/* User Info */}
       <Card className="p-6 border-border/60">

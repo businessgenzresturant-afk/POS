@@ -8,6 +8,9 @@ module.exports = {
   ],
   theme: {
     extend: {
+      screens: {
+        '3xl': '2560px', // For 4K TVs and ultra-wide displays
+      },
       colors: {
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",
