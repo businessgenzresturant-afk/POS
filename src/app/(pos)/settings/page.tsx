@@ -17,6 +17,9 @@ export default function SettingsPage() {
   const [kdsToken, setKdsToken] = useState<string | null>(null);
   const [showKdsToken, setShowKdsToken] = useState(false);
   const [regeneratingToken, setRegeneratingToken] = useState(false);
+  const [customToken, setCustomToken] = useState('');
+  const [savingCustomToken, setSavingCustomToken] = useState(false);
+  const [showCustomTokenInput, setShowCustomTokenInput] = useState(false);
   
   // Restaurant settings
   const [restaurantName, setRestaurantName] = useState('GenZ Restaurant');
@@ -95,6 +98,48 @@ export default function SettingsPage() {
       toast.error('Failed to regenerate token');
     } finally {
       setRegeneratingToken(false);
+    }
+  };
+
+  const handleSaveCustomToken = async () => {
+    if (!customToken.trim()) {
+      toast.error('Please enter a custom token');
+      return;
+    }
+
+    // Validate token format
+    if (!/^[a-zA-Z0-9_-]{6,64}$/.test(customToken)) {
+      toast.error('Token must be 6-64 characters (letters, numbers, _, - only)');
+      return;
+    }
+
+    if (!confirm(`Set custom token to "${customToken}"? This will change your TV display URL.`)) {
+      return;
+    }
+
+    setSavingCustomToken(true);
+    try {
+      const response = await fetch('/api/settings/kds-token', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ customToken })
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        setKdsToken(data.token);
+        setCustomToken('');
+        setShowCustomTokenInput(false);
+        toast.success(`✅ Custom token "${customToken}" set successfully! This token is now permanent.`);
+      } else {
+        const error = await response.json();
+        toast.error(error.error || 'Failed to set custom token');
+      }
+    } catch (error) {
+      console.error('Failed to set custom token:', error);
+      toast.error('Failed to set custom token');
+    } finally {
+      setSavingCustomToken(false);
     }
   };
 
@@ -355,7 +400,7 @@ export default function SettingsPage() {
             </div>
             <div>
               <h2 className="text-xl font-bold text-foreground">Kitchen Display Link</h2>
-              <p className="text-sm text-muted-foreground">Public URL for TV displays (no login required)</p>
+              <p className="text-sm text-muted-foreground">Permanent URL for TV displays (no login required)</p>
             </div>
           </div>
 
@@ -368,7 +413,7 @@ export default function SettingsPage() {
             ) : (
               <>
                 <div className="bg-muted/50 rounded-lg p-4 border border-border">
-                  <label className="block text-sm font-semibold text-foreground mb-2">Display URL</label>
+                  <label className="block text-sm font-semibold text-foreground mb-2">Current Display URL</label>
                   <div className="flex gap-2">
                     <Input
                       value={showKdsToken ? kdsURL : `https://pos.gen-z.online/kds-display/${maskedToken}`}
@@ -395,8 +440,66 @@ export default function SettingsPage() {
                     </Button>
                   </div>
                   <p className="text-xs text-muted-foreground mt-2">
-                    📱 Open this URL on your kitchen TV to display live orders without requiring login
+                    📱 Open this URL on your kitchen TV - it will work permanently without regenerating
                   </p>
+                </div>
+
+                {/* Custom Token Input */}
+                {showCustomTokenInput ? (
+                  <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-4 space-y-3">
+                    <div className="flex items-center justify-between">
+                      <p className="text-sm font-semibold text-blue-400">🎯 Set Custom Token</p>
+                      <Button
+                        onClick={() => {
+                          setShowCustomTokenInput(false);
+                          setCustomToken('');
+                        }}
+                        variant="ghost"
+                        size="sm"
+                        className="text-xs"
+                      >
+                        Cancel
+                      </Button>
+                    </div>
+                    <Input
+                      value={customToken}
+                      onChange={(e) => setCustomToken(e.target.value)}
+                      placeholder="e.g., mykds2024 or kitchen123"
+                      className="font-mono"
+                      maxLength={64}
+                    />
+                    <p className="text-xs text-blue-300/90">
+                      • 6-64 characters • Letters, numbers, _, - only • Easy to remember
+                    </p>
+                    <p className="text-xs text-blue-300/70">
+                      Example: https://pos.gen-z.online/kds-display/<span className="font-bold">{customToken || 'yourtoken'}</span>
+                    </p>
+                    <Button
+                      onClick={handleSaveCustomToken}
+                      disabled={savingCustomToken || !customToken.trim()}
+                      className="w-full"
+                    >
+                      {savingCustomToken ? 'Saving...' : 'Set Custom Token'}
+                    </Button>
+                  </div>
+                ) : (
+                  <Button
+                    onClick={() => setShowCustomTokenInput(true)}
+                    variant="outline"
+                    className="w-full"
+                  >
+                    🎯 Set Custom Token (Easy to Remember)
+                  </Button>
+                )}
+
+                <div className="bg-green-500/10 border border-green-500/30 rounded-lg p-4">
+                  <p className="text-sm font-semibold text-green-400 mb-2">✅ Permanent Token</p>
+                  <ul className="text-xs text-green-300/90 space-y-1 list-disc list-inside">
+                    <li>This token is <strong>permanent</strong> - won&apos;t change automatically</li>
+                    <li>Set it once, use forever on your TV</li>
+                    <li>You can set a custom easy-to-remember token</li>
+                    <li>Change it only when you want to</li>
+                  </ul>
                 </div>
 
                 <div className="bg-amber-500/10 border border-amber-500/30 rounded-lg p-4">
@@ -404,7 +507,7 @@ export default function SettingsPage() {
                   <ul className="text-xs text-amber-300/90 space-y-1 list-disc list-inside">
                     <li>This URL provides READ-ONLY access to kitchen orders</li>
                     <li>Keep this URL secure - anyone with it can view your orders</li>
-                    <li>Regenerate the token if you suspect unauthorized access</li>
+                    <li>Regenerate token only if you suspect unauthorized access</li>
                     <li>The TV display automatically reconnects if network drops</li>
                   </ul>
                 </div>
@@ -416,7 +519,7 @@ export default function SettingsPage() {
                   className="w-full"
                 >
                   <RefreshCw className={`w-4 h-4 mr-2 ${regeneratingToken ? 'animate-spin' : ''}`} />
-                  {regeneratingToken ? 'Regenerating...' : 'Regenerate Token'}
+                  {regeneratingToken ? 'Regenerating...' : 'Regenerate Random Token (Emergency Only)'}
                 </Button>
               </>
             )}

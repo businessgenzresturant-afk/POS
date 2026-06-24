@@ -12,6 +12,9 @@ export default function PublicKDSDisplay() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    let mounted = true;
+    let fallbackTimer: NodeJS.Timeout;
+
     async function validateToken() {
       try {
         const token = params.token as string;
@@ -33,22 +36,50 @@ export default function PublicKDSDisplay() {
             setError('Failed to validate token');
           }
           setLoading(false);
+          clearTimeout(fallbackTimer);
           return;
         }
 
         const data = await response.json();
         console.log('✅ Client: Validation successful:', data);
+        
+        if (!mounted) return;
+        
         setRestaurantId(data.restaurantId);
         setLoading(false);
+        
+        // FALLBACK: If setState is slow on TV browser, force it after 2 seconds
+        fallbackTimer = setTimeout(() => {
+          if (mounted && loading) {
+            console.warn('⚠️ Loading state stuck, forcing display...');
+            setRestaurantId(data.restaurantId);
+            setLoading(false);
+            // Force re-render by reloading if still stuck
+            setTimeout(() => {
+              if (document.querySelector('[class*="animate-spin"]')) {
+                console.error('🔄 Still loading, forcing reload...');
+                window.location.reload();
+              }
+            }, 1000);
+          }
+        }, 2000);
+        
       } catch (err) {
         console.error('❌ Client: Token validation error:', err);
+        if (!mounted) return;
         setError('Failed to connect to server');
         setLoading(false);
+        clearTimeout(fallbackTimer);
       }
     }
 
     validateToken();
-  }, [params.token]);
+    
+    return () => {
+      mounted = false;
+      clearTimeout(fallbackTimer);
+    };
+  }, [params.token, loading]);
 
   if (loading) {
     return (
