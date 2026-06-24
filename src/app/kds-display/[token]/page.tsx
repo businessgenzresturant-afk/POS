@@ -36,5 +36,6 @@ export default async function PublicKDSDisplay({ params }: Props) {
   }
 
   // Server-side validation successful - render KDS directly with restaurantId
-  return <KDSDisplay restaurantId={restaurant.id} readOnly={true} enableReconnect={true} />;
+  // autoStart=true for TV displays - no interaction required
+  return <KDSDisplay restaurantId={restaurant.id} readOnly={true} enableReconnect={true} autoStart={true} />;
 }

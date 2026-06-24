@@ -33,9 +33,10 @@ interface KDSDisplayProps {
   restaurantId: string;
   readOnly?: boolean;
   enableReconnect?: boolean;
+  autoStart?: boolean; // TV mode - skip interaction requirement
 }
 
-export default function KDSDisplay({ restaurantId, readOnly = false, enableReconnect = false }: KDSDisplayProps) {
+export default function KDSDisplay({ restaurantId, readOnly = false, enableReconnect = false, autoStart = false }: KDSDisplayProps) {
   const [orders, setOrders] = useState<any[]>(() => {
     if (typeof window !== 'undefined' && (window as any).__pos_kds_cache?.orders) {
       return (window as any).__pos_kds_cache.orders;
@@ -50,8 +51,8 @@ export default function KDSDisplay({ restaurantId, readOnly = false, enableRecon
   });
   const [now, setNow] = useState(new Date());
   const [soundQueue, setSoundQueue] = useState<SoundNotification[]>([]);
-  const [soundEnabled, setSoundEnabled] = useState(true);
-  const [hasInteracted, setHasInteracted] = useState(false);
+  const [soundEnabled, setSoundEnabled] = useState(!autoStart); // Disable sound in TV mode
+  const [hasInteracted, setHasInteracted] = useState(autoStart); // Skip interaction in TV mode
   const [isReconnecting, setIsReconnecting] = useState(false);
   const [failureCount, setFailureCount] = useState(0);
   const previousOrdersRef = useRef<any[]>([]);
@@ -560,13 +561,28 @@ export default function KDSDisplay({ restaurantId, readOnly = false, enableRecon
 
   if (!hasInteracted) {
     return (
-      <div className="fixed inset-0 bg-background z-50 flex items-center justify-center cursor-pointer" onClick={handleStartKDS}>
-        <div className="bg-card p-12 rounded-3xl shadow-[0_0_50px_rgba(0,0,0,0.2)] text-center border-4 border-primary hover:scale-105 transition-transform duration-300">
-          <div className="bg-primary/20 p-6 rounded-full inline-block mb-6 animate-pulse">
-            <Volume2 className="w-20 h-20 text-primary" />
+      <div 
+        className="fixed inset-0 bg-gradient-to-br from-background via-background to-primary/5 z-50 flex items-center justify-center cursor-pointer"
+        onClick={handleStartKDS}
+        style={{ touchAction: 'manipulation' }}
+      >
+        <div className="w-full h-full flex items-center justify-center p-8">
+          <div className="bg-card p-16 md:p-24 rounded-3xl shadow-[0_0_100px_rgba(0,0,0,0.5)] text-center border-8 border-primary max-w-4xl w-full">
+            <div className="bg-primary/20 p-10 rounded-full inline-block mb-10 animate-pulse">
+              <Volume2 className="w-32 h-32 md:w-40 md:h-40 text-primary" />
+            </div>
+            <h2 className="text-5xl md:text-7xl font-black mb-8 leading-tight">
+              Click anywhere to start KDS
+            </h2>
+            <p className="text-2xl md:text-4xl text-muted-foreground font-bold">
+              This enables order notification sounds
+            </p>
+            <div className="mt-12 pt-8 border-t-4 border-border">
+              <p className="text-xl md:text-2xl text-primary font-bold animate-bounce">
+                👆 TAP SCREEN TO START
+              </p>
+            </div>
           </div>
-          <h2 className="text-4xl font-black mb-4">Click anywhere to start KDS</h2>
-          <p className="text-xl text-muted-foreground font-bold">This enables order notification sounds</p>
         </div>
       </div>
     );
