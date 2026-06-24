@@ -253,6 +253,89 @@ The behavior is **BY DESIGN**, not a bug:
 
 ---
 
+## ✅ Task 10: KDS Display Token Generation
+
+**Status:** ✅ COMPLETED (This session - June 24, 2026)
+
+**User Report:** "Kitchen Display Link genrate nhi ho rha hai" - Token not generating in settings page
+
+**Problem:**
+- Settings page showed "Loading..." indefinitely
+- KDS Display Link section never showed the token
+- No way to get the public KDS URL for TV displays
+
+**Root Cause:**
+1. Restaurant created in database without initial `kdsDisplayToken`
+2. GET `/api/settings/kds-token` endpoint returned `null` when no token exists
+3. No automatic fallback to generate token on first access
+4. UI expected token to exist but had no generation mechanism
+
+**Solution:**
+- Modified GET endpoint to **auto-generate token** if missing on first access
+- Uses `crypto.randomBytes(32).toString('hex')` for secure 64-character token
+- Token persists in database for future requests
+- Improved UI with loading spinner and success notification
+- Added error handling with toast messages
+
+**How It Works Now:**
+```typescript
+// API: /api/settings/kds-token/route.ts
+if (!restaurant.kdsDisplayToken) {
+  console.log('🔐 No KDS token found, auto-generating...');
+  const newToken = crypto.randomBytes(32).toString('hex');
+  
+  restaurant = await prisma.restaurant.update({
+    where: { id: restaurantId },
+    data: { kdsDisplayToken: newToken }
+  });
+  
+  console.log('✅ KDS Display Token auto-generated');
+}
+```
+
+**User Flow:**
+1. Admin visits `/settings` page for first time
+2. Page loads and fetches token via GET request
+3. Backend detects no token exists
+4. Backend auto-generates secure 64-char token
+5. Token saved to database
+6. Token returned to frontend
+7. UI displays: `https://pos.gen-z.online/kds-display/[token]`
+8. Success toast: "✅ KDS Display Token loaded successfully!"
+
+**Features:**
+- ✅ Auto-generation on first access (no manual step needed)
+- ✅ Secure 64-character hexadecimal token
+- ✅ Copy to clipboard button
+- ✅ Show/hide token toggle (security)
+- ✅ Regenerate token button (creates new token)
+- ✅ Token persists across sessions
+- ✅ Public URL works without login
+
+**Files Modified:**
+- `src/app/api/settings/kds-token/route.ts` - Added auto-generation logic
+- `src/app/(pos)/settings/page.tsx` - Improved UI with loading state and toasts
+
+**Testing:**
+```bash
+1. Login as admin@genz.com
+2. Go to /settings
+3. Scroll to "Kitchen Display Link"
+4. Token should appear automatically ✓
+5. Copy URL and open in incognito tab
+6. KDS Display loads without login ✓
+7. Orders appear in real-time ✓
+```
+
+**Security Notes:**
+- Token is 64 characters (256 bits of entropy) - highly secure
+- Read-only access to kitchen orders
+- No authentication bypass - token only shows orders
+- Can be regenerated anytime if compromised
+- URL should be kept private
+
+---
+
 ## 📊 Build Status
 
 ```bash

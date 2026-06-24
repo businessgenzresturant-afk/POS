@@ -4,9 +4,35 @@
 
 ---
 
-## ✅ Quick Health Check
+## 🔍 Verification Steps for Production
 
-### 1. Login & Authentication
+### 0. Test KDS Token Generation ⭐ (NEW FIX)
+```
+1. Login as admin@genz.com
+2. Go to /settings page
+3. Scroll to "Kitchen Display Link" section
+4. Token should auto-generate and display ✓
+5. Click "Copy" button to copy URL
+6. Click "Show token" to reveal full token
+7. Click "Regenerate Token" to create new one
+8. Confirm regeneration in dialog
+9. New token should appear ✓
+
+Expected Result:
+✅ Token generates automatically on first visit
+✅ URL format: https://pos.gen-z.online/kds-display/[64-char-token]
+✅ Copy button works
+✅ Regenerate creates new token
+✅ Success toast shown
+
+Testing KDS Display:
+1. Copy the KDS Display URL
+2. Open in new browser tab (incognito mode)
+3. Should see KDS Display without login ✓
+4. Orders should appear in real-time
+```
+
+### 1. Test Receipt Format Consistency
 ```
 [ ] Login with admin@genz.com / admin123
 [ ] Dashboard loads successfully
