@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { X, Plus, Edit2, Trash2, Search, AlertCircle } from 'lucide-react';
+import { toast } from 'sonner';
 
 interface MenuItem {
   id: string;
@@ -68,21 +69,33 @@ export default function ManageMenuModal({ isOpen, onClose }: ManageMenuModalProp
   };
 
   const handleToggleAvailability = async (id: string, currentStatus: boolean) => {
+    const toastId = toast.loading(currentStatus ? '⏸️ Marking unavailable...' : '✅ Marking available...');
     try {
-      await fetch(`/api/menu/${id}`, {
+      const response = await fetch(`/api/menu/${id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ available: !currentStatus }),
       });
-      fetchMenuItems();
+      
+      if (response.ok) {
+        toast.success(currentStatus ? '⏸️ Marked as unavailable!' : '✅ Marked as available!', { id: toastId });
+        fetchMenuItems();
+      } else {
+        toast.error('❌ Failed to update', { id: toastId });
+      }
     } catch (error) {
       console.error('Failed to update availability:', error);
+      toast.error('❌ Error updating item', { id: toastId });
     }
   };
 
   const handleAddItem = async () => {
-    if (!newItem.name || !newItem.category || !newItem.price) return;
+    if (!newItem.name || !newItem.category || !newItem.price) {
+      toast.error('❌ Please fill all required fields');
+      return;
+    }
 
+    const toastId = toast.loading('➕ Adding item...');
     try {
       const response = await fetch('/api/menu', {
         method: 'POST',
@@ -101,28 +114,36 @@ export default function ManageMenuModal({ isOpen, onClose }: ManageMenuModalProp
       });
 
       if (response.ok) {
+        toast.success('✅ Item added successfully!', { id: toastId });
         setNewItem({ name: '', category: '', price: '', dietType: 'VEG', hasHalfFullOption: false, priceHalf: '' });
         setShowAddForm(false);
         fetchMenuItems();
+      } else {
+        const error = await response.json();
+        toast.error(`❌ ${error.error || 'Failed to add item'}`, { id: toastId });
       }
     } catch (error) {
       console.error('Failed to add menu item:', error);
+      toast.error('❌ Error adding item', { id: toastId });
     }
   };
 
-  const handleDeleteItem = async (id: string) => {
-    if (!confirm('Are you sure you want to delete this menu item?')) return;
+  const handleDeleteItem = async (id: string, itemName: string) => {
+    if (!confirm(`Are you sure you want to delete "${itemName}"? This action cannot be undone.`)) return;
 
+    const toastId = toast.loading('🗑️ Deleting item...');
     try {
       const response = await fetch(`/api/menu/${id}`, { method: 'DELETE' });
       if (response.ok) {
+        toast.success('✅ Item deleted successfully!', { id: toastId });
         fetchMenuItems();
       } else {
-        alert('Failed to delete item. Please try again.');
+        const error = await response.json();
+        toast.error(`❌ ${error.error || 'Failed to delete item'}`, { id: toastId });
       }
     } catch (error) {
       console.error('Failed to delete menu item:', error);
-      alert('Error deleting item. Please try again.');
+      toast.error('❌ Error deleting item', { id: toastId });
     }
   };
 
@@ -130,11 +151,23 @@ export default function ManageMenuModal({ isOpen, onClose }: ManageMenuModalProp
     setEditingItem(item);
     setShowEditForm(true);
     setShowAddForm(false);
+    
+    // Scroll to top of modal to show edit form
+    setTimeout(() => {
+      const modalContent = document.querySelector('.manage-menu-content');
+      if (modalContent) {
+        modalContent.scrollTo({ top: 0, behavior: 'smooth' });
+      }
+    }, 50);
   };
 
   const handleUpdateItem = async () => {
-    if (!editingItem || !editingItem.name || !editingItem.category || !editingItem.price) return;
+    if (!editingItem || !editingItem.name || !editingItem.category || !editingItem.price) {
+      toast.error('❌ Please fill all required fields');
+      return;
+    }
 
+    const toastId = toast.loading('💾 Updating item...');
     try {
       const response = await fetch(`/api/menu/${editingItem.id}`, {
         method: 'PATCH',
@@ -150,15 +183,17 @@ export default function ManageMenuModal({ isOpen, onClose }: ManageMenuModalProp
       });
 
       if (response.ok) {
+        toast.success('✅ Item updated successfully!', { id: toastId });
         setShowEditForm(false);
         setEditingItem(null);
         fetchMenuItems();
       } else {
-        alert('Failed to update item. Please try again.');
+        const error = await response.json();
+        toast.error(`❌ ${error.error || 'Failed to update item'}`, { id: toastId });
       }
     } catch (error) {
       console.error('Failed to update menu item:', error);
-      alert('Error updating item. Please try again.');
+      toast.error('❌ Error updating item', { id: toastId });
     }
   };
 
@@ -234,7 +269,7 @@ export default function ManageMenuModal({ isOpen, onClose }: ManageMenuModalProp
         </div>
 
         {/* Content */}
-        <div className="flex-1 overflow-y-auto p-6 bg-gradient-to-b from-background to-muted/20">
+        <div className="manage-menu-content flex-1 overflow-y-auto p-6 bg-gradient-to-b from-background to-muted/20">
           {/* Add Form */}
           {showAddForm && (
             <div className="bg-muted/50 rounded-xl p-4 mb-6 animate-fade-in">
@@ -470,7 +505,7 @@ export default function ManageMenuModal({ isOpen, onClose }: ManageMenuModalProp
                       {item.available ? 'Mark Unavailable' : 'Mark Available'}
                     </button>
                     <button
-                      onClick={() => handleDeleteItem(item.id)}
+                      onClick={() => handleDeleteItem(item.id, item.name)}
                       className="p-2 text-red-500 hover:bg-red-500/10 rounded-lg transition-colors"
                       title="Delete item"
                     >
