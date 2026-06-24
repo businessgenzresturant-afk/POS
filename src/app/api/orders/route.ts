@@ -201,11 +201,12 @@ export async function POST(request: Request) {
         }) : null;
 
         // Find active order INSIDE transaction (CRITICAL FIX)
-        // BUGFIX: Exclude SERVED orders - once served, table should start fresh order
+        // 🔧 BUGFIX: Include SERVED orders - customers often add items after being served (running table)
+        // Only exclude COMPLETED orders (those that have been billed and paid)
         const activeOrder = tableId ? await tx.order.findFirst({
           where: {
             tableId,
-            status: { notIn: ['COMPLETED', 'SERVED'] }
+            status: { notIn: ['COMPLETED'] }  // ✅ Keep SERVED orders active for running tables
           },
           orderBy: { createdAt: 'desc' }
         }) : null;
@@ -214,9 +215,9 @@ export async function POST(request: Request) {
         console.log('[Order Creation] Active order found:', !!activeOrder);
         console.log('[Order Creation] Active order status:', activeOrder?.status);
 
-        // BUGFIX: If table is OCCUPIED but order is SERVED, treat as NEW order
-        // Only append to PENDING/PREPARING/READY orders
-        if (currentTable && currentTable.status === 'OCCUPIED' && activeOrder && ['PENDING', 'PREPARING', 'READY'].includes(activeOrder.status)) {
+        // 🔧 BUGFIX: Append to ANY active order (PENDING/PREPARING/READY/SERVED) - supports running tables
+        // Only create new order if table has NO active order or order is COMPLETED
+        if (currentTable && currentTable.status === 'OCCUPIED' && activeOrder && ['PENDING', 'PREPARING', 'READY', 'SERVED'].includes(activeOrder.status)) {
           // Create new order items
           await tx.orderItem.createMany({
             data: orderItemsData.map(item => ({ 

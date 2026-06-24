@@ -38,10 +38,11 @@ export async function GET(request: Request) {
     const restaurantId = (auth.session.user as any).restaurantId;
     
     // P0 FIX: Use bills (actual collected amounts) instead of orders for revenue calculation
-    // Use createdAt OR paidAt to catch all today's bills (both paid and pending)
+    // 🔧 BUGFIX: Include BOTH paid and pending bills for today's breakdown
+    // This ensures payment method breakdown shows all bills, not just paid ones
     const bills = await prisma.bill.findMany({
       where: {
-        status: 'PAID',
+        status: { in: ['PAID', 'PENDING'] },  // ✅ Include pending bills too
         OR: [
           {
             createdAt: {
