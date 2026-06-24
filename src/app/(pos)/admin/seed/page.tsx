@@ -122,8 +122,8 @@ export default function SeedPage() {
           <div className="bg-blue-50 border border-blue-200 rounded-lg p-6">
             <h3 className="font-semibold text-blue-800 mb-2">📖 Next Steps:</h3>
             <ol className="list-decimal list-inside space-y-2 text-sm text-gray-700">
-              <li>Click "Seed Tables" to create 10 tables</li>
-              <li>Click "Seed Menu Items" to add sample menu</li>
+              <li>Click &quot;Seed Tables&quot; to create 10 tables</li>
+              <li>Click &quot;Seed Menu Items&quot; to add sample menu</li>
               <li>Go to Dashboard to start taking orders</li>
               <li>Use Menu Management to add/edit more items</li>
               <li>Tables will appear on the dashboard once created</li>

@@ -60,14 +60,12 @@ export async function POST(request: Request) {
       console.log('[Registration] Using existing restaurant:', restaurant.id);
     }
 
-    // First user becomes ADMIN, subsequent users become STAFF
-    console.log('[Registration] Counting existing users...');
-    const userCount = await prisma.user.count();
-    const role = userCount === 0 ? 'ADMIN' : 'STAFF';
-    console.log('[Registration] User will be:', role);
+    // SECURITY FIX: All self-registered users get STAFF role
+    // ADMIN accounts must be created manually via seed or promoted by existing ADMIN
+    const role = 'STAFF';
+    console.log('[Registration] Creating STAFF user...');
 
     // Create user
-    console.log('[Registration] Creating user...');
     const user = await prisma.user.create({
       data: {
         name,
@@ -85,7 +83,7 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ 
       ...userWithoutPassword,
-      message: role === 'ADMIN' ? 'Admin account created successfully!' : 'Staff account created successfully!'
+      message: 'Staff account created successfully! Contact your administrator for role changes.'
     }, { status: 201 });
   } catch (error) {
     if (error instanceof z.ZodError) {
