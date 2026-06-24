@@ -59,6 +59,19 @@ export async function POST(
         data: { tableId: newTableId }
       });
 
+      // CRITICAL: Transfer bill if it exists
+      const existingBill = await tx.bill.findUnique({
+        where: { orderId: order.id }
+      });
+
+      if (existingBill) {
+        await tx.bill.update({
+          where: { id: existingBill.id },
+          data: { tableId: newTableId }
+        });
+        console.log(`✅ Bill ${existingBill.id} transferred to Table ${newTable.number}`);
+      }
+
       // Update new table status to OCCUPIED
       await tx.table.update({
         where: { id: newTableId },
@@ -81,11 +94,21 @@ export async function POST(
             where: { id: oldTableId },
             data: { status: 'AVAILABLE' }
           });
+          console.log(`✅ Table ${order.table?.number} marked as AVAILABLE (no remaining orders)`);
+        } else {
+          console.log(`ℹ️ Table ${order.table?.number} still has ${remainingOrders} active order(s)`);
         }
       }
     });
 
-    return NextResponse.json({ success: true, message: 'Table transferred successfully' });
+    console.log(`✅ Order ${order.id} transferred: Table ${order.table?.number} → Table ${newTable.number}`);
+
+    return NextResponse.json({ 
+      success: true, 
+      message: `Order transferred from Table ${order.table?.number || 'Unknown'} to Table ${newTable.number}`,
+      oldTable: order.table?.number,
+      newTable: newTable.number
+    });
   } catch (error) {
     console.error('Error transferring table:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
