@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { checkAuth } from '@/lib/api-auth';
+import { checkRateLimit, RateLimitPresets, createRateLimitResponse } from '@/lib/rateLimit';
 
 // Force dynamic route
 export const dynamic = 'force-dynamic';
@@ -10,6 +11,11 @@ export async function DELETE(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const rateLimit = checkRateLimit(request, RateLimitPresets.API);
+  if (!rateLimit.success) {
+    return createRateLimitResponse(rateLimit.resetAt);
+  }
+
   const auth = await checkAuth(request);
   if (auth.error) return auth.error;
 

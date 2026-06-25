@@ -23,6 +23,16 @@ export function middleware(request: NextRequest) {
       'http://localhost:3000' // Allow local development
     ].filter(Boolean);
     
+    // 🔒 SECURITY FIX: Require at least one header to be present
+    // Prevents CSRF attacks via requests with no origin/referer
+    if (!origin && !referer) {
+      console.warn(`🚨 CSRF blocked: No origin or referer header, host=${host}`);
+      return NextResponse.json(
+        { error: 'CSRF validation failed - missing security headers' },
+        { status: 403 }
+      );
+    }
+    
     // Check origin header (modern browsers)
     if (origin && !allowedOrigins.some(allowed => origin.startsWith(allowed || ''))) {
       console.warn(`🚨 CSRF blocked: origin=${origin}, host=${host}`);

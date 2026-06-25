@@ -3,12 +3,19 @@ import { Prisma } from '@prisma/client';
 import { NextResponse } from 'next/server';
 import { checkAuth } from '@/lib/api-auth';
 import { updateBillSchema } from '@/lib/validations';
+import { checkRateLimit, RateLimitPresets, createRateLimitResponse } from '@/lib/rateLimit';
+import { sanitizeCustomerInput } from '@/lib/sanitize';
 
 // GET single bill by ID
 export async function GET(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const rateLimit = checkRateLimit(request, RateLimitPresets.API);
+  if (!rateLimit.success) {
+    return createRateLimitResponse(rateLimit.resetAt);
+  }
+
   const auth = await checkAuth(request);
   if (auth.error) return auth.error;
 
@@ -53,6 +60,11 @@ export async function PATCH(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const rateLimit = checkRateLimit(request, RateLimitPresets.API);
+  if (!rateLimit.success) {
+    return createRateLimitResponse(rateLimit.resetAt);
+  }
+
   const auth = await checkAuth(request);
   if (auth.error) return auth.error;
 
@@ -64,6 +76,10 @@ export async function PATCH(
     if (!status) {
       return NextResponse.json({ error: 'Status is required' }, { status: 400 });
     }
+
+    // 🔒 SECURITY: Sanitize customer inputs to prevent injection attacks
+    const sanitizedCustomerName = customerName ? sanitizeCustomerInput(customerName) : null;
+    const sanitizedCustomerPhone = customerPhone ? sanitizeCustomerInput(customerPhone) : null;
 
     // RBAC: Role-based discount and points validation
     const userRole = (auth.session.user as any).role;
@@ -141,24 +157,24 @@ export async function PATCH(
       }
 
       // Handle customer and points if phone provided and bill is being paid
-      if (status === 'PAID' && customerPhone) {
+      if (status === 'PAID' && sanitizedCustomerPhone) {
         // Find or create customer
         let customer = await tx.customer.findUnique({
-          where: { phone: customerPhone }
+          where: { phone: sanitizedCustomerPhone }
         });
 
         if (!customer) {
           customer = await tx.customer.create({
             data: {
-              phone: customerPhone,
-              name: customerName || existingBill.order.customerName || null
+              phone: sanitizedCustomerPhone,
+              name: sanitizedCustomerName || existingBill.order.customerName || null
             }
           });
-        } else if (customerName && !customer.name) {
+        } else if (sanitizedCustomerName && !customer.name) {
           // Update customer name if provided and not already set
           customer = await tx.customer.update({
             where: { id: customer.id },
-            data: { name: customerName }
+            data: { name: sanitizedCustomerName }
           });
         }
 

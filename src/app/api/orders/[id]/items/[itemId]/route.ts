@@ -1,6 +1,7 @@
 import { prisma } from '@/lib/prisma';
 import { NextResponse } from 'next/server';
 import { checkAuth } from '@/lib/api-auth';
+import { checkRateLimit, RateLimitPresets, createRateLimitResponse } from '@/lib/rateLimit';
 
 export const dynamic = 'force-dynamic';
 
@@ -9,6 +10,11 @@ export async function PATCH(
   request: Request,
   { params }: { params: Promise<{ id: string; itemId: string }> }
 ) {
+  const rateLimit = checkRateLimit(request, RateLimitPresets.API);
+  if (!rateLimit.success) {
+    return createRateLimitResponse(rateLimit.resetAt);
+  }
+
   const auth = await checkAuth(request);
   if (auth.error) return auth.error;
 
@@ -24,10 +30,17 @@ export async function PATCH(
       );
     }
 
-    // Require cancel reason
+    // 🔒 SECURITY: Require cancel reason with length limit
     if (!cancelReason || cancelReason.trim().length === 0) {
       return NextResponse.json(
         { error: 'Cancellation reason is required' },
+        { status: 400 }
+      );
+    }
+
+    if (cancelReason.length > 500) {
+      return NextResponse.json(
+        { error: 'Cancellation reason too long (max 500 characters)' },
         { status: 400 }
       );
     }
