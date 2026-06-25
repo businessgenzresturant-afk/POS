@@ -21,7 +21,7 @@ export async function GET(request: Request) {
   try {
     const restaurantId = (auth.session.user as any).restaurantId;
     
-    let restaurant = await prisma.restaurant.findUnique({
+    const restaurant = await prisma.restaurant.findUnique({
       where: { id: restaurantId },
       select: { kdsDisplayToken: true, id: true }
     });
@@ -33,19 +33,13 @@ export async function GET(request: Request) {
       );
     }
 
-    // AUTO-GENERATE token if it doesn't exist
+    // 🔒 SECURITY FIX: DO NOT auto-generate token
+    // Admin must explicitly generate token via button click
     if (!restaurant.kdsDisplayToken) {
-      console.log('🔐 No KDS token found, auto-generating...');
-      const newToken = crypto.randomBytes(32).toString('hex');
-      
-      restaurant = await prisma.restaurant.update({
-        where: { id: restaurantId },
-        data: { kdsDisplayToken: newToken },
-        select: { kdsDisplayToken: true, id: true }
+      return NextResponse.json({
+        token: null,
+        message: 'No token generated yet. Click "Generate Token" button to create one.'
       });
-      
-      console.log('✅ KDS Display Token auto-generated for restaurant:', restaurantId);
-      console.log(`   URL: https://pos.gen-z.online/kds-display/${newToken}`);
     }
 
     return NextResponse.json({
