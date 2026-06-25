@@ -1,8 +1,8 @@
 import { prisma } from '@/lib/prisma';
 import { notFound } from 'next/navigation';
-import KDSDisplay from '@/components/kds/KDSDisplay';
+import KDSDisplayWrapper from '@/components/kds/KDSDisplayWrapper';
 
-// Force server-side rendering for old TV browser compatibility
+// Force dynamic route handling
 export const dynamic = 'force-dynamic';
 
 interface Props {
@@ -35,7 +35,7 @@ export default async function PublicKDSDisplay({ params }: Props) {
     );
   }
 
-  // Server-side validation successful - render KDS directly with restaurantId
-  // autoStart=true for TV displays - no interaction required
-  return <KDSDisplay restaurantId={restaurant.id} readOnly={true} enableReconnect={true} autoStart={true} />;
+  // Server-side validation successful - render KDS with client-side wrapper
+  // Wrapper prevents hydration mismatch on old TV browsers
+  return <KDSDisplayWrapper restaurantId={restaurant.id} readOnly={true} enableReconnect={true} autoStart={true} />;
 }
