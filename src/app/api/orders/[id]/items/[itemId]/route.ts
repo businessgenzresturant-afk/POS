@@ -62,7 +62,11 @@ export async function PATCH(
         }
       },
       include: {
-        order: true
+        order: {
+          include: {
+            table: true
+          }
+        }
       }
     });
 
@@ -72,6 +76,8 @@ export async function PATCH(
         { status: 404 }
       );
     }
+
+    const order = orderItem.order;
 
     // Don't allow cancelling items from already billed orders
     const bill = await prisma.bill.findFirst({
@@ -115,6 +121,26 @@ export async function PATCH(
         where: { id },
         data: { totalAmount: newTotal }
       });
+
+      // 🔧 UX FIX: Auto-clear table if all items are cancelled
+      if (activeItems.length === 0 && order.tableId) {
+        // Check if table has any other active orders
+        const otherActiveOrders = await tx.order.count({
+          where: {
+            tableId: order.tableId,
+            id: { not: id },
+            status: { in: ['PENDING', 'PREPARING', 'READY', 'SERVED'] }
+          }
+        });
+
+        if (otherActiveOrders === 0) {
+          await tx.table.update({
+            where: { id: order.tableId },
+            data: { status: 'AVAILABLE' }
+          });
+          console.log(`✅ Table auto-cleared: All items cancelled, no other orders`);
+        }
+      }
 
       return updatedItem;
     });
