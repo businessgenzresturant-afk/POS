@@ -630,6 +630,7 @@ export function Dashboard() {
           onQuickReorder={handleQuickReorder}
           onMarkAsServed={handleMarkAsServed}
           onTransferClick={() => setTransferTableModalOpen(true)}
+          onRefresh={fetchData}
         />
 
         <TransferTableModal

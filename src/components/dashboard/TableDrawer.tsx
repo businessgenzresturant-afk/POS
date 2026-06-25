@@ -1,6 +1,7 @@
 import React from 'react';
 import { Button } from '@/components/ui/button';
-import { X, Plus, Receipt } from 'lucide-react';
+import { X, Plus, Receipt, Minus, Trash2 } from 'lucide-react';
+import { toast } from 'sonner';
 
 interface TableDrawerProps {
   isOpen: boolean;
@@ -12,12 +13,105 @@ interface TableDrawerProps {
   onQuickReorder: (menuItemId: string, specialInstructions: string) => void;
   onMarkAsServed: (orderId: string) => void;
   onTransferClick?: () => void;
+  onRefresh?: () => void; // For refreshing after item changes
 }
 
-export function TableDrawer({ isOpen, onClose, table, activeOrder, onAddItem, onGenerateBill, onQuickReorder, onMarkAsServed, onTransferClick }: TableDrawerProps) {
+export function TableDrawer({ isOpen, onClose, table, activeOrder, onAddItem, onGenerateBill, onQuickReorder, onMarkAsServed, onTransferClick, onRefresh }: TableDrawerProps) {
   const [isGeneratingBill, setIsGeneratingBill] = React.useState(false);
   const [isMarkingServed, setIsMarkingServed] = React.useState(false);
   const [isReordering, setIsReordering] = React.useState<string | null>(null);
+  const [showCancelModal, setShowCancelModal] = React.useState(false);
+  const [itemToCancel, setItemToCancel] = React.useState<{itemId: string, itemName: string} | null>(null);
+  const [cancelReason, setCancelReason] = React.useState('');
+  const [cancelReasonOther, setCancelReasonOther] = React.useState('');
+  const [isCancelling, setIsCancelling] = React.useState(false);
+  const [quantityChanging, setQuantityChanging] = React.useState<string | null>(null);
+
+  const cancelReasons = [
+    'Customer changed mind',
+    'Wrong item ordered',
+    'Kitchen error',
+    'Item unavailable',
+    'Too long wait time',
+    'Other'
+  ];
+
+  const handleCancelItem = (itemId: string, itemName: string) => {
+    setItemToCancel({ itemId, itemName });
+    setCancelReason('');
+    setCancelReasonOther('');
+    setShowCancelModal(true);
+  };
+
+  const confirmCancelItem = async () => {
+    if (!itemToCancel || !activeOrder) return;
+    
+    const finalReason = cancelReason === 'Other' ? cancelReasonOther : cancelReason;
+    
+    if (!finalReason || finalReason.trim().length === 0) {
+      toast.error('Please select or enter a cancellation reason');
+      return;
+    }
+    
+    setIsCancelling(true);
+    try {
+      const response = await fetch(`/api/orders/${activeOrder.id}/items/${itemToCancel.itemId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: 'CANCELLED', cancelReason: finalReason.trim() })
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to cancel item');
+      }
+
+      toast.success(`"${itemToCancel.itemName}" cancelled`);
+      setShowCancelModal(false);
+      setItemToCancel(null);
+      setCancelReason('');
+      setCancelReasonOther('');
+      
+      if (onRefresh) {
+        await onRefresh();
+      }
+    } catch (err: any) {
+      console.error('Error cancelling item:', err);
+      toast.error(err.message || 'Failed to cancel item');
+    } finally {
+      setIsCancelling(false);
+    }
+  };
+
+  const handleQuantityChange = async (itemId: string, currentQuantity: number, change: number) => {
+    const newQuantity = currentQuantity + change;
+    
+    if (newQuantity < 1) {
+      toast.error('Use Cancel button to remove items');
+      return;
+    }
+    
+    setQuantityChanging(itemId);
+    try {
+      // For now, use quick reorder for increasing quantity
+      // TODO: Implement proper quantity edit API
+      if (change > 0 && activeOrder) {
+        const item = activeOrder.items.find((i: any) => i.id === itemId);
+        if (item) {
+          await onQuickReorder(item.menuItem.id, item.specialInstructions || '');
+          toast.success('Item added');
+          if (onRefresh) await onRefresh();
+        }
+      } else {
+        toast.info('Quantity decrease coming soon - use Cancel for now');
+      }
+    } catch (err: any) {
+      console.error('Error changing quantity:', err);
+      toast.error('Failed to change quantity');
+    } finally {
+      setQuantityChanging(null);
+    }
+  };
 
   if (!isOpen) return null;
 
@@ -96,36 +190,78 @@ export function TableDrawer({ isOpen, onClose, table, activeOrder, onAddItem, on
                   return acc;
                 }, []);
 
-                return mergedItems.map((item: any, i: number) => (
-                  <div key={i} className="flex justify-between items-start p-3 bg-muted/20 rounded-xl border border-border">
+                return mergedItems.map((item: any, i: number) => {
+                  const isCancelled = item.status === 'CANCELLED';
+                  const isChanging = quantityChanging === item.id;
+                  
+                  return (
+                  <div key={i} className={`flex justify-between items-start p-3 rounded-xl border ${
+                    isCancelled 
+                      ? 'bg-red-950/20 border-red-500/30 opacity-60' 
+                      : 'bg-muted/20 border-border'
+                  }`}>
                     <div className="flex-1 pr-2">
-                      <p className="font-bold text-foreground">
-                        <span className="text-primary mr-2">{item.quantity}×</span>
-                        {item.menuItem?.name || 'Unknown Item'}
-                      </p>
-                      {item.cleanInstr && (
+                      <div className="flex items-start justify-between gap-2 mb-2">
+                        <p className={`font-bold text-foreground flex-1 ${isCancelled ? 'line-through text-red-400' : ''}`}>
+                          <span className="text-primary mr-2">{item.quantity}×</span>
+                          {item.menuItem?.name || 'Unknown Item'}
+                          {isCancelled && <span className="ml-2 text-xs font-black text-red-400 uppercase">CANCELLED</span>}
+                        </p>
+                        {!isCancelled && activeOrder.status !== 'COMPLETED' && (
+                          <div className="flex gap-1">
+                            <button
+                              onClick={() => handleQuantityChange(item.id, item.quantity, 1)}
+                              disabled={isChanging}
+                              className="w-7 h-7 rounded-lg bg-primary/10 hover:bg-primary/20 text-primary flex items-center justify-center transition-colors disabled:opacity-50"
+                              title="Add one more"
+                            >
+                              <Plus className="w-4 h-4" />
+                            </button>
+                            <button
+                              onClick={() => handleCancelItem(item.id, item.menuItem?.name || 'item')}
+                              disabled={isChanging}
+                              className="w-7 h-7 rounded-lg bg-red-500/10 hover:bg-red-500/20 text-red-500 flex items-center justify-center transition-colors disabled:opacity-50"
+                              title="Cancel item"
+                            >
+                              <X className="w-4 h-4" />
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                      {isCancelled && item.cancelReason && (
+                        <p className="text-xs text-red-400 mb-1">
+                          Reason: {item.cancelReason}
+                        </p>
+                      )}
+                      {item.cleanInstr && !isCancelled && (
                         <p className="text-xs text-muted-foreground mt-1">📝 {item.cleanInstr}</p>
                       )}
-                      <Button 
-                        variant="ghost" 
-                        size="sm" 
-                        className="h-6 mt-2 px-2 text-xs font-bold text-primary hover:bg-primary/10"
-                        disabled={isReordering === item.menuItem.id}
-                        onClick={async () => {
-                          setIsReordering(item.menuItem.id);
-                          try {
-                            await onQuickReorder(item.menuItem.id, item.cleanInstr);
-                          } finally {
-                            setIsReordering(null);
-                          }
-                        }}
-                      >
-                        {isReordering === item.menuItem.id ? '...' : '[+ Same Again]'}
-                      </Button>
+                      {!isCancelled && (
+                        <Button 
+                          variant="ghost" 
+                          size="sm" 
+                          className="h-6 mt-2 px-2 text-xs font-bold text-primary hover:bg-primary/10"
+                          disabled={isReordering === item.menuItem.id}
+                          onClick={async () => {
+                            setIsReordering(item.menuItem.id);
+                            try {
+                              await onQuickReorder(item.menuItem.id, item.cleanInstr);
+                              if (onRefresh) await onRefresh();
+                            } finally {
+                              setIsReordering(null);
+                            }
+                          }}
+                        >
+                          {isReordering === item.menuItem.id ? '...' : '[+ Same Again]'}
+                        </Button>
+                      )}
                     </div>
-                    <p className="font-semibold whitespace-nowrap">₹{(item.price * item.quantity).toFixed(2)}</p>
+                    <p className={`font-semibold whitespace-nowrap ${isCancelled ? 'line-through text-red-400' : ''}`}>
+                      ₹{(item.price * item.quantity).toFixed(2)}
+                    </p>
                   </div>
-                ));
+                );
+                });
               })()}
             </>
           )}
@@ -209,6 +345,76 @@ export function TableDrawer({ isOpen, onClose, table, activeOrder, onAddItem, on
         </div>
 
       </div>
+
+      {/* Cancel Item Modal */}
+      {showCancelModal && itemToCancel && (
+        <div className="fixed inset-0 z-[170] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-fade-in" onClick={() => !isCancelling && setShowCancelModal(false)}>
+          <div className="bg-card border-2 border-border rounded-3xl shadow-2xl w-full max-w-sm overflow-hidden animate-scale-in" onClick={(e) => e.stopPropagation()}>
+            <div className="p-5 border-b border-border">
+              <h3 className="text-xl font-black text-foreground">Cancel Item</h3>
+              <p className="text-sm text-muted-foreground mt-1">
+                Cancelling: <span className="font-bold text-foreground">{itemToCancel.itemName}</span>
+              </p>
+              <p className="text-xs text-amber-600 mt-2">⚠️ Please select a reason for accountability</p>
+            </div>
+            
+            <div className="p-5 space-y-2 max-h-[60vh] overflow-y-auto">
+              {cancelReasons.map((reason) => (
+                <button
+                  key={reason}
+                  onClick={() => setCancelReason(reason)}
+                  className={`w-full text-left px-4 py-3 rounded-xl border-2 font-semibold transition-colors ${
+                    cancelReason === reason 
+                      ? 'border-primary bg-primary/10 text-primary' 
+                      : 'border-border bg-background hover:bg-muted text-foreground'
+                  }`}
+                >
+                  {reason}
+                </button>
+              ))}
+
+              {cancelReason === 'Other' && (
+                <div className="pt-2 animate-fade-in">
+                  <input
+                    autoFocus
+                    type="text"
+                    placeholder="Type custom reason..."
+                    value={cancelReasonOther}
+                    onChange={(e) => setCancelReasonOther(e.target.value)}
+                    className="w-full px-4 py-3 rounded-xl border-2 border-primary focus:outline-none focus:ring-2 focus:ring-primary bg-background text-foreground"
+                  />
+                </div>
+              )}
+            </div>
+            
+            <div className="p-5 bg-muted/30 border-t border-border flex gap-3">
+              <Button 
+                variant="outline" 
+                onClick={() => setShowCancelModal(false)} 
+                className="flex-1 h-11 rounded-xl"
+                disabled={isCancelling}
+              >
+                Keep Item
+              </Button>
+              <Button 
+                onClick={confirmCancelItem} 
+                variant="destructive" 
+                className="flex-1 h-11 rounded-xl font-bold bg-red-600 hover:bg-red-700"
+                disabled={isCancelling || !cancelReason || (cancelReason === 'Other' && !cancelReasonOther.trim())}
+              >
+                {isCancelling ? (
+                  <>
+                    <div className="w-4 h-4 mr-2 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    Cancelling...
+                  </>
+                ) : (
+                  'Confirm Cancel'
+                )}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 }
