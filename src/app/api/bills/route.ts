@@ -188,8 +188,14 @@ export async function POST(request: Request) {
       );
     }
 
-    // Calculate total from ALL orders
-    const subtotal = allTableOrders.reduce((sum, o) => sum + o.totalAmount, 0);
+    // Calculate total from ALL orders - ONLY ACTIVE ITEMS (exclude CANCELLED)
+    // CRITICAL: Must recalculate from actual items, not use stale order.totalAmount
+    const subtotal = allTableOrders.reduce((sum, o) => {
+      const orderSubtotal = o.items
+        .filter((item: any) => item.status === 'ACTIVE') // Exclude cancelled items
+        .reduce((itemSum: number, item: any) => itemSum + (item.price * item.quantity), 0);
+      return sum + orderSubtotal;
+    }, 0);
     const taxRate = process.env.TAX_RATE ? parseFloat(process.env.TAX_RATE) : 0.18;
     const tax = subtotal * taxRate;
     const discount = 0;
