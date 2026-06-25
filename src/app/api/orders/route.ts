@@ -217,7 +217,7 @@ export async function POST(request: Request) {
 
         // 🔧 BUGFIX: Append to ANY active order (PENDING/PREPARING/READY/SERVED) - supports running tables
         // Only create new order if table has NO active order or order is COMPLETED
-        if (currentTable && currentTable.status === 'OCCUPIED' && activeOrder && ['PENDING', 'PREPARING', 'READY', 'SERVED'].includes(activeOrder.status)) {
+        if (currentTable && ['OCCUPIED', 'RUNNING'].includes(currentTable.status) && activeOrder && ['PENDING', 'PREPARING', 'READY', 'SERVED'].includes(activeOrder.status)) {
           // Create new order items
           await tx.orderItem.createMany({
             data: orderItemsData.map(item => ({ 

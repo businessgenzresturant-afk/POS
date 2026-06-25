@@ -123,21 +123,35 @@ export async function PATCH(
     }
 
     // Fallback to regular update without optimistic locking (for backward compatibility)
-    const order = await prisma.order.update({
-      where: { id },
-      data: {
-        ...(status && { status }),
-        ...(paymentStatus && { paymentStatus }),
-        version: { increment: 1 } // Still increment version
-      },
-      include: {
-        table: true,
-        items: {
-          include: {
-            menuItem: true
+    const order = await prisma.$transaction(async (tx) => {
+      const updatedOrder = await tx.order.update({
+        where: { id },
+        data: {
+          ...(status && { status }),
+          ...(paymentStatus && { paymentStatus }),
+          version: { increment: 1 } // Still increment version
+        },
+        include: {
+          table: true,
+          items: {
+            include: {
+              menuItem: true
+            }
           }
         }
+      });
+
+      // 🔧 RUNNING TABLE FIX: When order status changes to SERVED, set table to RUNNING
+      // This indicates food has been served and customers are eating (might order more)
+      if (status === 'SERVED' && updatedOrder.tableId) {
+        await tx.table.update({
+          where: { id: updatedOrder.tableId },
+          data: { status: 'RUNNING' }
+        });
+        console.log(`✅ Table ${updatedOrder.table?.number} set to RUNNING (order served)`);
       }
+
+      return updatedOrder;
     });
 
     return NextResponse.json(order);

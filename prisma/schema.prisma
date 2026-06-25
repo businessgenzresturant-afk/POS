@@ -180,6 +180,7 @@ model User {
 enum TableStatus {
   AVAILABLE
   OCCUPIED
+  RUNNING    // Food served, customers eating, might order more
   RESERVED
 }
 
