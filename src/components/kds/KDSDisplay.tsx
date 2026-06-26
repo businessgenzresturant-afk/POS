@@ -191,8 +191,18 @@ export default function KDSDisplay({ restaurantId, readOnly = false, enableRecon
 
   const fetchOrders = useCallback(async () => {
     try {
-      const response = await fetch('/api/orders?status=PENDING,PREPARING');
+      // 🔥 ERROR HANDLING: Add timeout to fetch
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 15000); // 15s timeout
+      
+      const response = await fetch('/api/orders?status=PENDING,PREPARING', {
+        signal: controller.signal
+      });
+      
+      clearTimeout(timeoutId);
+      
       if (!response.ok) {
+        console.error(`❌ [KDS] API error: ${response.status} ${response.statusText}`);
         if (enableReconnect) {
           setFailureCount(prev => prev + 1);
           if (failureCount > 2) {
@@ -208,8 +218,30 @@ export default function KDSDisplay({ restaurantId, readOnly = false, enableRecon
         setIsReconnecting(false);
       }
       
-      const data = await response.json();
+      // 🔥 ERROR HANDLING: Validate JSON response
+      let data;
+      try {
+        data = await response.json();
+      } catch (jsonError) {
+        console.error('❌ [KDS] Invalid JSON response:', jsonError);
+        return;
+      }
+      
+      // 🔥 ERROR HANDLING: Ensure data is array
       const finalOrders = Array.isArray(data) ? data : [];
+      
+      // 🔥 ERROR HANDLING: Validate each order has required fields
+      const validOrders = finalOrders.filter((order: any) => {
+        if (!order || !order.id) {
+          console.warn('⚠️ [KDS] Invalid order (no ID):', order);
+          return false;
+        }
+        if (!Array.isArray(order.items)) {
+          console.warn('⚠️ [KDS] Invalid order (no items array):', order.id);
+          return false;
+        }
+        return true;
+      });
       
       // Detect new urgent additions or new orders to play sound
       const prev = previousOrdersRef.current;
@@ -219,7 +251,7 @@ export default function KDSDisplay({ restaurantId, readOnly = false, enableRecon
         const urgentOrderIds: string[] = [];
         const newOrderIds: string[] = [];
 
-        finalOrders.forEach((order: any) => {
+        validOrders.forEach((order: any) => {
           const oldOrder = prev.find((o: any) => o.id === order.id);
           
           const hasUrgentInstruction = order.items.some((item: any) => 
@@ -285,17 +317,25 @@ export default function KDSDisplay({ restaurantId, readOnly = false, enableRecon
         console.log('📊 Initial load - no sound played');
       }
 
-      previousOrdersRef.current = finalOrders;
-      setOrders(finalOrders);
+      previousOrdersRef.current = validOrders;
+      setOrders(validOrders);
 
       // Save to cache
       if (typeof window !== 'undefined') {
         (window as any).__pos_kds_cache = {
-          orders: finalOrders
+          orders: validOrders
         };
       }
-    } catch (error) {
-      console.error('Error fetching KDS:', error);
+    } catch (error: any) {
+      // 🔥 ERROR HANDLING: Comprehensive error catching
+      if (error.name === 'AbortError') {
+        console.error('❌ [KDS] Fetch timeout after 15s');
+      } else if (error.message && error.message.includes('Failed to fetch')) {
+        console.error('❌ [KDS] Network error - check internet connection');
+      } else {
+        console.error('❌ [KDS] Unexpected error:', error);
+      }
+      
       if (enableReconnect) {
         setFailureCount(prev => prev + 1);
         if (failureCount > 2) {
@@ -353,20 +393,64 @@ export default function KDSDisplay({ restaurantId, readOnly = false, enableRecon
   // Extract Urgent Additions & categorize orders
   const urgentAdditions: any[] = [];
   const normalOrders = orders.map(order => {
+    // 🔥 ERROR HANDLING: Validate order structure
+    if (!order || !order.id || !Array.isArray(order.items)) {
+      console.warn('⚠️ [KDS] Skipping invalid order:', order);
+      return null;
+    }
+    
     const normalItems: any[] = [];
     const urgentItems: any[] = [];
-    const orderTime = new Date(order.createdAt).getTime();
+    
+    // 🔥 ERROR HANDLING: Safe date parsing
+    let orderTime: number;
+    try {
+      orderTime = new Date(order.createdAt).getTime();
+      if (isNaN(orderTime)) {
+        console.warn('⚠️ [KDS] Invalid createdAt date for order:', order.id);
+        orderTime = Date.now();
+      }
+    } catch (e) {
+      console.warn('⚠️ [KDS] Date parse error for order:', order.id);
+      orderTime = Date.now();
+    }
     
     // Find the earliest item creation time
     let earliestItemTime = orderTime;
     if (order.items.length > 0) {
-      earliestItemTime = Math.min(
-        ...order.items.map((i: any) => new Date(i.createdAt).getTime())
-      );
+      const itemTimes = order.items
+        .map((i: any) => {
+          try {
+            const time = new Date(i.createdAt).getTime();
+            return isNaN(time) ? orderTime : time;
+          } catch (e) {
+            return orderTime;
+          }
+        })
+        .filter((t: number) => !isNaN(t));
+      
+      if (itemTimes.length > 0) {
+        earliestItemTime = Math.min(...itemTimes);
+      }
     }
     
     order.items.forEach((item: any) => {
-      const itemTime = new Date(item.createdAt).getTime();
+      // 🔥 ERROR HANDLING: Validate item
+      if (!item || !item.menuItem) {
+        console.warn('⚠️ [KDS] Skipping invalid item in order:', order.id);
+        return;
+      }
+      
+      let itemTime: number;
+      try {
+        itemTime = new Date(item.createdAt).getTime();
+        if (isNaN(itemTime)) {
+          itemTime = orderTime;
+        }
+      } catch (e) {
+        itemTime = orderTime;
+      }
+      
       // Item is "urgent" if it was added more than 2 minutes after the earliest item
       const isUrgent = (itemTime - earliestItemTime > 120000) || (item.specialInstructions && item.specialInstructions.includes('[URGENT ADDITION]'));
       
@@ -388,7 +472,7 @@ export default function KDSDisplay({ restaurantId, readOnly = false, enableRecon
       ...order,
       items: normalItems
     };
-  }).filter(o => o.items.length > 0);
+  }).filter(o => o !== null && o.items.length > 0); // Remove null and empty orders
 
   // Count by order type
   const dineInCount = normalOrders.filter(o => o.orderType === 'DINE_IN').length;
@@ -401,7 +485,23 @@ export default function KDSDisplay({ restaurantId, readOnly = false, enableRecon
   );
 
   const OrderCard = ({ order, isUrgent = false }: any) => {
-    const diffSecs = Math.floor((now.getTime() - new Date(order.createdAt).getTime()) / 1000);
+    // 🔥 ERROR HANDLING: Validate order data
+    if (!order || !order.id) {
+      console.error('❌ [KDS] OrderCard received invalid order');
+      return null;
+    }
+    
+    // 🔥 ERROR HANDLING: Safe date calculation
+    let diffSecs = 0;
+    try {
+      const createdTime = new Date(order.createdAt).getTime();
+      if (!isNaN(createdTime)) {
+        diffSecs = Math.floor((now.getTime() - createdTime) / 1000);
+      }
+    } catch (e) {
+      console.error('❌ [KDS] Date calculation error for order:', order.id);
+    }
+    
     const mins = Math.floor(diffSecs / 60);
     const secs = diffSecs % 60;
     

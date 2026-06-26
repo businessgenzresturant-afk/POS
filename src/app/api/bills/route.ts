@@ -89,42 +89,69 @@ export async function POST(request: Request) {
 
     // ⚡ PERFORMANCE BOOST: Fetch order + check existing bill + find all table orders in PARALLEL
     console.time('⏱️ DB-PARALLEL-FETCH-ALL');
-    const [order, allTableOrders] = await Promise.all([
-      // Fetch the specific order with all data
-      prisma.order.findUnique({
-        where: { id: orderId },
-        include: {
-          table: true,
-          items: {
-            include: {
-              menuItem: true
+    
+    // 🔥 ERROR HANDLING: Wrap DB calls in try-catch
+    let order: any;
+    let allTableOrders: any[] = [];
+    try {
+      [order, allTableOrders] = await Promise.all([
+        // Fetch the specific order with all data
+        prisma.order.findUnique({
+          where: { id: orderId },
+          include: {
+            table: true,
+            items: {
+              include: {
+                menuItem: true
+              }
             }
           }
-        }
-      }),
-      
-      // Fetch ALL unbilled orders for this table (we'll filter by tableId after getting the order)
-      prisma.order.findMany({
-        where: {
-          bill: null, // Orders that haven't been billed yet
-          status: { in: ['PENDING', 'PREPARING', 'READY', 'SERVED'] }
-        },
-        include: {
-          items: {
-            include: {
-              menuItem: true
-            }
+        }),
+        
+        // Fetch ALL unbilled orders for this table (we'll filter by tableId after getting the order)
+        prisma.order.findMany({
+          where: {
+            bill: null, // Orders that haven't been billed yet
+            status: { in: ['PENDING', 'PREPARING', 'READY', 'SERVED'] }
           },
-          table: true
-        },
-        orderBy: { createdAt: 'asc' }
-      })
-    ]);
+          include: {
+            items: {
+              include: {
+                menuItem: true
+              }
+            },
+            table: true
+          },
+          orderBy: { createdAt: 'asc' }
+        })
+      ]);
+    } catch (dbError: any) {
+      console.timeEnd('⏱️ DB-PARALLEL-FETCH-ALL');
+      console.timeEnd('⏱️ TOTAL-BILL-GENERATION');
+      console.error('[Bill Creation] Database error:', dbError);
+      return NextResponse.json(
+        { error: 'Database connection failed. Please try again.' },
+        { status: 500 }
+      );
+    }
+    
     console.timeEnd('⏱️ DB-PARALLEL-FETCH-ALL');
 
     if (!order) {
       console.timeEnd('⏱️ TOTAL-BILL-GENERATION');
       return NextResponse.json({ error: 'Order not found' }, { status: 404 });
+    }
+    
+    // 🔥 ERROR HANDLING: Validate order has items
+    if (!order.items || order.items.length === 0) {
+      console.timeEnd('⏱️ TOTAL-BILL-GENERATION');
+      return NextResponse.json({ error: 'Order has no items' }, { status: 400 });
+    }
+    
+    // 🔥 ERROR HANDLING: Ensure allTableOrders is array
+    if (!Array.isArray(allTableOrders)) {
+      console.error('[Bill Creation] allTableOrders is not an array:', allTableOrders);
+      allTableOrders = [];
     }
 
     // Allow bill generation for any active order status

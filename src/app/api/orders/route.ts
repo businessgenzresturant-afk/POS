@@ -126,31 +126,65 @@ export async function POST(request: Request) {
     // P1 FIX: Validate table and menu items belong to user's restaurant for multi-tenant isolation
     const restaurantId = (auth.session.user as any).restaurantId;
     
+    // 🔥 ERROR HANDLING: Validate restaurantId exists
+    if (!restaurantId) {
+      console.timeEnd('⏱️ TOTAL-ORDER-CREATION');
+      return NextResponse.json(
+        { error: 'User session invalid - no restaurant ID' },
+        { status: 401 }
+      );
+    }
+    
     // ⚡ PERFORMANCE: Fetch table and menu items in PARALLEL instead of sequential
     console.time('⏱️ DB-PARALLEL-FETCH');
-    const [table, menuItems] = await Promise.all([
-      // Check table availability and lock it - WITH RESTAURANT VALIDATION
-      tableId ? prisma.table.findFirst({
-        where: { 
-          id: tableId,
-          restaurantId: restaurantId // Ensure table belongs to user's restaurant
-        },
-      }) : Promise.resolve(null),
-      
-      // Fetch all menu items to get prices and validate - WITH RESTAURANT VALIDATION
-      prisma.menuItem.findMany({
-        where: {
-          id: {
-            in: items.map((i: any) => i.menuItemId)
+    
+    // 🔥 ERROR HANDLING: Wrap DB calls
+    let table: any = null;
+    let menuItems: any[] = [];
+    try {
+      [table, menuItems] = await Promise.all([
+        // Check table availability and lock it - WITH RESTAURANT VALIDATION
+        tableId ? prisma.table.findFirst({
+          where: { 
+            id: tableId,
+            restaurantId: restaurantId // Ensure table belongs to user's restaurant
           },
-          restaurantId: restaurantId // Ensure menu items belong to user's restaurant
-        }
-      })
-    ]);
+        }) : Promise.resolve(null),
+        
+        // Fetch all menu items to get prices and validate - WITH RESTAURANT VALIDATION
+        prisma.menuItem.findMany({
+          where: {
+            id: {
+              in: items.map((i: any) => i.menuItemId)
+            },
+            restaurantId: restaurantId // Ensure menu items belong to user's restaurant
+          }
+        })
+      ]);
+    } catch (dbError: any) {
+      console.timeEnd('⏱️ DB-PARALLEL-FETCH');
+      console.timeEnd('⏱️ TOTAL-ORDER-CREATION');
+      console.error('Order creation DB error:', dbError);
+      return NextResponse.json(
+        { error: 'Database connection failed. Please try again.' },
+        { status: 500 }
+      );
+    }
+    
     console.timeEnd('⏱️ DB-PARALLEL-FETCH');
 
     if (tableId && !table) {
+      console.timeEnd('⏱️ TOTAL-ORDER-CREATION');
       return NextResponse.json({ error: 'Table not found or does not belong to your restaurant' }, { status: 404 });
+    }
+    
+    // 🔥 ERROR HANDLING: Validate menuItems is array
+    if (!Array.isArray(menuItems)) {
+      console.timeEnd('⏱️ TOTAL-ORDER-CREATION');
+      return NextResponse.json(
+        { error: 'Menu items data invalid' },
+        { status: 500 }
+      );
     }
 
     if (menuItems.length !== items.length) {
