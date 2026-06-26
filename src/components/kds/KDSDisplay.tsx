@@ -207,16 +207,18 @@ export default function KDSDisplay({ restaurantId, readOnly = false, enableRecon
   }, []);
 
   const fetchOrders = useCallback(async () => {
-    console.log('[KDS] 🌐 fetchOrders called');
+    console.log('[KDS] 🌐 fetchOrders called - restaurantId:', restaurantId);
     try {
       // 🔥 CRITICAL FIX FOR TV: Use longer timeout and better error handling
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 30000); // 30s timeout for slow TV
       
-      console.log('[KDS] 🌐 Starting fetch to /api/orders');
+      // 🔥 CRITICAL FIX: Use public KDS orders endpoint with restaurantId
+      const url = `/api/kds-orders?restaurantId=${restaurantId}&status=PENDING,PREPARING`;
+      console.log('[KDS] 🌐 Starting fetch to', url);
       
-      // 🔥 TV FIX: Add explicit headers and credentials
-      const response = await fetch('/api/orders?status=PENDING,PREPARING', {
+      // 🔥 TV FIX: Add explicit headers and NO credentials (public endpoint)
+      const response = await fetch(url, {
         signal: controller.signal,
         method: 'GET',
         headers: {
@@ -224,7 +226,7 @@ export default function KDSDisplay({ restaurantId, readOnly = false, enableRecon
           'Cache-Control': 'no-cache',
           'Pragma': 'no-cache'
         },
-        credentials: 'include' // Include cookies for auth
+        credentials: 'omit' // No auth needed for public KDS endpoint
       });
       
       clearTimeout(timeoutId);
@@ -394,7 +396,7 @@ export default function KDSDisplay({ restaurantId, readOnly = false, enableRecon
       console.log('[KDS] 🏁 fetchOrders finally - setting loading = false');
       setLoading(false);
     }
-  }, [addSoundNotification, enableReconnect, failureCount]);
+  }, [restaurantId, addSoundNotification, enableReconnect, failureCount]);
 
   useEffect(() => {
     console.log('[KDS] 🚀 Main useEffect mounted - starting initial fetch');

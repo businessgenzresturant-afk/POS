@@ -118,6 +118,9 @@ export const RateLimitPresets = {
   
   /** Generous limit for read-only endpoints (200 requests per minute) */
   READ: { maxRequests: 200, windowMs: 60 * 1000 } as RateLimitConfig,
+  
+  /** Very generous limit for public KDS displays (300 requests per minute) */
+  PUBLIC: { maxRequests: 300, windowMs: 60 * 1000 } as RateLimitConfig,
 };
 
 /**
