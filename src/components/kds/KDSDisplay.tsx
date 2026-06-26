@@ -209,13 +209,22 @@ export default function KDSDisplay({ restaurantId, readOnly = false, enableRecon
   const fetchOrders = useCallback(async () => {
     console.log('[KDS] 🌐 fetchOrders called');
     try {
-      // 🔥 ERROR HANDLING: Add timeout to fetch
+      // 🔥 CRITICAL FIX FOR TV: Use longer timeout and better error handling
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 15000); // 15s timeout
+      const timeoutId = setTimeout(() => controller.abort(), 30000); // 30s timeout for slow TV
       
       console.log('[KDS] 🌐 Starting fetch to /api/orders');
+      
+      // 🔥 TV FIX: Add explicit headers and credentials
       const response = await fetch('/api/orders?status=PENDING,PREPARING', {
-        signal: controller.signal
+        signal: controller.signal,
+        method: 'GET',
+        headers: {
+          'Accept': 'application/json',
+          'Cache-Control': 'no-cache',
+          'Pragma': 'no-cache'
+        },
+        credentials: 'include' // Include cookies for auth
       });
       
       clearTimeout(timeoutId);
@@ -223,9 +232,14 @@ export default function KDSDisplay({ restaurantId, readOnly = false, enableRecon
       
       if (!response.ok) {
         console.error(`❌ [KDS] API error: ${response.status} ${response.statusText}`);
+        
+        // 🔥 TV FIX: Don't set isReconnecting on first few failures
         if (enableReconnect) {
-          setFailureCount(prev => prev + 1);
-          if (failureCount > 2) {
+          const newFailureCount = failureCount + 1;
+          setFailureCount(newFailureCount);
+          console.log(`[KDS] Failure count: ${newFailureCount}`);
+          
+          if (newFailureCount > 5) { // Only show reconnecting after 5 failures
             setIsReconnecting(true);
           }
         }
@@ -234,6 +248,7 @@ export default function KDSDisplay({ restaurantId, readOnly = false, enableRecon
       
       // Reset failure count on success
       if (enableReconnect) {
+        console.log('[KDS] ✅ Success - resetting failure count');
         setFailureCount(0);
         setIsReconnecting(false);
       }
@@ -356,17 +371,22 @@ export default function KDSDisplay({ restaurantId, readOnly = false, enableRecon
       }
     } catch (error: any) {
       // 🔥 ERROR HANDLING: Comprehensive error catching
+      console.error('❌ [KDS] Fetch error:', error);
+      
       if (error.name === 'AbortError') {
-        console.error('❌ [KDS] Fetch timeout after 15s');
+        console.error('❌ [KDS] Fetch timeout after 30s');
       } else if (error.message && error.message.includes('Failed to fetch')) {
         console.error('❌ [KDS] Network error - check internet connection');
       } else {
-        console.error('❌ [KDS] Unexpected error:', error);
+        console.error('❌ [KDS] Unexpected error:', error.message || error);
       }
       
       if (enableReconnect) {
-        setFailureCount(prev => prev + 1);
-        if (failureCount > 2) {
+        const newFailureCount = failureCount + 1;
+        setFailureCount(newFailureCount);
+        console.log(`[KDS] Failure count after error: ${newFailureCount}`);
+        
+        if (newFailureCount > 5) {
           setIsReconnecting(true);
         }
       }
@@ -404,14 +424,15 @@ export default function KDSDisplay({ restaurantId, readOnly = false, enableRecon
       window.addEventListener('online', handleOnline);
     }
 
-    // Reduced polling frequency to minimize database connections
-    // 10 seconds is acceptable for kitchen display updates
-    console.log('[KDS] ⏲️ Setting up 10-second polling interval');
+    // 🔥 TV FIX: Increase polling to 5 seconds for more stability on TV
+    // TV browser may struggle with aggressive 10s polling
+    console.log('[KDS] ⏲️ Setting up 5-second polling interval for TV');
     const interval = setInterval(() => {
       if (document.visibilityState === 'visible') {
+        console.log('[KDS] ⏲️ Polling interval triggered');
         fetchOrders();
       }
-    }, 10000); // 10 seconds (was 3s - reduced by 70% to prevent connection exhaustion)
+    }, 5000); // 5 seconds for TV reliability
 
     return () => {
       console.log('[KDS] 🧹 Main useEffect cleanup');
