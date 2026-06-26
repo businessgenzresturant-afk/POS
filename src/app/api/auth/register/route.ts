@@ -42,28 +42,21 @@ export async function POST(request: Request) {
     console.log('[Registration] Hashing password...');
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // Check if a restaurant already exists
-    console.log('[Registration] Checking for existing restaurant...');
-    let restaurant = await prisma.restaurant.findFirst();
+    // 🔒 CRITICAL SECURITY FIX: Each registration creates a NEW restaurant
+    // This ensures proper multi-tenant isolation - no data leakage between restaurants
+    console.log('[Registration] Creating new restaurant for user...');
+    const restaurant = await prisma.restaurant.create({
+      data: {
+        name: restaurantName || `${name}'s Restaurant`,
+        address: restaurantAddress || 'Update your restaurant address in settings',
+      },
+    });
+    console.log('[Registration] Restaurant created:', restaurant.id);
 
-    // If no restaurant exists, create one with the provided details or defaults
-    if (!restaurant) {
-      console.log('[Registration] Creating new restaurant...');
-      restaurant = await prisma.restaurant.create({
-        data: {
-          name: restaurantName || 'GenZ Restaurant',
-          address: restaurantAddress || 'L-97, Gali No 7, Near Labour Chowk, Mahipalpur, 110037',
-        },
-      });
-      console.log('[Registration] Restaurant created:', restaurant.id);
-    } else {
-      console.log('[Registration] Using existing restaurant:', restaurant.id);
-    }
-
-    // SECURITY FIX: All self-registered users get STAFF role
-    // ADMIN accounts must be created manually via seed or promoted by existing ADMIN
-    const role = 'STAFF';
-    console.log('[Registration] Creating STAFF user...');
+    // 🔒 SECURITY: First user of new restaurant becomes ADMIN automatically
+    // This user has full control over their restaurant
+    const role = 'ADMIN';
+    console.log('[Registration] Creating ADMIN user for new restaurant...');
 
     // Create user
     const user = await prisma.user.create({
@@ -83,7 +76,7 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ 
       ...userWithoutPassword,
-      message: 'Staff account created successfully! Contact your administrator for role changes.'
+      message: 'Restaurant and admin account created successfully! You can now add staff members from settings.'
     }, { status: 201 });
   } catch (error) {
     if (error instanceof z.ZodError) {

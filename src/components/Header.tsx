@@ -4,7 +4,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname } from 'next/navigation';
-import { signOut } from 'next-auth/react';
+import { signOut, useSession } from 'next-auth/react';
 import { 
   Settings, 
   LogOut,
@@ -25,6 +25,7 @@ import TaxPricingModal from '@/components/modals/TaxPricingModal';
 
 export default function Header() {
   const pathname = usePathname();
+  const { data: session } = useSession();
   const [isDropdownOpen, setDropdownOpen] = useState(false);
   
   // Modal states
@@ -33,6 +34,12 @@ export default function Header() {
   const [showRestaurantSettingsModal, setShowRestaurantSettingsModal] = useState(false);
   const [showStaffModal, setShowStaffModal] = useState(false);
   const [showTaxPricingModal, setShowTaxPricingModal] = useState(false);
+
+  // Get user details from session
+  const userName = session?.user?.name || 'User';
+  const userEmail = session?.user?.email || 'user@example.com';
+  const userRole = (session?.user as any)?.role || 'STAFF';
+  const userInitial = userName.charAt(0).toUpperCase();
 
   const getPageTitle = () => {
     switch (pathname) {
@@ -94,9 +101,9 @@ export default function Header() {
           className="flex items-center gap-2 px-3 py-1.5 rounded-xl border border-border/60 bg-card hover:bg-muted/80 text-foreground transition-all duration-200 shadow-sm"
         >
           <div className="w-6 h-6 rounded-lg bg-primary/10 text-primary flex items-center justify-center font-bold text-xs">
-            A
+            {userInitial}
           </div>
-          <span className="text-xs font-bold text-foreground">Admin</span>
+          <span className="text-xs font-bold text-foreground">{userName}</span>
           <ChevronDown className={`w-3.5 h-3.5 text-muted-foreground transition-transform duration-200 ${isDropdownOpen ? 'rotate-180' : ''}`} />
         </button>
 
@@ -112,8 +119,9 @@ export default function Header() {
             {/* Dropdown Menu */}
             <div className="absolute right-0 top-full mt-2 w-56 bg-background/95 backdrop-blur-md border border-border shadow-2xl rounded-2xl p-2 z-50 flex flex-col gap-1 animate-scale-in origin-top-right">
               <div className="px-3 py-2.5 border-b border-border/50 mb-1">
-                <p className="text-xs font-black text-foreground">Admin User</p>
-                <p className="text-[10px] text-muted-foreground truncate">admin@genz.com</p>
+                <p className="text-xs font-black text-foreground">{userName}</p>
+                <p className="text-[10px] text-muted-foreground truncate">{userEmail}</p>
+                <p className="text-[9px] font-bold text-primary uppercase tracking-wider mt-0.5">{userRole}</p>
               </div>
               
               {/* Management Options */}
