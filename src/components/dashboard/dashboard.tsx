@@ -397,12 +397,18 @@ export function Dashboard() {
         body: JSON.stringify({ status: 'SERVED' })
       });
 
-      if (!response.ok) throw new Error('Failed to mark as served');
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
+        console.error('[Mark as Served] Error response:', response.status, errorData);
+        throw new Error(errorData.error || 'Failed to mark as served');
+      }
+      
       toast.success('✅ Marked as served!', { id: toastId, duration: 2000 });
       setTableDrawerOpen(false);
       fetchData();
-    } catch (err) {
-      toast.error('❌ Failed to mark as served', { id: toastId });
+    } catch (err: any) {
+      console.error('[Mark as Served] Exception:', err);
+      toast.error(`❌ ${err.message || 'Failed to mark as served'}`, { id: toastId });
       throw err;
     }
   };

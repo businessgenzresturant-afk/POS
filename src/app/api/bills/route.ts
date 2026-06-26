@@ -104,7 +104,8 @@ export async function POST(request: Request) {
               include: {
                 menuItem: true
               }
-            }
+            },
+            bill: true // CRITICAL FIX: Include bill relationship to check if already billed
           }
         }),
         
@@ -120,7 +121,8 @@ export async function POST(request: Request) {
                 menuItem: true
               }
             },
-            table: true
+            table: true,
+            bill: true // Include bill for consistency
           },
           orderBy: { createdAt: 'asc' }
         })
@@ -158,8 +160,19 @@ export async function POST(request: Request) {
     // COMPLETED orders already have bills, so reject those
     if (order.status === 'COMPLETED') {
       console.timeEnd('⏱️ TOTAL-BILL-GENERATION');
+      console.warn('[Bill Creation] Order already COMPLETED - orderId:', orderId);
       return NextResponse.json(
-        { error: 'This order already has a bill generated' },
+        { error: 'This order is already completed. Please refresh the page.' },
+        { status: 400 }
+      );
+    }
+    
+    // CRITICAL FIX: Check if the main order already has a bill
+    if (order.bill !== null && order.bill !== undefined) {
+      console.timeEnd('⏱️ TOTAL-BILL-GENERATION');
+      console.warn('[Bill Creation] Order already has bill - orderId:', orderId, 'billId:', order.bill.id);
+      return NextResponse.json(
+        { error: 'This order already has a bill generated. Bill ID: ' + order.bill.id },
         { status: 400 }
       );
     }
@@ -182,15 +195,34 @@ export async function POST(request: Request) {
       console.log(`[Bill Creation] Table ${order.table?.number}: Filtering unbilled orders from pre-fetched data`);
       
       // ⚡ PERFORMANCE: Filter from already-fetched orders instead of new query
-      finalTableOrders = allTableOrders.filter(o => o.tableId === order.tableId);
+      // CRITICAL FIX: Only include orders that have at least 1 ACTIVE item
+      finalTableOrders = allTableOrders.filter(o => {
+        if (o.tableId !== order.tableId) return false;
+        
+        // Count active items
+        const activeItemCount = o.items.filter((item: any) => item.status === 'ACTIVE').length;
+        if (activeItemCount === 0) {
+          console.warn(`[Bill Creation] Skipping order ${o.id} - all items cancelled`);
+          return false;
+        }
+        
+        return true;
+      });
 
-      console.log(`[Bill Creation] Found ${finalTableOrders.length} unbilled orders for Table ${order.table?.number}`);
+      console.log(`[Bill Creation] Found ${finalTableOrders.length} unbilled orders with active items for Table ${order.table?.number}`);
       finalTableOrders.forEach((o, idx) => {
-        console.log(`  Order ${idx + 1}: ${o.items.length} items, Status: ${o.status}, Amount: ₹${o.totalAmount}`);
+        const activeItems = o.items.filter((item: any) => item.status === 'ACTIVE').length;
+        console.log(`  Order ${idx + 1}: ${activeItems} active items (${o.items.length} total), Status: ${o.status}, Amount: ₹${o.totalAmount}`);
       });
     } else {
       // No table (takeaway/delivery), use the already-fetched order with items
-      finalTableOrders = [order];
+      // CRITICAL FIX: Only if it has active items
+      const activeItemCount = order.items.filter((item: any) => item.status === 'ACTIVE').length;
+      if (activeItemCount > 0) {
+        finalTableOrders = [order];
+      } else {
+        console.warn(`[Bill Creation] Takeaway order ${order.id} has no active items`);
+      }
     }
 
     if (finalTableOrders.length === 0) {
@@ -220,6 +252,17 @@ export async function POST(request: Request) {
         .reduce((itemSum: number, item: any) => itemSum + (item.price * item.quantity), 0);
       return sum + orderSubtotal;
     }, 0);
+    
+    // CRITICAL FIX: If subtotal is 0 (all items cancelled), reject bill generation
+    if (subtotal <= 0) {
+      console.timeEnd('⏱️ TOTAL-BILL-GENERATION');
+      console.warn('[Bill Creation] All items are cancelled, cannot generate bill with ₹0');
+      return NextResponse.json(
+        { error: 'Cannot generate bill: All items have been cancelled. Please add items or clear the table.' },
+        { status: 400 }
+      );
+    }
+    
     const taxRate = process.env.TAX_RATE ? parseFloat(process.env.TAX_RATE) : 0.18;
     const tax = subtotal * taxRate;
     const discount = 0;
