@@ -90,6 +90,9 @@ export async function POST(request: Request) {
     // ⚡ PERFORMANCE BOOST: Fetch order + check existing bill + find all table orders in PARALLEL
     console.time('⏱️ DB-PARALLEL-FETCH-ALL');
     
+    // 🔒 SECURITY: Scope all queries to the authenticated user's restaurant
+    const restaurantId = (auth.session.user as any).restaurantId;
+    
     // 🔥 ERROR HANDLING: Wrap DB calls in try-catch
     let order: any;
     let allTableOrders: any[] = [];
@@ -110,10 +113,12 @@ export async function POST(request: Request) {
         }),
         
         // Fetch ALL unbilled orders for this table (we'll filter by tableId after getting the order)
+        // 🔒 BUG-04 FIX: Filter by restaurantId to prevent cross-restaurant data leakage
         prisma.order.findMany({
           where: {
             bill: null, // Orders that haven't been billed yet
-            status: { in: ['PENDING', 'PREPARING', 'READY', 'SERVED'] }
+            status: { in: ['PENDING', 'PREPARING', 'READY', 'SERVED'] },
+            table: { restaurantId } // Only orders belonging to this restaurant's tables
           },
           include: {
             items: {

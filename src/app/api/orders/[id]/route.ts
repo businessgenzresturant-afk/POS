@@ -116,6 +116,16 @@ export async function PATCH(
           }
         });
 
+        // 🔧 BUG-03 FIX: Apply table→RUNNING transition here too, not just in the regular path.
+        // When order is marked SERVED via optimistic-lock path, table must become RUNNING.
+        if (status === 'SERVED' && order?.tableId) {
+          await prisma.table.update({
+            where: { id: order.tableId },
+            data: { status: 'RUNNING' }
+          });
+          console.log(`✅ [Optimistic] Table ${order.table?.number} set to RUNNING (order served)`);
+        }
+
         return NextResponse.json(order);
       } catch (error) {
         throw error;

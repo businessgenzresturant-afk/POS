@@ -71,7 +71,11 @@ export async function PATCH(
   try {
     const { id } = await params;
     const body = await request.json();
-    const { status, paymentMethod, customerPhone, customerName, discountPercent, pointsToRedeem, gstApplied } = body;
+    const { status, paymentMethod, customerPhone, customerName, discountPercent, pointsToRedeem, gstApplied, serviceChargeApplied, serviceChargeAmount: serviceChargeAmountRaw } = body;
+
+    // 🔒 BUG-01 FIX: Validate and normalise service charge from request body
+    const serviceChargeAmountValue = typeof serviceChargeAmountRaw === 'number' && serviceChargeAmountRaw > 0 ? serviceChargeAmountRaw : 0;
+    const serviceChargeAppliedValue = serviceChargeApplied === true && serviceChargeAmountValue > 0;
 
     if (!status) {
       return NextResponse.json({ error: 'Status is required' }, { status: 400 });
@@ -147,10 +151,12 @@ export async function PATCH(
       
       // Apply GST based on toggle (default true for backward compatibility)
       const includeGst = gstApplied !== false; // Default to true if not specified
-      const baseAmount = existingBill.subtotal + (includeGst ? existingBill.tax : 0);
+      // 🔒 BUG-01 FIX: Include service charge in base amount (matches frontend calculateFinalTotal)
+      // Order of operations: subtotal + serviceCharge + GST − discount − points
+      const baseAmount = existingBill.subtotal + serviceChargeAmountValue + (includeGst ? existingBill.tax : 0);
       let finalTotal = baseAmount;
 
-      // Apply discount if provided (discount on subtotal only, tax remains)
+      // Apply discount if provided (discount on subtotal only, service charge and tax excluded from discount base)
       if (discountPercent && discountPercent > 0) {
         discountAmount = (existingBill.subtotal * discountPercent) / 100;
         finalTotal -= discountAmount;
@@ -238,6 +244,7 @@ export async function PATCH(
       }
 
       // Update the bill
+      // 🔒 BUG-01 FIX: Persist serviceChargeApplied and serviceChargeAmount to DB
       const updatedBill = await tx.bill.update({
         where: { id },
         data: {
@@ -251,7 +258,9 @@ export async function PATCH(
           total: finalTotal,
           pointsEarned,
           pointsRedeemed,
-          gstApplied: includeGst
+          gstApplied: includeGst,
+          serviceChargeApplied: serviceChargeAppliedValue,
+          serviceChargeAmount: serviceChargeAmountValue
         },
         include: {
           order: {
@@ -270,10 +279,26 @@ export async function PATCH(
 
       // If bill is paid, update order payment status and free the table
       if (status === 'PAID') {
+        // Update the primary order (the one the bill is linked to)
         await tx.order.update({
           where: { id: existingBill.orderId },
           data: { paymentStatus: 'PAID' }
         });
+
+        // 🔒 BUG-02 FIX: For multi-order tables, also mark ALL other COMPLETED orders on this
+        // table as PAID. When bill generation runs, it marks all orders COMPLETED but only
+        // links the bill to the primary order. The remaining orders must also be marked PAID.
+        if (existingBill.order.tableId) {
+          await tx.order.updateMany({
+            where: {
+              tableId: existingBill.order.tableId,
+              status: 'COMPLETED',
+              paymentStatus: 'PENDING',
+              id: { not: existingBill.orderId } // Already updated above
+            },
+            data: { paymentStatus: 'PAID' }
+          });
+        }
 
         // Free the table if order was linked to a table
         if (existingBill.order.tableId) {
@@ -289,10 +314,22 @@ export async function PATCH(
 
     return NextResponse.json(result);
   } catch (error: any) {
-    console.error('Error updating bill:', error);
+    // 🔒 BUG-08 FIX: Only pass known user-facing error messages to the client.
+    // Unknown errors get a generic message so internal DB/Prisma details aren't leaked.
+    const USER_FACING_ERRORS = [
+      'Insufficient points balance',
+      'Cannot redeem more points than bill total'
+    ];
+    const isUserFacingError = USER_FACING_ERRORS.includes(error.message);
+    
+    console.error('[Bill Update] Error updating bill:', {
+      billId: 'redacted', // don't log bill ID in error, already in context
+      message: error.message,
+      code: error.code
+    });
     return NextResponse.json(
-      { error: error.message || 'Failed to update bill. Please try again.' },
-      { status: 500 }
+      { error: isUserFacingError ? error.message : 'Failed to update bill. Please try again.' },
+      { status: isUserFacingError ? 400 : 500 }
     );
   }
 }

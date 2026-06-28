@@ -62,7 +62,11 @@ export default function KDSDisplay({ restaurantId, readOnly = false, enableRecon
   const [soundEnabled, setSoundEnabled] = useState(!autoStart); // Disable sound in TV mode
   const [hasInteracted, setHasInteracted] = useState(autoStart); // Skip interaction in TV mode
   const [isReconnecting, setIsReconnecting] = useState(false);
-  const [failureCount, setFailureCount] = useState(0);
+  // 🔧 BUG-07 FIX: Use ref instead of state for failureCount.
+  // useState caused fetchOrders to be recreated on every failure (it was in the dep array),
+  // which tore down and restarted the polling interval on EVERY network error.
+  // useRef lets us mutate the count without triggering re-renders or dep-array changes.
+  const failureCountRef = useRef(0);
   const previousOrdersRef = useRef<any[]>([]);
   const soundTimersRef = useRef<Map<string, NodeJS.Timeout>>(new Map());
   const audioContextRef = useRef<{ new: HTMLAudioElement | null; urgent: HTMLAudioElement | null }>({
@@ -235,13 +239,12 @@ export default function KDSDisplay({ restaurantId, readOnly = false, enableRecon
       if (!response.ok) {
         console.error(`❌ [KDS] API error: ${response.status} ${response.statusText}`);
         
-        // 🔥 TV FIX: Don't set isReconnecting on first few failures
+        // 🔧 BUG-07 FIX: Use ref — no setState so no dep-array churn
         if (enableReconnect) {
-          const newFailureCount = failureCount + 1;
-          setFailureCount(newFailureCount);
-          console.log(`[KDS] Failure count: ${newFailureCount}`);
+          failureCountRef.current += 1;
+          console.log(`[KDS] Failure count: ${failureCountRef.current}`);
           
-          if (newFailureCount > 5) { // Only show reconnecting after 5 failures
+          if (failureCountRef.current > 5) { // Only show reconnecting after 5 failures
             setIsReconnecting(true);
           }
         }
@@ -251,7 +254,7 @@ export default function KDSDisplay({ restaurantId, readOnly = false, enableRecon
       // Reset failure count on success
       if (enableReconnect) {
         console.log('[KDS] ✅ Success - resetting failure count');
-        setFailureCount(0);
+        failureCountRef.current = 0;
         setIsReconnecting(false);
       }
       
@@ -384,19 +387,18 @@ export default function KDSDisplay({ restaurantId, readOnly = false, enableRecon
       }
       
       if (enableReconnect) {
-        const newFailureCount = failureCount + 1;
-        setFailureCount(newFailureCount);
-        console.log(`[KDS] Failure count after error: ${newFailureCount}`);
-        
-        if (newFailureCount > 5) {
-          setIsReconnecting(true);
+          failureCountRef.current += 1;
+          console.log(`[KDS] Failure count after error: ${failureCountRef.current}`);
+          
+          if (failureCountRef.current > 5) {
+            setIsReconnecting(true);
+          }
         }
-      }
     } finally {
       console.log('[KDS] 🏁 fetchOrders finally - setting loading = false');
       setLoading(false);
     }
-  }, [restaurantId, addSoundNotification, enableReconnect, failureCount]);
+  }, [restaurantId, addSoundNotification, enableReconnect]);
 
   useEffect(() => {
     console.log('[KDS] 🚀 Main useEffect mounted - starting initial fetch');
@@ -415,7 +417,7 @@ export default function KDSDisplay({ restaurantId, readOnly = false, enableRecon
       if (enableReconnect) {
         console.log('🌐 Network back online, fetching orders...');
         setIsReconnecting(false);
-        setFailureCount(0);
+        failureCountRef.current = 0;
         fetchOrders();
       }
     };
