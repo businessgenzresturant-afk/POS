@@ -95,13 +95,14 @@ export function Dashboard() {
       console.log('[Dashboard] Starting data fetch...');
       
       // Only fetch reports for admin users - staff gets 403 on /api/reports
+      const ts = Date.now();
       const fetchPromises: Promise<Response>[] = [
-        fetch('/api/tables', { cache: 'no-store' }),
-        fetch('/api/orders?status=PENDING,PREPARING,READY,SERVED', { cache: 'no-store' }),
-        fetch('/api/menu', { cache: 'no-store' }),
+        fetch(`/api/tables?_t=${ts}`, { cache: 'no-store' }),
+        fetch(`/api/orders?status=PENDING,PREPARING,READY,SERVED&_t=${ts}`, { cache: 'no-store' }),
+        fetch(`/api/menu?_t=${ts}`, { cache: 'no-store' }),
       ];
       if (isAdmin) {
-        fetchPromises.push(fetch('/api/reports', { cache: 'no-store' }));
+        fetchPromises.push(fetch(`/api/reports?_t=${ts}`, { cache: 'no-store' }));
       }
 
       const responses = await Promise.all(fetchPromises);
@@ -302,9 +303,14 @@ export function Dashboard() {
   };
 
   const handlePlaceOrder = async (items: any[]) => {
-    const toastId = toast.loading('🔥 Sending order...', { duration: Infinity });
+    const toastId = toast.loading('🔥 Saving Order...', { duration: Infinity });
     
     try {
+      // Simulate multiple stages for better UX perception of speed
+      setTimeout(() => {
+        toast.loading('🍳 Updating Kitchen...', { id: toastId, duration: Infinity });
+      }, 300);
+
       const response = await fetch('/api/orders', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -323,7 +329,7 @@ export function Dashboard() {
         throw new Error(errorData.error || 'Failed to place order');
       }
       
-      toast.success('✅ Order sent to kitchen!', { id: toastId, duration: 2000 });
+      toast.success('✅ Done', { id: toastId, duration: 2000 });
       setMenuDrawerOpen(false);
       fetchData();
     } catch (err: any) {
@@ -333,9 +339,14 @@ export function Dashboard() {
   };
 
   const handleGenerateBill = async (orderId: string) => {
-    const toastId = toast.loading('🧾 Generating bill...', { duration: Infinity });
+    const toastId = toast.loading('🧾 Processing payment...', { duration: Infinity });
     
     try {
+      // UX stage 2
+      setTimeout(() => {
+        toast.loading('🖨️ Generating bill...', { id: toastId, duration: Infinity });
+      }, 400);
+
       // Mark as served first
       const markResponse = await fetch(`/api/orders/${orderId}`, {
         method: 'PATCH',

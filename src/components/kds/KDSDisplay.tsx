@@ -218,8 +218,8 @@ export default function KDSDisplay({ restaurantId, readOnly = false, enableRecon
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 30000); // 30s timeout for slow TV
       
-      // 🔥 CRITICAL FIX: Use public KDS orders endpoint with restaurantId
-      const url = `/api/kds-orders?restaurantId=${restaurantId}&status=PENDING,PREPARING`;
+      // 🔥 CRITICAL FIX: Use public KDS orders endpoint with restaurantId and bypass cache
+      const url = `/api/kds-orders?restaurantId=${restaurantId}&status=PENDING,PREPARING&_t=${Date.now()}`;
       console.log('[KDS] 🌐 Starting fetch to', url);
       
       // 🔥 TV FIX: Add explicit headers and NO credentials (public endpoint)
