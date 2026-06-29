@@ -1,6 +1,7 @@
 'use client';
 
 import Image from 'next/image';
+import { mergeOrderItems } from '@/lib/orderUtils';
 
 interface ReceiptPrintTemplateProps {
   bill: any;
@@ -23,25 +24,9 @@ export function ReceiptPrintTemplate({ bill, onClose }: ReceiptPrintTemplateProp
   };
 
   /* ── helpers ─────────────────────────────────────────────────────── */
-  const mergeItems = (items: any[]) => {
-    const merged: any[] = [];
-    items.forEach((item: any) => {
-      const cleanInstr = (item.specialInstructions || '').replace('[URGENT ADDITION]', '').trim();
-      const existing = merged.find(
-        i => i.menuItem?.id === item.menuItem?.id && i.cleanInstr === cleanInstr
-      );
-      if (existing) {
-        existing.quantity += item.quantity;
-      } else {
-        merged.push({ ...item, cleanInstr });
-      }
-    });
-    return merged;
-  };
-
   const fmt      = (n: number) => n.toFixed(2);
   const items    = bill.order?.items ?? [];
-  const merged   = mergeItems(items);
+  const merged   = mergeOrderItems(items);
   const oTime    = new Date(bill.order?.createdAt ?? bill.createdAt ?? Date.now());
   const subtotal = bill.subtotal ?? 0;
   const tax      = bill.tax ?? 0;

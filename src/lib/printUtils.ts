@@ -2,6 +2,10 @@
  * printReceipt — Professional thermal POS receipt printer
  */
 
+import { RESTAURANT_INFO, PRINTER } from './constants';
+import { mergeOrderItems } from './orderUtils';
+import { formatCurrency } from './billUtils';
+
 export const printReceipt = (bill: any, type: 'receipt' | 'kot' = 'receipt') => {
   const printWindow = window.open('', '_blank', 'width=300,height=500');
   
@@ -12,22 +16,6 @@ export const printReceipt = (bill: any, type: 'receipt' | 'kot' = 'receipt') => 
 
   /* ─── helpers ────────────────────────────────────────────────────── */
 
-  const mergeItems = (items: any[]) => {
-    const merged: any[] = [];
-    items.forEach((item: any) => {
-      const cleanInstr = (item.specialInstructions || '').replace('[URGENT ADDITION]', '').trim();
-      const existing = merged.find(
-        i => i.menuItem?.id === item.menuItem?.id && i.cleanInstr === cleanInstr
-      );
-      if (existing) {
-        existing.quantity += item.quantity;
-      } else {
-        merged.push({ ...item, cleanInstr });
-      }
-    });
-    return merged;
-  };
-
   const fmt = (n: number) => `${n.toFixed(2)}`;
   const fmtDate = (d: Date) =>
     `${d.getDate().toString().padStart(2,'0')}/${(d.getMonth()+1).toString().padStart(2,'0')}/${String(d.getFullYear()).slice(-2)}`;
@@ -36,7 +24,7 @@ export const printReceipt = (bill: any, type: 'receipt' | 'kot' = 'receipt') => 
 
   const isKOT    = type === 'kot';
   const items    = bill.order?.items ?? bill.items ?? [];
-  const merged   = mergeItems(items);
+  const merged   = mergeOrderItems(items);
   const oTime    = new Date(bill.order?.createdAt ?? bill.createdAt ?? Date.now());
   const origin   = window.location.origin;
 
@@ -50,16 +38,16 @@ export const printReceipt = (bill: any, type: 'receipt' | 'kot' = 'receipt') => 
 <meta charset="UTF-8">
 <title>KOT</title>
 <style>
-  @page { margin: 0; size: 80mm auto; }
+  @page { margin: 0; size: ${PRINTER.THERMAL_WIDTH_MM}mm auto; }
   * { margin: 0; padding: 0; box-sizing: border-box; }
-  body { font-family: 'Courier New', monospace; font-size: 14px; font-weight: bold; color: #000; width: 80mm; padding: 3mm; }
+  body { font-family: 'Courier New', monospace; font-size: 14px; font-weight: bold; color: #000; width: ${PRINTER.THERMAL_WIDTH_MM}mm; padding: 3mm; }
   .c { text-align: center; }
   .b { font-weight: 900; }
   .hr { border-top: 1.5px solid #000; margin: 2mm 0; }
   .row { display: flex; justify-content: space-between; font-size: 13px; }
 </style>
 </head>
-<body onload="window.print(); setTimeout(function(){ window.close(); }, 500);">
+<body onload="window.print(); setTimeout(function(){ window.close(); }, ${PRINTER.AUTO_PRINT_DELAY});">
 <div class="c b" style="font-size:18px;">KOT</div>
 <div class="c" style="font-size:11px;">Kitchen Order Ticket</div>
 <div class="hr"></div>
@@ -102,7 +90,7 @@ ${merged.map(item => `<div class="row" style="margin:2mm 0;"><span class="b">${i
 <meta charset="UTF-8">
 <title>Bill ${billNo}</title>
 <style>
-@page { margin: 0; size: 80mm auto; }
+@page { margin: 0; size: ${PRINTER.THERMAL_WIDTH_MM}mm auto; }
 * { margin: 0; padding: 0; box-sizing: border-box; }
 body {
   font-family: 'Courier New', monospace;
@@ -110,10 +98,10 @@ body {
   font-weight: bold;
   color: #000;
   background: #fff url('${logoUrl}') no-repeat center center fixed;
-  background-size: 60mm 60mm;
+  background-size: ${PRINTER.LOGO_SIZE_MM}mm ${PRINTER.LOGO_SIZE_MM}mm;
   background-blend-mode: lighten;
   opacity: 1;
-  width: 80mm;
+  width: ${PRINTER.THERMAL_WIDTH_MM}mm;
   padding: 3mm;
 }
 .c { text-align: center; }
@@ -129,17 +117,17 @@ th:nth-child(2), td:nth-child(2) { text-align: center; width: 25mm; }
 th:nth-child(3), td:nth-child(3) { text-align: right; width: 20mm; }
 th:nth-child(4), td:nth-child(4) { text-align: right; width: 22mm; }
 .row { display: flex; justify-content: space-between; font-size: 11px; line-height: 1.4; }
-@media print { body { background-size: 60mm 60mm; -webkit-print-color-adjust: exact; print-color-adjust: exact; } }
+@media print { body { background-size: ${PRINTER.LOGO_SIZE_MM}mm ${PRINTER.LOGO_SIZE_MM}mm; -webkit-print-color-adjust: exact; print-color-adjust: exact; } }
 </style>
 </head>
-<body onload="window.print(); setTimeout(function(){ window.close(); }, 500);">
+<body onload="window.print(); setTimeout(function(){ window.close(); }, ${PRINTER.AUTO_PRINT_DELAY});">
 
 <div class="c">
-<div class="b" style="font-size:16px; letter-spacing:1px;">GEN-Z RESTAURANT</div>
+<div class="b" style="font-size:16px; letter-spacing:1px;">${RESTAURANT_INFO.NAME.toUpperCase()}</div>
 <div style="font-size:10px; line-height:1.3;">
-29 Main Street, New Delhi-110001<br>
-GST: 07AABCG1234A1Z5<br>
-Contact: +91 98765-43210
+${RESTAURANT_INFO.ADDRESS}<br>
+GST: ${RESTAURANT_INFO.GST_NUMBER}<br>
+Contact: ${RESTAURANT_INFO.PHONE}
 </div>
 <div class="b" style="font-size:11px; margin:1mm 0;">RETAIL INVOICE</div>
 </div>
@@ -192,7 +180,7 @@ ${bill.status === 'PAID' ? `<div class="row b"><span>Payment: ${bill.paymentMeth
 <div class="c" style="font-size:11px; line-height:1.4;">
 <div class="b">Thank you for ordering</div>
 <div>Please visit again 🙏</div>
-<div style="font-size:10px;">www.gen-z.online</div>
+<div style="font-size:10px;">${RESTAURANT_INFO.WEBSITE}</div>
 </div>
 
 <div style="height:10mm;"></div>
