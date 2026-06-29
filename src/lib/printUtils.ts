@@ -126,7 +126,6 @@ ${merged.map(item => `<div class="item">
   const billNo         = (bill.id ?? '').slice(-6).toUpperCase();
   const tokenNo        = bill.order?.id ? bill.order.id.slice(-3).toUpperCase() : null;
   const totalQty       = merged.reduce((s: number, i: any) => s + i.quantity, 0);
-  const origin         = window.location.origin;
   const logoUrl        = `${origin}/images/Gen-z-logo.jpg`;
 
   const receiptHTML = `<!DOCTYPE html>
