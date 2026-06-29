@@ -34,7 +34,7 @@ export default function Sidebar() {
       <div className="p-6 border-b border-border/50">
         <Link href="/" className="flex items-center gap-3 hover:opacity-80 transition-opacity">
           <div className="w-10 h-10 rounded-xl overflow-hidden flex items-center justify-center bg-zinc-900 border border-zinc-800 shadow-lg shadow-primary/5 flex-shrink-0">
-            <Image src="/images/Gen-z-logo.jpg" alt="Gen-Z Logo" width={40} height={40} className="object-cover w-full h-full" />
+            <Image src="/images/gen-z logo.png" alt="Gen-Z Logo" width={40} height={40} className="object-cover w-full h-full" />
           </div>
           <div>
             <h1 className="font-black text-xl text-foreground leading-tight tracking-tight">Gen-Z POS</h1>

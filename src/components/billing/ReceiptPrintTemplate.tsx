@@ -47,11 +47,11 @@ export function ReceiptPrintTemplate({ bill, onClose }: ReceiptPrintTemplateProp
       {/* Hidden print content */}
       <div id="receipt-print-content" className="hidden">
         <div className="receipt-header">
-          <div className="logo">
-            <img src="/images/Gen-z-logo.jpg" alt="Gen-Z Logo" width="120" height="120" style={{ objectFit: 'cover' }} />
+          <div className="logo flex justify-center mb-4">
+            <img src="/images/gen-z logo.png" alt="Gen-Z Logo" width="120" height="120" style={{ objectFit: 'contain' }} />
           </div>
-          <div className="restaurant-name">Gen-Z Restaurant</div>
-          <div className="restaurant-info">
+          <div className="restaurant-name text-2xl font-black uppercase">Gen-Z Restaurant</div>
+          <div className="restaurant-info text-sm font-semibold text-muted-foreground mt-2">
             <div>123 Main Street, New Delhi, India</div>
             <div>GST No: 07AABCG1234A1Z5</div>
             <div>Tel: +91 98765 43210</div>
@@ -173,7 +173,7 @@ export function ReceiptPrintTemplate({ bill, onClose }: ReceiptPrintTemplateProp
         <div className="text-center mb-4 pb-4 border-b-2 border-dashed border-border">
           <div className="w-32 h-32 rounded-full overflow-hidden mx-auto mb-3 border-2 border-primary shadow-lg">
             <Image 
-              src="/images/Gen-z-logo.jpg" 
+              src="/images/gen-z logo.png" 
               alt="Gen-Z Logo" 
               width={128} 
               height={128}

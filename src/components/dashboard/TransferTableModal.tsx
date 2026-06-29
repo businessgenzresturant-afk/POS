@@ -22,7 +22,7 @@ export function TransferTableModal({ isOpen, onClose, tables, activeOrders, curr
 
   const availableTables = physicalTables.filter((table) => {
     const hasOrder = activeOrders.some((o) => o.tableId === table.id);
-    const isOccupied = table.status === 'OCCUPIED' || hasOrder;
+    const isOccupied = hasOrder;
     // We only want available tables that aren't the current one
     return !isOccupied && table.id !== currentTableId;
   });

@@ -59,7 +59,7 @@ export function TableSelectModal({ isOpen, onClose, tables, activeOrders, onSele
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
               {physicalTables.map((table) => {
                 const hasOrder = activeOrders.some((o) => o.tableId === table.id);
-                const isOccupied = table.status === 'OCCUPIED' || hasOrder;
+                const isOccupied = hasOrder;
 
                 return (
                   <button

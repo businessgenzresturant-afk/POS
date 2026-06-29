@@ -109,13 +109,14 @@ export const printReceipt = (bill: any, type: 'receipt' | 'kot' = 'receipt') => 
           * { margin: 0; padding: 0; box-sizing: border-box; }
           body { 
             font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; 
-            font-size: 15px; 
+            font-size: 18px; 
             line-height: 1.4; 
             color: #000; 
             background: #fff; 
-            width: 76mm; /* Standard 80mm thermal roll */
+            width: 100%; 
+            max-width: 78mm;
             margin: 0 auto;
-            padding: 4mm 2mm;
+            padding: 2mm;
             position: relative;
           }
           
@@ -125,8 +126,8 @@ export const printReceipt = (bill: any, type: 'receipt' | 'kot' = 'receipt') => 
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
-            width: 60%;
-            opacity: 0.15;
+            width: 80%;
+            opacity: 0.1;
             z-index: 0;
             pointer-events: none;
             display: flex;
@@ -134,7 +135,7 @@ export const printReceipt = (bill: any, type: 'receipt' | 'kot' = 'receipt') => 
           }
           .watermark img {
             width: 100%;
-            filter: grayscale(100%);
+            filter: grayscale(100%) contrast(500%);
           }
           
           .receipt-content { position: relative; z-index: 1; }
@@ -143,65 +144,65 @@ export const printReceipt = (bill: any, type: 'receipt' | 'kot' = 'receipt') => 
             text-align: center; 
             margin-bottom: 12px; 
             border-bottom: 2px dashed #000; 
-            padding-bottom: 12px; 
+            padding-bottom: 16px; 
           }
           .restaurant-logo {
-            margin-bottom: 8px;
+            margin-bottom: 12px;
             display: flex;
             justify-content: center;
           }
           .restaurant-logo img {
-            width: 70px;
-            height: 70px;
+            width: 120px;
+            height: 120px;
             object-fit: contain;
-            filter: grayscale(100%);
+            filter: grayscale(100%) contrast(1000%) brightness(1.2);
           }
           .restaurant-name { 
-            font-size: 24px; 
+            font-size: 30px; 
             font-weight: 900; 
             text-transform: uppercase; 
-            margin-bottom: 4px; 
+            margin-bottom: 6px; 
           }
           .restaurant-info { 
-            font-size: 14px; 
+            font-size: 16px; 
             line-height: 1.5;
-            font-weight: 600; 
+            font-weight: 700; 
           }
           
           .bill-info { 
             border-bottom: 2px dashed #000; 
-            padding-bottom: 8px; 
-            margin-bottom: 8px; 
-            font-size: 14px; 
+            padding-bottom: 10px; 
+            margin-bottom: 10px; 
+            font-size: 16px; 
           }
           .info-row { 
             display: flex; 
             justify-content: space-between; 
-            margin-bottom: 3px; 
+            margin-bottom: 4px; 
           }
           .info-label { font-weight: bold; }
           
           .items-section { 
             border-bottom: 2px dashed #000; 
-            padding-bottom: 8px; 
-            margin-bottom: 8px; 
+            padding-bottom: 10px; 
+            margin-bottom: 10px; 
           }
           .items-header { 
             display: flex; 
             justify-content: space-between; 
             font-weight: 900; 
             border-bottom: 2px solid #000; 
-            padding-bottom: 4px; 
-            margin-bottom: 6px; 
-            font-size: 15px; 
+            padding-bottom: 6px; 
+            margin-bottom: 8px; 
+            font-size: 18px; 
             text-transform: uppercase; 
           }
           .item-row { 
             display: flex; 
             justify-content: space-between; 
-            margin-bottom: 4px; 
-            font-size: 15px; 
-            font-weight: bold;
+            margin-bottom: 6px; 
+            font-size: 18px; 
+            font-weight: 900;
             align-items: flex-start;
           }
           .item-name { 
@@ -215,39 +216,40 @@ export const printReceipt = (bill: any, type: 'receipt' | 'kot' = 'receipt') => 
           }
           .item-special { 
             color: #000; 
-            font-size: 13px; 
-            margin-top: 1px;
-            margin-bottom: 4px; 
+            font-size: 15px; 
+            margin-top: 2px;
+            margin-bottom: 6px; 
             font-style: italic;
+            font-weight: bold;
           }
           
           .totals-section { 
-            padding-bottom: 8px; 
-            margin-bottom: 8px; 
-            font-size: 15px; 
-            font-weight: bold;
+            padding-bottom: 10px; 
+            margin-bottom: 10px; 
+            font-size: 18px; 
+            font-weight: 900;
           }
           .total-row { 
             display: flex; 
             justify-content: space-between; 
-            margin-bottom: 4px; 
+            margin-bottom: 6px; 
           }
           .total-final { 
-            font-size: 20px;
+            font-size: 26px;
             font-weight: 900; 
-            border-top: 2px solid #000; 
-            border-bottom: 2px solid #000; 
-            padding: 6px 0; 
-            margin-top: 6px; 
+            border-top: 3px solid #000; 
+            border-bottom: 3px solid #000; 
+            padding: 8px 0; 
+            margin-top: 8px; 
           }
           
           .payment-status { 
             text-align: center; 
             font-weight: 900; 
-            font-size: 18px; 
-            padding: 8px; 
-            border: 2px dashed #000; 
-            margin: 12px 0; 
+            font-size: 22px; 
+            padding: 10px; 
+            border: 3px dashed #000; 
+            margin: 16px 0; 
             text-transform: uppercase; 
           }
           
@@ -272,12 +274,12 @@ export const printReceipt = (bill: any, type: 'receipt' | 'kot' = 'receipt') => 
       </head>
       <body>
         <div class="watermark">
-          <img src="/images/Gen-z-logo.jpg" alt="Watermark" />
+          <img src="/images/gen-z logo.png" alt="Watermark" />
         </div>
         <div class="receipt-content">
           <div class="receipt-header">
             <div class="restaurant-logo">
-              <img src="/images/Gen-z-logo.jpg" alt="Gen-Z Logo" />
+              <img src="/images/gen-z logo.png" alt="Gen-Z Logo" />
             </div>
             <div class="restaurant-name">Gen-Z Restaurant</div>
             <div class="restaurant-info">

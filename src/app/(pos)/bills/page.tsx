@@ -416,18 +416,22 @@ export default function BillsPage() {
       {/* Bill Modal */}
       {showBillModal && selectedBill && (
         <Portal>
-          <div className="fixed inset-0 z-[150] flex items-center justify-center bg-background/80 backdrop-blur-sm">
-            <div className="bg-card text-card-foreground rounded-2xl shadow-xl border border-border w-full max-w-2xl p-6">
-              <div className="flex justify-between items-start mb-4">
-                <h2 className="text-xl font-bold text-foreground">Bill #{selectedBill.id.slice(-8).toUpperCase()}</h2>
+          <div className="fixed inset-0 z-[150] flex items-center justify-center p-4 sm:p-6 bg-background/80 backdrop-blur-sm">
+            <div className="bg-card text-card-foreground rounded-2xl shadow-xl border border-border w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col">
+              {/* Fixed Header */}
+              <div className="p-4 sm:p-6 flex justify-between items-center border-b border-border bg-card">
+                <h2 className="text-lg sm:text-xl font-bold text-foreground truncate">Bill #{selectedBill.id.slice(-8).toUpperCase()}</h2>
                 <Button
                   onClick={() => setShowBillModal(false)}
                   variant="outline"
-                  className="text-muted-foreground hover:bg-muted"
+                  className="text-muted-foreground hover:bg-muted shrink-0 ml-2"
                 >
                   Close
                 </Button>
               </div>
+
+              {/* Scrollable Content */}
+              <div className="p-4 sm:p-6 overflow-y-auto custom-scrollbar flex-1">
 
               {/* Use shared ReceiptPrintTemplate for consistent formatting */}
               <div className="mb-6">
@@ -510,6 +514,7 @@ export default function BillsPage() {
                     </Button>
                   </>
                 )}
+              </div>
               </div>
             </div>
           </div>

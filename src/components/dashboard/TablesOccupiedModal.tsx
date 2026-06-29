@@ -23,7 +23,7 @@ export function TablesOccupiedModal({ isOpen, onClose, tables, activeOrders, onS
 
   const occupiedTablesList = physicalTables.map(table => {
     const activeOrder = activeOrders.find(o => o.tableId === table.id);
-    const isOccupied = table.status === 'OCCUPIED' || !!activeOrder;
+    const isOccupied = !!activeOrder;
     return {
       table,
       activeOrder,

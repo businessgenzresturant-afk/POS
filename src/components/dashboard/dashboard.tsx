@@ -222,8 +222,7 @@ export function Dashboard() {
   const physicalTables = tables.filter(t => t.number < 1000).sort((a, b) => a.number - b.number);
   
   const occupiedTables = physicalTables.filter(t => {
-    const hasOrder = activeOrders.some(o => o.tableId === t.id);
-    return t.status === 'OCCUPIED' || hasOrder;
+    return activeOrders.some(o => o.tableId === t.id);
   }).length;
   
   const kitchenQueue = activeOrders.filter(o => ['PENDING', 'PREPARING'].includes(o.status)).length;

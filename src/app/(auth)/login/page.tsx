@@ -73,7 +73,7 @@ export default function LoginPage() {
           {/* Top badge */}
           <div className="flex items-center gap-3">
             <div className="w-12 h-12 rounded-full overflow-hidden flex items-center justify-center shadow-lg bg-zinc-900 border border-zinc-800 flex-shrink-0 relative">
-              <img src="/images/Gen-z-logo.jpg" alt="Gen-Z Logo" className="w-full h-full object-cover" />
+              <img src="/images/gen-z logo.png" alt="Gen-Z Logo" className="w-full h-full object-cover" />
             </div>
             <div>
               <p className="text-white font-black text-lg tracking-tight leading-none">Gen-Z Restaurant</p>
@@ -115,7 +115,7 @@ export default function LoginPage() {
           {/* Mobile Logo */}
           <div className="lg:hidden flex items-center gap-3 mb-8">
             <div className="w-12 h-12 rounded-full overflow-hidden flex items-center justify-center bg-zinc-900 border border-zinc-800 flex-shrink-0 relative">
-              <img src="/images/Gen-z-logo.jpg" alt="Gen-Z Logo" className="w-full h-full object-cover" />
+              <img src="/images/gen-z logo.png" alt="Gen-Z Logo" className="w-full h-full object-cover" />
             </div>
             <div>
               <p className="text-white font-black text-lg leading-none">Gen-Z Restaurant</p>
