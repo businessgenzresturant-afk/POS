@@ -300,7 +300,7 @@ export function TodayRevenueModal({ isOpen, onClose, todayRevenue }: TodayRevenu
                   <div className="text-center mb-4">
                     <div className="flex justify-center mb-2">
                       <div className="w-16 h-16 rounded-full overflow-hidden bg-white p-0.5 mx-auto">
-                        <img src="/images/gen-z logo.png" alt="Gen-Z POS" className="w-full h-full object-cover rounded-full" />
+                        <img src="/images/Gen-z-logo.jpg" alt="Gen-Z POS" className="w-full h-full object-cover rounded-full" />
                       </div>
                     </div>
                     <h2 className="text-sm font-black uppercase tracking-wider mb-0.5">GEN-Z POS</h2>

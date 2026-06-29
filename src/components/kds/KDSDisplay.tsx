@@ -37,24 +37,16 @@ interface KDSDisplayProps {
 }
 
 export default function KDSDisplay({ restaurantId, readOnly = false, enableReconnect = false, autoStart = false }: KDSDisplayProps) {
-  console.log('[KDS] 🎬 Component function called - restaurantId:', restaurantId);
-  
   const [orders, setOrders] = useState<any[]>(() => {
-    console.log('[KDS] 📦 Initializing orders state');
     if (typeof window !== 'undefined' && (window as any).__pos_kds_cache?.orders) {
-      console.log('[KDS] ✅ Found cached orders:', (window as any).__pos_kds_cache.orders.length);
       return (window as any).__pos_kds_cache.orders;
     }
-    console.log('[KDS] ℹ️ No cached orders, starting with empty array');
     return [];
   });
   const [loading, setLoading] = useState(() => {
-    console.log('[KDS] 📦 Initializing loading state');
     if (typeof window !== 'undefined' && (window as any).__pos_kds_cache?.orders) {
-      console.log('[KDS] ✅ Cache exists, loading = false');
       return false;
     }
-    console.log('[KDS] ⏳ No cache, loading = true');
     return true;
   });
   const [now, setNow] = useState(new Date());
@@ -74,56 +66,48 @@ export default function KDSDisplay({ restaurantId, readOnly = false, enableRecon
     new: null,
     urgent: null
   });
-  
-  console.log('[KDS] 🏁 All state initialized - hasInteracted:', hasInteracted, 'loading:', loading);
 
   useEffect(() => {
-    console.log('[KDS] ⏰ Clock useEffect mounted');
     const timer = setInterval(() => setNow(new Date()), 1000);
     return () => {
-      console.log('[KDS] ⏰ Clock useEffect cleanup');
       clearInterval(timer);
     };
   }, []);
 
   // Preload audio files
   useEffect(() => {
-    console.log('[KDS] 🔊 Audio preload useEffect mounted');
     if (typeof window !== 'undefined') {
-      console.log('[KDS] 🔊 Creating audio elements');
       audioContextRef.current.new = new Audio('/sounds/new-order.mp3');
       audioContextRef.current.urgent = new Audio('/sounds/urgent.mp3');
       
       // Preload
       audioContextRef.current.new.load();
       audioContextRef.current.urgent.load();
-      console.log('[KDS] 🔊 Audio elements created and loading');
     }
   }, []);
 
   // Play sound with queue management
   const playSound = useCallback((type: 'new' | 'urgent', notificationId?: string) => {
-    if (!soundEnabled) {
-      console.log('🔇 Sound disabled, skipping');
-      return;
-    }
+    if (!soundEnabled) return;
     
     try {
       const audio = type === 'new' ? audioContextRef.current.new : audioContextRef.current.urgent;
       if (!audio) {
-        console.error('❌ Audio element not found for type:', type);
+        if (process.env.NODE_ENV === 'development') {
+          console.error('❌ Audio element not found for type:', type);
+        }
         return;
       }
       
-      console.log(`🔊 Playing ${type} sound`);
-      
       // Clone the audio to allow overlapping sounds
       const soundClone = audio.cloneNode() as HTMLAudioElement;
-      soundClone.volume = 0.7; // Set volume
+      soundClone.volume = 0.7;
       
       if (type === 'urgent') {
         // Play 3 quick beeps for urgent
-        soundClone.play().catch((e) => console.error('Sound play error:', e));
+        soundClone.play().catch((e) => {
+          if (process.env.NODE_ENV === 'development') console.error('Sound play error:', e);
+        });
         setTimeout(() => {
           const beep2 = audio.cloneNode() as HTMLAudioElement;
           beep2.volume = 0.7;
@@ -135,10 +119,14 @@ export default function KDSDisplay({ restaurantId, readOnly = false, enableRecon
           beep3.play().catch(() => {});
         }, 600);
       } else {
-        soundClone.play().catch((e) => console.error('Sound play error:', e));
+        soundClone.play().catch((e) => {
+          if (process.env.NODE_ENV === 'development') console.error('Sound play error:', e);
+        });
       }
     } catch (e) {
-      console.error('Error playing sound:', e);
+      if (process.env.NODE_ENV === 'development') {
+        console.error('Error playing sound:', e);
+      }
     }
   }, [soundEnabled]);
 
@@ -212,17 +200,12 @@ export default function KDSDisplay({ restaurantId, readOnly = false, enableRecon
   }, []);
 
   const fetchOrders = useCallback(async () => {
-    console.log('[KDS] 🌐 fetchOrders called - restaurantId:', restaurantId);
     try {
-      // 🔥 CRITICAL FIX FOR TV: Use longer timeout and better error handling
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 30000); // 30s timeout for slow TV
+      const timeoutId = setTimeout(() => controller.abort(), 30000);
       
-      // 🔥 CRITICAL FIX: Use public KDS orders endpoint with restaurantId and bypass cache
       const url = `/api/kds-orders?restaurantId=${restaurantId}&status=PENDING,PREPARING&_t=${Date.now()}`;
-      console.log('[KDS] 🌐 Starting fetch to', url);
       
-      // 🔥 TV FIX: Add explicit headers and NO credentials (public endpoint)
       const response = await fetch(url, {
         signal: controller.signal,
         method: 'GET',
@@ -231,63 +214,58 @@ export default function KDSDisplay({ restaurantId, readOnly = false, enableRecon
           'Cache-Control': 'no-cache',
           'Pragma': 'no-cache'
         },
-        credentials: 'omit' // No auth needed for public KDS endpoint
+        credentials: 'omit'
       });
       
       clearTimeout(timeoutId);
-      console.log('[KDS] ✅ Fetch response received - status:', response.status);
       
       if (!response.ok) {
-        console.error(`❌ [KDS] API error: ${response.status} ${response.statusText}`);
+        if (process.env.NODE_ENV === 'development') {
+          console.error(`[KDS] API error: ${response.status} ${response.statusText}`);
+        }
         
-        // 🔧 BUG-07 FIX: Use ref — no setState so no dep-array churn
         if (enableReconnect) {
           failureCountRef.current += 1;
-          console.log(`[KDS] Failure count: ${failureCountRef.current}`);
           
-          if (failureCountRef.current > 5) { // Only show reconnecting after 5 failures
+          if (failureCountRef.current > 5) {
             setIsReconnecting(true);
           }
         }
         return;
       }
       
-      // Reset failure count on success
       if (enableReconnect) {
-        console.log('[KDS] ✅ Success - resetting failure count');
         failureCountRef.current = 0;
         setIsReconnecting(false);
       }
       
-      // 🔥 ERROR HANDLING: Validate JSON response
       let data;
       try {
-        console.log('[KDS] 📄 Parsing JSON response');
         data = await response.json();
-        console.log('[KDS] ✅ JSON parsed successfully - type:', typeof data, 'isArray:', Array.isArray(data));
       } catch (jsonError) {
-        console.error('❌ [KDS] Invalid JSON response:', jsonError);
+        if (process.env.NODE_ENV === 'development') {
+          console.error('[KDS] Invalid JSON response:', jsonError);
+        }
         return;
       }
       
-      // 🔥 ERROR HANDLING: Ensure data is array
       const finalOrders = Array.isArray(data) ? data : [];
-      console.log('[KDS] 📦 Final orders count:', finalOrders.length);
       
-      // 🔥 ERROR HANDLING: Validate each order has required fields
       const validOrders = finalOrders.filter((order: any) => {
         if (!order || !order.id) {
-          console.warn('⚠️ [KDS] Invalid order (no ID):', order);
+          if (process.env.NODE_ENV === 'development') {
+            console.warn('[KDS] Invalid order (no ID):', order);
+          }
           return false;
         }
         if (!Array.isArray(order.items)) {
-          console.warn('⚠️ [KDS] Invalid order (no items array):', order.id);
+          if (process.env.NODE_ENV === 'development') {
+            console.warn('[KDS] Invalid order (no items array):', order.id);
+          }
           return false;
         }
         return true;
       });
-      
-      console.log('[KDS] ✅ Valid orders count:', validOrders.length);
       
       // Detect new urgent additions or new orders to play sound
       const prev = previousOrdersRef.current;
@@ -309,20 +287,13 @@ export default function KDSDisplay({ restaurantId, readOnly = false, enableRecon
             if (hasUrgentInstruction) {
               hasUrgent = true;
               urgentOrderIds.push(order.id);
-              console.log('🔥 URGENT NEW order detected:', order.id);
             } else {
               hasNew = true;
               newOrderIds.push(order.id);
-              console.log('🆕 New order detected:', order.id, order.table?.number || 'No table');
             }
           } 
           // Case 2: Existing order with more items (Running Table)
           else if (order.items.length > oldOrder.items.length) {
-            const newItemsCount = order.items.length - oldOrder.items.length;
-            console.log(`🔥 Running table: Order ${order.id} (Table ${order.table?.number || 'N/A'}) has ${newItemsCount} new items`);
-            console.log(`   Old items: ${oldOrder.items.length}, New items: ${order.items.length}`);
-            console.log(`   Order status: ${order.status}`);
-            
             hasUrgent = true;
             urgentOrderIds.push(order.id);
           }
@@ -335,8 +306,6 @@ export default function KDSDisplay({ restaurantId, readOnly = false, enableRecon
             );
             
             if (recentlyServedOrder) {
-              console.log(`🔥 NEW order on recently served table ${order.table?.number}: This is a running table!`);
-              console.log(`   Previous order ${recentlyServedOrder.id} was served ${Math.floor((new Date().getTime() - new Date(recentlyServedOrder.updatedAt || recentlyServedOrder.createdAt).getTime()) / 1000)}s ago`);
               hasUrgent = true;
               urgentOrderIds.push(order.id);
             }
@@ -344,7 +313,6 @@ export default function KDSDisplay({ restaurantId, readOnly = false, enableRecon
         });
 
         if (hasUrgent) {
-          console.log('🔥 URGENT: Running table additions detected!');
           toast.error('🔥 URGENT RUNNING TABLE ADDITION!', { duration: 5000 });
           urgentOrderIds.forEach(orderId => {
             addSoundNotification('urgent', orderId);
@@ -352,63 +320,51 @@ export default function KDSDisplay({ restaurantId, readOnly = false, enableRecon
         }
         
         if (hasNew) {
-          console.log('🔔 NEW: Fresh orders detected!');
           toast.success('🔔 NEW ORDER RECEIVED', { duration: 3000 });
           newOrderIds.forEach(orderId => {
             addSoundNotification('new', orderId);
           });
         }
-      } else {
-        // First load - don't play sound for existing orders
-        console.log('📊 Initial load - no sound played');
       }
 
       previousOrdersRef.current = validOrders;
-      console.log('[KDS] 📝 Updated previousOrdersRef');
       setOrders(validOrders);
-      console.log('[KDS] 📝 Called setOrders with', validOrders.length, 'orders');
 
-      // Save to cache
       if (typeof window !== 'undefined') {
         (window as any).__pos_kds_cache = {
           orders: validOrders
         };
-        console.log('[KDS] 💾 Saved to cache');
       }
     } catch (error: any) {
-      // 🔥 ERROR HANDLING: Comprehensive error catching
-      console.error('❌ [KDS] Fetch error:', error);
-      
-      if (error.name === 'AbortError') {
-        console.error('❌ [KDS] Fetch timeout after 30s');
-      } else if (error.message && error.message.includes('Failed to fetch')) {
-        console.error('❌ [KDS] Network error - check internet connection');
-      } else {
-        console.error('❌ [KDS] Unexpected error:', error.message || error);
+      if (process.env.NODE_ENV === 'development') {
+        console.error('[KDS] Fetch error:', error);
+        
+        if (error.name === 'AbortError') {
+          console.error('[KDS] Fetch timeout after 30s');
+        } else if (error.message && error.message.includes('Failed to fetch')) {
+          console.error('[KDS] Network error - check internet connection');
+        } else {
+          console.error('[KDS] Unexpected error:', error.message || error);
+        }
       }
       
       if (enableReconnect) {
           failureCountRef.current += 1;
-          console.log(`[KDS] Failure count after error: ${failureCountRef.current}`);
           
           if (failureCountRef.current > 5) {
             setIsReconnecting(true);
           }
         }
     } finally {
-      console.log('[KDS] 🏁 fetchOrders finally - setting loading = false');
       setLoading(false);
     }
   }, [restaurantId, addSoundNotification, enableReconnect]);
 
   useEffect(() => {
-    console.log('[KDS] 🚀 Main useEffect mounted - starting initial fetch');
-    // Initial fetch
     fetchOrders();
 
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'visible') {
-        console.log('👀 Tab visible, fetching orders...');
         fetchOrders();
       }
     };
@@ -423,24 +379,18 @@ export default function KDSDisplay({ restaurantId, readOnly = false, enableRecon
       }
     };
 
-    console.log('[KDS] 📡 Setting up event listeners');
     document.addEventListener('visibilitychange', handleVisibilityChange);
     if (enableReconnect) {
       window.addEventListener('online', handleOnline);
     }
 
-    // 🔥 TV FIX: Increase polling to 5 seconds for more stability on TV
-    // TV browser may struggle with aggressive 10s polling
-    console.log('[KDS] ⏲️ Setting up 5-second polling interval for TV');
     const interval = setInterval(() => {
       if (document.visibilityState === 'visible') {
-        console.log('[KDS] ⏲️ Polling interval triggered');
         fetchOrders();
       }
-    }, 5000); // 5 seconds for TV reliability
+    }, 5000);
 
     return () => {
-      console.log('[KDS] 🧹 Main useEffect cleanup');
       clearInterval(interval);
       document.removeEventListener('visibilitychange', handleVisibilityChange);
       if (enableReconnect) {
@@ -452,29 +402,32 @@ export default function KDSDisplay({ restaurantId, readOnly = false, enableRecon
   // Extract Urgent Additions & categorize orders
   const urgentAdditions: any[] = [];
   const normalOrders = orders.map(order => {
-    // 🔥 ERROR HANDLING: Validate order structure
     if (!order || !order.id || !Array.isArray(order.items)) {
-      console.warn('⚠️ [KDS] Skipping invalid order:', order);
+      if (process.env.NODE_ENV === 'development') {
+        console.warn('[KDS] Skipping invalid order:', order);
+      }
       return null;
     }
     
     const normalItems: any[] = [];
     const urgentItems: any[] = [];
     
-    // 🔥 ERROR HANDLING: Safe date parsing
     let orderTime: number;
     try {
       orderTime = new Date(order.createdAt).getTime();
       if (isNaN(orderTime)) {
-        console.warn('⚠️ [KDS] Invalid createdAt date for order:', order.id);
+        if (process.env.NODE_ENV === 'development') {
+          console.warn('[KDS] Invalid createdAt date for order:', order.id);
+        }
         orderTime = Date.now();
       }
     } catch (e) {
-      console.warn('⚠️ [KDS] Date parse error for order:', order.id);
+      if (process.env.NODE_ENV === 'development') {
+        console.warn('[KDS] Date parse error for order:', order.id);
+      }
       orderTime = Date.now();
     }
     
-    // Find the earliest item creation time
     let earliestItemTime = orderTime;
     if (order.items.length > 0) {
       const itemTimes = order.items
@@ -494,9 +447,10 @@ export default function KDSDisplay({ restaurantId, readOnly = false, enableRecon
     }
     
     order.items.forEach((item: any) => {
-      // 🔥 ERROR HANDLING: Validate item
       if (!item || !item.menuItem) {
-        console.warn('⚠️ [KDS] Skipping invalid item in order:', order.id);
+        if (process.env.NODE_ENV === 'development') {
+          console.warn('[KDS] Skipping invalid item in order:', order.id);
+        }
         return;
       }
       
@@ -510,7 +464,6 @@ export default function KDSDisplay({ restaurantId, readOnly = false, enableRecon
         itemTime = orderTime;
       }
       
-      // Item is "urgent" if it was added more than 2 minutes after the earliest item
       const isUrgent = (itemTime - earliestItemTime > 120000) || (item.specialInstructions && item.specialInstructions.includes('[URGENT ADDITION]'));
       
       if (isUrgent) {
@@ -531,7 +484,7 @@ export default function KDSDisplay({ restaurantId, readOnly = false, enableRecon
       ...order,
       items: normalItems
     };
-  }).filter(o => o !== null && o.items.length > 0); // Remove null and empty orders
+  }).filter(o => o !== null && o.items.length > 0);
 
   // Count by order type
   const dineInCount = normalOrders.filter(o => o.orderType === 'DINE_IN').length;
@@ -544,13 +497,13 @@ export default function KDSDisplay({ restaurantId, readOnly = false, enableRecon
   );
 
   const OrderCard = ({ order, isUrgent = false }: any) => {
-    // 🔥 ERROR HANDLING: Validate order data
     if (!order || !order.id) {
-      console.error('❌ [KDS] OrderCard received invalid order');
+      if (process.env.NODE_ENV === 'development') {
+        console.error('[KDS] OrderCard received invalid order');
+      }
       return null;
     }
     
-    // 🔥 ERROR HANDLING: Safe date calculation
     let diffSecs = 0;
     try {
       const createdTime = new Date(order.createdAt).getTime();
@@ -558,7 +511,9 @@ export default function KDSDisplay({ restaurantId, readOnly = false, enableRecon
         diffSecs = Math.floor((now.getTime() - createdTime) / 1000);
       }
     } catch (e) {
-      console.error('❌ [KDS] Date calculation error for order:', order.id);
+      if (process.env.NODE_ENV === 'development') {
+        console.error('[KDS] Date calculation error for order:', order.id);
+      }
     }
     
     const mins = Math.floor(diffSecs / 60);
@@ -730,7 +685,6 @@ export default function KDSDisplay({ restaurantId, readOnly = false, enableRecon
   const showSkeletons = loading && orders.length === 0;
 
   const handleStartKDS = () => {
-    console.log('[KDS] 🖱️ User clicked to start KDS');
     setHasInteracted(true);
     // Silent play to unlock audio context
     if (audioContextRef.current.new) {
@@ -743,10 +697,7 @@ export default function KDSDisplay({ restaurantId, readOnly = false, enableRecon
     }
   };
 
-  console.log('[KDS] 🎨 Render - hasInteracted:', hasInteracted, 'loading:', loading, 'orders:', orders.length);
-
   if (!hasInteracted) {
-    console.log('[KDS] 🎨 Rendering interaction gate');
     return (
       <div 
         className="fixed inset-0 bg-gradient-to-br from-background via-background to-primary/5 z-50 flex items-center justify-center cursor-pointer"
@@ -775,7 +726,6 @@ export default function KDSDisplay({ restaurantId, readOnly = false, enableRecon
     );
   }
 
-  console.log('[KDS] 🎨 Rendering main KDS display');
   return (
     <>
       <div className="min-h-screen bg-background p-6 overflow-x-hidden font-sans">

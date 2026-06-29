@@ -74,7 +74,7 @@ export default function Header() {
       <div className="flex items-center gap-3 sm:gap-6">
         <Link href="/dashboard" className="flex items-center gap-3 hover:opacity-80 transition-opacity">
           <div className="w-9 h-9 rounded-xl overflow-hidden flex items-center justify-center bg-zinc-900 border border-zinc-800 shadow-md shadow-primary/5 flex-shrink-0">
-            <Image src="/images/gen-z logo.png" alt="Gen-Z Logo" width={36} height={36} className="object-cover w-full h-full" />
+            <Image src="/images/Gen-z-logo.jpg" alt="Gen-Z Logo" width={36} height={36} className="object-cover w-full h-full" />
           </div>
           <div className="hidden sm:block">
             <h1 className="font-black text-md text-foreground leading-tight tracking-tight">Gen-Z POS</h1>
