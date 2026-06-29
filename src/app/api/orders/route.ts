@@ -396,8 +396,8 @@ export async function POST(request: Request) {
 
         return { type: 'CREATE', order: newOrder };
       }, {
-        isolationLevel: 'Serializable',  // ✅ Highest isolation level to prevent phantom reads
-        timeout: 10000  // 10 second timeout to prevent indefinite locks
+        isolationLevel: 'ReadCommitted',  // Replaced Serializable with ReadCommitted to prevent lock timeouts
+        timeout: 10000
       });
       console.timeEnd('⏱️ TRANSACTION');
 

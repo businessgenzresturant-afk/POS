@@ -87,38 +87,60 @@ export async function POST(request: Request) {
 
     const { orderId } = validation.data;
 
-    // ⚡ PERFORMANCE BOOST: Fetch order + check existing bill + find all table orders in PARALLEL
-    console.time('⏱️ DB-PARALLEL-FETCH-ALL');
+    // ⚡ PERFORMANCE BOOST: Fetch order first to get tableId
+    console.time('⏱️ DB-FETCH-ORDER');
     
     // 🔒 SECURITY: Scope all queries to the authenticated user's restaurant
     const restaurantId = (auth.session.user as any).restaurantId;
     
     // 🔥 ERROR HANDLING: Wrap DB calls in try-catch
     let order: any;
-    let allTableOrders: any[] = [];
     try {
-      [order, allTableOrders] = await Promise.all([
-        // Fetch the specific order with all data
-        prisma.order.findUnique({
-          where: { id: orderId },
-          include: {
-            table: true,
-            items: {
-              include: {
-                menuItem: true
-              }
-            },
-            bill: true // CRITICAL FIX: Include bill relationship to check if already billed
-          }
-        }),
-        
-        // Fetch ALL unbilled orders for this table (we'll filter by tableId after getting the order)
-        // 🔒 BUG-04 FIX: Filter by restaurantId to prevent cross-restaurant data leakage
-        prisma.order.findMany({
+      order = await prisma.order.findUnique({
+        where: { id: orderId },
+        include: {
+          table: true,
+          items: {
+            include: {
+              menuItem: true
+            }
+          },
+          bill: true // CRITICAL FIX: Include bill relationship to check if already billed
+        }
+      });
+    } catch (dbError: any) {
+      console.timeEnd('⏱️ DB-FETCH-ORDER');
+      console.timeEnd('⏱️ TOTAL-BILL-GENERATION');
+      console.error('[Bill Creation] Database error:', dbError);
+      return NextResponse.json(
+        { error: 'Database connection failed. Please try again.' },
+        { status: 500 }
+      );
+    }
+    
+    console.timeEnd('⏱️ DB-FETCH-ORDER');
+
+    if (!order) {
+      console.timeEnd('⏱️ TOTAL-BILL-GENERATION');
+      return NextResponse.json({ error: 'Order not found' }, { status: 404 });
+    }
+    
+    // Security check: Ensure order belongs to user's restaurant
+    if (order.table?.restaurantId !== restaurantId && order.items[0]?.menuItem?.restaurantId !== restaurantId) {
+      console.timeEnd('⏱️ TOTAL-BILL-GENERATION');
+      return NextResponse.json({ error: 'Unauthorized order' }, { status: 401 });
+    }
+
+    let allTableOrders: any[] = [];
+    if (order.tableId) {
+      console.time('⏱️ DB-FETCH-TABLE-ORDERS');
+      try {
+        // Fetch ONLY unbilled orders for this SPECIFIC table
+        allTableOrders = await prisma.order.findMany({
           where: {
+            tableId: order.tableId,
             bill: null, // Orders that haven't been billed yet
-            status: { in: ['PENDING', 'PREPARING', 'READY', 'SERVED'] },
-            table: { restaurantId } // Only orders belonging to this restaurant's tables
+            status: { in: ['PENDING', 'PREPARING', 'READY', 'SERVED'] }
           },
           include: {
             items: {
@@ -130,19 +152,13 @@ export async function POST(request: Request) {
             bill: true // Include bill for consistency
           },
           orderBy: { createdAt: 'asc' }
-        })
-      ]);
-    } catch (dbError: any) {
-      console.timeEnd('⏱️ DB-PARALLEL-FETCH-ALL');
-      console.timeEnd('⏱️ TOTAL-BILL-GENERATION');
-      console.error('[Bill Creation] Database error:', dbError);
-      return NextResponse.json(
-        { error: 'Database connection failed. Please try again.' },
-        { status: 500 }
-      );
+        });
+      } catch (dbError: any) {
+        console.error('[Bill Creation] Database error fetching table orders:', dbError);
+        return NextResponse.json({ error: 'Failed to fetch table orders.' }, { status: 500 });
+      }
+      console.timeEnd('⏱️ DB-FETCH-TABLE-ORDERS');
     }
-    
-    console.timeEnd('⏱️ DB-PARALLEL-FETCH-ALL');
 
     if (!order) {
       console.timeEnd('⏱️ TOTAL-BILL-GENERATION');
