@@ -112,10 +112,18 @@ export function KitchenQueueModal({ isOpen, onClose, activeOrders, onManageOrder
         {/* Content */}
         <div className="p-6 overflow-y-auto flex-1 custom-scrollbar space-y-4 bg-gradient-to-b from-background to-muted/20">
           {queueOrders.length === 0 ? (
-            <div className="text-center py-16 text-muted-foreground">
-              <span className="text-4xl block mb-2">👨‍🍳</span>
-              <p className="font-semibold text-lg">Kitchen queue is empty!</p>
-              <p className="text-sm mt-1">Place orders to send them to the kitchen queue.</p>
+            <div className="flex flex-col items-center justify-center py-20 px-4 text-center">
+              <div className="w-24 h-24 bg-primary/10 rounded-full flex items-center justify-center mb-6 animate-pulse">
+                <span className="text-5xl">👨‍🍳</span>
+              </div>
+              <h3 className="font-black text-2xl text-foreground mb-2">Kitchen is all caught up!</h3>
+              <p className="text-muted-foreground text-sm max-w-sm mx-auto mb-8">
+                There are no pending or preparing orders in the kitchen right now. Take a breather!
+              </p>
+              <div className="flex gap-2">
+                <span className="inline-flex h-2 w-2 rounded-full bg-green-500 animate-ping"></span>
+                <span className="text-xs font-bold text-green-600 uppercase tracking-wider">Ready for new orders</span>
+              </div>
             </div>
           ) : (
             <div className="space-y-4">

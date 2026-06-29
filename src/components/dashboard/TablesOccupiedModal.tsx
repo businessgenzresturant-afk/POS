@@ -105,10 +105,20 @@ export function TablesOccupiedModal({ isOpen, onClose, tables, activeOrders, onS
         {/* Content */}
         <div className="p-6 overflow-y-auto flex-1 custom-scrollbar space-y-4 bg-gradient-to-b from-background to-muted/20">
           {occupiedTablesList.length === 0 ? (
-            <div className="text-center py-16 text-muted-foreground">
-              <span className="text-4xl block mb-2">🍽️</span>
-              <p className="font-semibold text-lg">No occupied tables at the moment.</p>
-              <p className="text-sm mt-1">Start a new Dine-In order to occupy a table.</p>
+            <div className="flex flex-col items-center justify-center py-20 px-4 text-center">
+              <div className="w-24 h-24 bg-primary/10 rounded-full flex items-center justify-center mb-6 animate-[bounce_3s_ease-in-out_infinite]">
+                <span className="text-5xl">🍽️</span>
+              </div>
+              <h3 className="font-black text-2xl text-foreground mb-2">No active tables</h3>
+              <p className="text-muted-foreground text-sm max-w-sm mx-auto mb-8">
+                All tables are currently available and clean. Ready for the next rush!
+              </p>
+              <Button 
+                onClick={onClose}
+                className="bg-primary hover:bg-primary/90 text-primary-foreground font-bold rounded-xl shadow-lg hover:shadow-xl transition-all"
+              >
+                Go back to Dashboard
+              </Button>
             </div>
           ) : (
             <div className="space-y-4">

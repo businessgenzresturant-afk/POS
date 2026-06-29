@@ -1,5 +1,6 @@
 'use client';
 
+import { toast } from 'sonner';
 import { useState, useEffect } from 'react';
 import { X, Plus, Trash2, UserCheck, UserX } from 'lucide-react';
 
@@ -48,7 +49,7 @@ export default function ManageStaffModal({ isOpen, onClose }: ManageStaffModalPr
 
   const handleAddStaff = async () => {
     if (!newStaff.name || !newStaff.email || !newStaff.password) {
-      alert('Please fill all fields');
+      toast.error('Please fill all fields');
       return;
     }
 
@@ -60,16 +61,17 @@ export default function ManageStaffModal({ isOpen, onClose }: ManageStaffModalPr
       });
 
       if (response.ok) {
+        toast.success('Staff added successfully!');
         setNewStaff({ name: '', email: '', password: '', role: 'WAITER' });
         setShowAddForm(false);
         fetchStaff();
       } else {
         const error = await response.json();
-        alert(error.message || 'Failed to add staff member');
+        toast.error(error.message || 'Failed to add staff member');
       }
     } catch (error) {
       console.error('Failed to add staff:', error);
-      alert('Failed to add staff member');
+      toast.error('Failed to add staff member');
     }
   };
 

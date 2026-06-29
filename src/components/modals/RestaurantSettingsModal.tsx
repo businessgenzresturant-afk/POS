@@ -1,5 +1,6 @@
 'use client';
 
+import { toast } from 'sonner';
 import { useState, useEffect } from 'react';
 import { X, Save, Store } from 'lucide-react';
 
@@ -60,12 +61,14 @@ export default function RestaurantSettingsModal({ isOpen, onClose }: RestaurantS
       });
 
       if (response.ok) {
-        alert('Restaurant settings saved successfully!');
-        onClose();
+        toast.success('Restaurant settings saved successfully!');
+        setTimeout(() => onClose(), 1000);
+      } else {
+        throw new Error('Failed to save settings');
       }
     } catch (error) {
       console.error('Failed to save restaurant settings:', error);
-      alert('Failed to save settings. Please try again.');
+      toast.error('Failed to save settings. Please try again.');
     } finally {
       setSaving(false);
     }

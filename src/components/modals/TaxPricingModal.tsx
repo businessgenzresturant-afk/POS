@@ -1,5 +1,6 @@
 'use client';
 
+import { toast } from 'sonner';
 import { useState, useEffect } from 'react';
 import { X, Save, Percent } from 'lucide-react';
 
@@ -58,12 +59,14 @@ export default function TaxPricingModal({ isOpen, onClose }: TaxPricingModalProp
       });
 
       if (response.ok) {
-        alert('Tax & Pricing settings saved successfully!');
-        onClose();
+        toast.success('Tax & Pricing settings saved successfully!');
+        setTimeout(() => onClose(), 1000);
+      } else {
+        throw new Error('Failed to save settings');
       }
     } catch (error) {
-      console.error('Failed to save tax & pricing settings:', error);
-      alert('Failed to save settings. Please try again.');
+      console.error('Error saving tax settings:', error);
+      toast.error('Failed to save settings. Please try again.');
     } finally {
       setSaving(false);
     }
