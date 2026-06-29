@@ -14,15 +14,12 @@ export async function POST(request: Request) {
     const backup = {
       restaurant: await prisma.restaurant.findFirst(),
       users: await prisma.user.findMany(),
-      categories: await prisma.category.findMany(),
       menuItems: await prisma.menuItem.findMany(),
       tables: await prisma.table.findMany(),
     };
 
     // 2. Wipe transactional data (Order matters for foreign keys)
-    await prisma.billItem.deleteMany();
     await prisma.bill.deleteMany();
-    await prisma.payment.deleteMany();
     await prisma.orderItem.deleteMany();
     await prisma.order.deleteMany();
 

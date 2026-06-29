@@ -151,40 +151,9 @@ export default function KOTPage() {
   };
 
   const handlePrintTicket = (order: OrderWithItems) => {
-    const printWindow = window.open('', '', 'height=600,width=400');
-    if (!printWindow) return;
-
-    const itemsHtml = order.items.map((item: any) => `
-      <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
-        <span style="font-weight: bold;">${item.quantity}x ${item.menuItem.name}</span>
-      </div>
-      ${item.specialInstructions ? `<div style="font-size: 12px; margin-left: 16px;">⚠️ ${item.specialInstructions}</div>` : ''}
-    `).join('');
-
-    printWindow.document.write(`
-      <html><head><title>KOT #${order.id.slice(-4).toUpperCase()}</title>
-      <style>
-        body { font-family: monospace; padding: 10px; max-width: 300px; margin: 0 auto; }
-        .text-center { text-align: center; }
-        .border-y { border-top: 1px dashed #000; border-bottom: 1px dashed #000; padding: 10px 0; margin: 10px 0; }
-        h2 { margin: 0 0 5px 0; }
-      </style>
-      </head><body onload="window.print(); window.close();">
-      <div class="text-center">
-        <h2>KITCHEN TICKET</h2>
-        <h3>Table ${order.table?.number}</h3>
-      </div>
-      <div class="border-y">
-        <div>Ticket: #${order.id.slice(-4).toUpperCase()}</div>
-        <div>Time: ${new Date(order.createdAt).toLocaleTimeString()}</div>
-        ${order.customerName ? `<div>Name: ${order.customerName}</div>` : ''}
-      </div>
-      <div style="margin-top: 15px;">
-        ${itemsHtml}
-      </div>
-      </body></html>
-    `);
-    printWindow.document.close();
+    import('@/lib/printUtils').then(({ printReceipt }) => {
+      printReceipt(order, 'kot');
+    });
   };
 
   if (error) {

@@ -65,45 +65,9 @@ export function TodayRevenueModal({ isOpen, onClose, todayRevenue }: TodayRevenu
   };
 
   const handlePrintReceipt = (bill: any) => {
-    const printContents = document.getElementById(`receipt-print-content-${bill.id}`)?.innerHTML;
-    if (printContents) {
-      const printWindow = window.open('', '', 'height=800,width=600');
-      if (printWindow) {
-        printWindow.document.write(`
-          <html><head><title>Receipt #${bill.id.slice(-6).toUpperCase()}</title>
-          <style>
-            @page { margin: 0; }
-            body { font-family: monospace; padding: 10px; margin: 0; background: white; color: black; }
-            .receipt { max-width: 300px; margin: 0 auto; font-size: 12px; line-height: 1.4; }
-            .text-center { text-align: center; }
-            .border-t { border-top: 1px dashed #000; margin-top: 8px; padding-top: 8px; }
-            .border-b { border-bottom: 1px dashed #000; margin-bottom: 8px; padding-bottom: 8px; }
-            .flex { display: flex; justify-content: space-between; align-items: flex-start; }
-            .font-bold { font-weight: bold; }
-            .font-black { font-weight: 900; }
-            .mt-4 { margin-top: 16px; }
-            .mb-4 { margin-bottom: 16px; }
-            .mb-2 { margin-bottom: 8px; }
-            .pb-2 { padding-bottom: 8px; }
-            .py-3 { padding-top: 12px; padding-bottom: 12px; }
-            .p-3 { padding: 12px; }
-            .space-y-1\\.5 > * + * { margin-top: 6px; }
-            .text-xs { font-size: 11px; }
-            .text-lg { font-size: 16px; }
-            .uppercase { text-transform: uppercase; }
-            .tracking-wider { letter-spacing: 0.05em; }
-            img { max-width: 100%; height: auto; display: block; margin: 0 auto; border-radius: 50%; }
-            * { box-sizing: border-box; }
-            /* Hide UI elements not meant for print */
-            button, .no-print { display: none !important; }
-          </style>
-          </head><body onload="window.print(); window.close();">
-          <div class="receipt">${printContents}</div>
-          </body></html>
-        `);
-        printWindow.document.close();
-      }
-    }
+    import('@/lib/printUtils').then(({ printReceipt }) => {
+      printReceipt(bill, 'receipt');
+    });
   };
 
   const getPaymentMethodIcon = (method: string) => {
