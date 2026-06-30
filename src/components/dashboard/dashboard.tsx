@@ -280,11 +280,11 @@ export function Dashboard() {
     setMenuDrawerOpen(true);
   };
 
-  const handlePlaceOrder = async (items: any[], action: 'SAVE' | 'SAVE_PRINT' | 'SAVE_EBILL' | 'SAVE_BILL' = 'SAVE') => {
+  const handlePlaceOrder = async (items: any[], action: 'SAVE' | 'SAVE_KDS' | 'SAVE_PRINT' | 'SAVE_EBILL' | 'SAVE_BILL' = 'SAVE') => {
     const toastId = toast.loading('🔥 Saving Order...', { duration: Infinity });
     
     // ⚡ OPTIMISTIC UI: Instantly close the drawer for standard "SAVE" to make UI feel 0ms fast
-    if (action === 'SAVE') {
+    if (action === 'SAVE' || action === 'SAVE_KDS') {
       setMenuDrawerOpen(false);
     }
     
@@ -300,13 +300,14 @@ export function Dashboard() {
           guests: null,
           customerName: customerDetails?.customerName || 'Walk-in Customer',
           customerPhone: customerDetails?.customerPhone || null,
+          skipKds: action === 'SAVE', // True only if we ONLY want to save to dashboard without hitting KDS
         })
       });
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
         // 🔙 Revert optimistic UI if failed
-        if (action === 'SAVE') setMenuDrawerOpen(true);
+        if (action === 'SAVE' || action === 'SAVE_KDS') setMenuDrawerOpen(true);
         throw new Error(errorData.error || 'Failed to place order');
       }
       
@@ -324,7 +325,7 @@ export function Dashboard() {
       toast.success('✅ Done', { id: toastId, duration: 2000 });
       
       // Close drawer if it wasn't already closed optimistically
-      if (action !== 'SAVE') {
+      if (action !== 'SAVE' && action !== 'SAVE_KDS') {
         setMenuDrawerOpen(false);
       }
       

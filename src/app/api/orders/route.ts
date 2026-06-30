@@ -87,7 +87,7 @@ export const POST = withTiming(async (request: Request) => {
 
   try {
     const body = await request.json();
-    const { tableId, items, customerName, customerPhone, orderType, guests } = body;
+    const { tableId, items, customerName, customerPhone, orderType, guests, skipKds } = body;
 
     // Input validation
     if (!items || !Array.isArray(items) || items.length === 0) {
@@ -272,7 +272,9 @@ export const POST = withTiming(async (request: Request) => {
           // 🔧 BUGFIX: Append [URGENT ADDITION] to running table items so KDS flags them permanently
           await tx.orderItem.createMany({
             data: orderItemsData.map(item => {
-              const instr = item.specialInstructions ? `${item.specialInstructions} [URGENT ADDITION]` : '[URGENT ADDITION]';
+              const instr = item.specialInstructions 
+                ? (skipKds ? item.specialInstructions : `${item.specialInstructions} [URGENT ADDITION]`) 
+                : (skipKds ? null : '[URGENT ADDITION]');
               return { 
                 ...item, 
                 specialInstructions: instr,
@@ -311,7 +313,7 @@ export const POST = withTiming(async (request: Request) => {
             },
             data: {
               totalAmount: { increment: totalAmount },
-              status: 'PENDING', // Reset to PENDING so kitchen gets notified
+              status: skipKds ? activeOrder.status : 'PENDING', // Reset to PENDING only if we want kitchen notification
               version: { increment: 1 } // Increment version on every update
             }
           });
@@ -347,7 +349,7 @@ export const POST = withTiming(async (request: Request) => {
             customerName: sanitizedCustomerName,
             customerPhone: sanitizedCustomerPhone,
             totalAmount,
-            status: 'PENDING',
+            status: skipKds ? 'SERVED' : 'PENDING',
             paymentStatus: 'PENDING',
             version: 0, // Initial version
             items: {
