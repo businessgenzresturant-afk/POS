@@ -151,14 +151,6 @@ export default function ManageMenuModal({ isOpen, onClose }: ManageMenuModalProp
     setEditingItem(item);
     setShowEditForm(true);
     setShowAddForm(false);
-    
-    // Scroll to top of modal to show edit form
-    setTimeout(() => {
-      const modalContent = document.querySelector('.manage-menu-content');
-      if (modalContent) {
-        modalContent.scrollTo({ top: 0, behavior: 'smooth' });
-      }
-    }, 50);
   };
 
   const handleUpdateItem = async () => {
@@ -352,13 +344,25 @@ export default function ManageMenuModal({ isOpen, onClose }: ManageMenuModalProp
             </div>
           )}
 
-          {/* Edit Form */}
+          {/* Edit Form Modal */}
           {showEditForm && editingItem && (
-            <div className="bg-blue-500/10 border-2 border-blue-500/30 rounded-xl p-4 mb-6 animate-fade-in">
-              <h3 className="text-sm font-bold text-foreground mb-3 flex items-center gap-2">
-                <Edit2 className="w-4 h-4" />
-                Edit Menu Item
-              </h3>
+            <div className="fixed inset-0 z-[110] flex items-center justify-center bg-black/60 backdrop-blur-md p-4 animate-fade-in">
+              <div className="bg-background border-2 border-border rounded-3xl shadow-2xl w-full max-w-lg p-6 animate-scale-in">
+                <div className="flex justify-between items-center mb-6">
+                  <h3 className="text-xl font-black text-foreground flex items-center gap-2">
+                    <Edit2 className="w-5 h-5 text-primary" />
+                    Edit Menu Item
+                  </h3>
+                  <button 
+                    onClick={() => {
+                      setShowEditForm(false);
+                      setEditingItem(null);
+                    }}
+                    className="p-2 hover:bg-muted rounded-full transition-colors"
+                  >
+                    <X className="w-5 h-5 text-muted-foreground" />
+                  </button>
+                </div>
               <div className="grid grid-cols-2 gap-3 mb-3">
                 <input
                   type="text"
@@ -424,24 +428,25 @@ export default function ManageMenuModal({ isOpen, onClose }: ManageMenuModalProp
                   />
                 </div>
               )}
-              <div className="flex gap-2">
+              <div className="flex gap-2 mt-6">
                 <button
                   onClick={handleUpdateItem}
-                  className="px-4 py-2 bg-blue-600 text-white rounded-lg font-bold text-sm hover:bg-blue-700 transition-colors active:scale-[0.97]"
+                  className="flex-1 py-3 bg-primary text-primary-foreground rounded-xl font-bold hover:bg-primary/90 transition-colors active:scale-[0.97]"
                 >
-                  Update Item
+                  Save Changes
                 </button>
                 <button
                   onClick={() => {
                     setShowEditForm(false);
                     setEditingItem(null);
                   }}
-                  className="px-4 py-2 bg-muted text-foreground rounded-lg font-bold text-sm hover:bg-muted/80 transition-colors"
+                  className="flex-1 py-3 bg-muted text-foreground rounded-xl font-bold hover:bg-muted/80 transition-colors"
                 >
                   Cancel
                 </button>
               </div>
             </div>
+          </div>
           )}
 
           {/* Menu Items List */}
