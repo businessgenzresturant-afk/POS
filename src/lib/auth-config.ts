@@ -23,25 +23,22 @@ export const authOptions: NextAuthOptions = {
         
         // 🔒 BRUTE FORCE PROTECTION: Rate limit login attempts per email
         try {
-          // Create a mock request object for rate limiting
-          const mockRequest = {
-            headers: new Headers({
-              'x-forwarded-for': '127.0.0.1', // Will be replaced by actual IP in production
-            })
-          } as Request;
-          
-          const rateLimit = checkRateLimit(mockRequest, {
-            maxRequests: 5,              // 5 login attempts
-            windowMs: 15 * 60 * 1000,    // per 15 minutes
-            identifier: `login:${credentials.email.toLowerCase()}`
-          });
-          
-          if (!rateLimit.success) {
-            const retryAfterSeconds = Math.ceil((rateLimit.resetAt - Date.now()) / 1000);
-            console.warn(`🚨 Rate limit exceeded for login: ${credentials.email}`);
-            console.warn(`   Retry after: ${retryAfterSeconds}s`);
-            return null; // Deny login
-          }
+        // Rate limit by email (per-user, not per-IP to avoid shared IP issues)
+        const mockRequest = {
+          headers: new Headers({ 'x-forwarded-for': '127.0.0.1' })
+        } as Request;
+        
+        const rateLimit = checkRateLimit(mockRequest, {
+          maxRequests: 10,             // 10 login attempts
+          windowMs: 5 * 60 * 1000,    // per 5 minutes
+          identifier: `login:${credentials.email.toLowerCase()}`
+        });
+        
+        if (!rateLimit.success) {
+          const retryAfterSeconds = Math.ceil((rateLimit.resetAt - Date.now()) / 1000);
+          console.warn(`🚨 Rate limit exceeded for login: ${credentials.email}`);
+          return null;
+        }
         } catch (error) {
           console.error('Rate limit check error:', error);
           // Continue with auth if rate limit fails (fail open for availability)
