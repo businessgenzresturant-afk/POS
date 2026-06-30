@@ -37,7 +37,7 @@ export default function TaxPricingModal({ isOpen, onClose }: TaxPricingModalProp
   const fetchSettings = async () => {
     try {
       setLoading(true);
-      const response = await fetch('/api/settings/tax-pricing');
+      const response = await fetch('/api/settings');
       if (response.ok) {
         const data = await response.json();
         setSettings(data);
@@ -52,7 +52,7 @@ export default function TaxPricingModal({ isOpen, onClose }: TaxPricingModalProp
   const handleSave = async () => {
     try {
       setSaving(true);
-      const response = await fetch('/api/settings/tax-pricing', {
+      const response = await fetch('/api/settings', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(settings),

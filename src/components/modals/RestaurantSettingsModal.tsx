@@ -39,7 +39,7 @@ export default function RestaurantSettingsModal({ isOpen, onClose }: RestaurantS
   const fetchSettings = async () => {
     try {
       setLoading(true);
-      const response = await fetch('/api/settings/restaurant');
+      const response = await fetch('/api/settings');
       if (response.ok) {
         const data = await response.json();
         setSettings(data);
@@ -54,7 +54,7 @@ export default function RestaurantSettingsModal({ isOpen, onClose }: RestaurantS
   const handleSave = async () => {
     try {
       setSaving(true);
-      const response = await fetch('/api/settings/restaurant', {
+      const response = await fetch('/api/settings', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(settings),
