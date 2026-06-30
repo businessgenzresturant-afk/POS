@@ -202,7 +202,7 @@ export default function KDSDisplay({ restaurantId, readOnly = false, enableRecon
   const fetchOrders = useCallback(async () => {
     try {
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 30000);
+      const timeoutId = setTimeout(() => controller.abort(), 8000); // 8s max (was 30s)
       
       const url = `/api/kds-orders?restaurantId=${restaurantId}&status=PENDING,PREPARING&_t=${Date.now()}`;
       
@@ -370,19 +370,32 @@ export default function KDSDisplay({ restaurantId, readOnly = false, enableRecon
       }
     };
 
+    // ⚡ BroadcastChannel: instant KDS refresh when order is placed from same device
+    let bc: BroadcastChannel | null = null;
+    if (typeof BroadcastChannel !== 'undefined') {
+      bc = new BroadcastChannel('pos_order_channel');
+      bc.onmessage = (event) => {
+        if (event.data?.type === 'ORDER_SAVED') {
+          fetchOrders();
+        }
+      };
+    }
+
     document.addEventListener('visibilitychange', handleVisibilityChange);
     if (enableReconnect) {
       window.addEventListener('online', handleOnline);
     }
 
+    // Poll every 2s (was 5s) for faster kitchen updates
     const interval = setInterval(() => {
       if (document.visibilityState === 'visible') {
         fetchOrders();
       }
-    }, 5000);
+    }, 2000);
 
     return () => {
       clearInterval(interval);
+      bc?.close();
       document.removeEventListener('visibilitychange', handleVisibilityChange);
       if (enableReconnect) {
         window.removeEventListener('online', handleOnline);

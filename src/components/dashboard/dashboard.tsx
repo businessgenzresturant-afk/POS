@@ -308,6 +308,15 @@ export function Dashboard() {
       
       const orderData = await response.json();
       
+      // ⚡ Instantly notify KDS on same device (no poll wait needed)
+      try {
+        if (typeof BroadcastChannel !== 'undefined') {
+          const bc = new BroadcastChannel('pos_order_channel');
+          bc.postMessage({ type: 'ORDER_SAVED', orderId: orderData.id });
+          bc.close();
+        }
+      } catch (_) {}
+      
       toast.success('✅ Done', { id: toastId, duration: 2000 });
       setMenuDrawerOpen(false);
       

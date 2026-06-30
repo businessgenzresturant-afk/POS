@@ -58,7 +58,7 @@ export const GET = withTiming(async (request: Request) => {
           // ⚡ createdAt needed for urgent item detection in KDS
         }
       },
-      orderBy: { createdAt: 'desc' }
+      orderBy: { updatedAt: 'desc' } // Sort by most recently updated (catches running table additions)
     });
     
     return NextResponse.json(orders, {

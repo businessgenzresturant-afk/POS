@@ -71,17 +71,17 @@ export const GET = withTiming(async (request: Request) => {
 }, '/api/orders');
 
 export const POST = withTiming(async (request: Request) => {
-  console.time('⏱️ TOTAL-ORDER-CREATION');
+  if (process.env.NODE_ENV === 'development') console.time('⏱️ TOTAL-ORDER-CREATION');
   
   const rateLimit = checkRateLimit(request, RateLimitPresets.API);
   if (!rateLimit.success) {
-    console.timeEnd('⏱️ TOTAL-ORDER-CREATION');
+    if (process.env.NODE_ENV === 'development') console.timeEnd('⏱️ TOTAL-ORDER-CREATION');
     return createRateLimitResponse(rateLimit.resetAt);
   }
 
   const auth = await checkAuth(request);
   if (auth.error) {
-    console.timeEnd('⏱️ TOTAL-ORDER-CREATION');
+    if (process.env.NODE_ENV === 'development') console.timeEnd('⏱️ TOTAL-ORDER-CREATION');
     return auth.error;
   }
 
@@ -129,7 +129,7 @@ export const POST = withTiming(async (request: Request) => {
     
     // 🔥 ERROR HANDLING: Validate restaurantId exists
     if (!restaurantId) {
-      console.timeEnd('⏱️ TOTAL-ORDER-CREATION');
+      if (process.env.NODE_ENV === 'development') console.timeEnd('⏱️ TOTAL-ORDER-CREATION');
       return NextResponse.json(
         { error: 'User session invalid - no restaurant ID' },
         { status: 401 }
@@ -137,7 +137,7 @@ export const POST = withTiming(async (request: Request) => {
     }
     
     // ⚡ PERFORMANCE: Fetch table and menu items in PARALLEL instead of sequential
-    console.time('⏱️ DB-PARALLEL-FETCH');
+    if (process.env.NODE_ENV === 'development') console.time('⏱️ DB-PARALLEL-FETCH');
     
     // 🔥 ERROR HANDLING: Wrap DB calls
     let table: any = null;
@@ -163,8 +163,8 @@ export const POST = withTiming(async (request: Request) => {
         })
       ]);
     } catch (dbError: any) {
-      console.timeEnd('⏱️ DB-PARALLEL-FETCH');
-      console.timeEnd('⏱️ TOTAL-ORDER-CREATION');
+      if (process.env.NODE_ENV === 'development') console.timeEnd('⏱️ DB-PARALLEL-FETCH');
+      if (process.env.NODE_ENV === 'development') console.timeEnd('⏱️ TOTAL-ORDER-CREATION');
       console.error('Order creation DB error:', dbError);
       return NextResponse.json(
         { error: 'Database connection failed. Please try again.' },
@@ -172,16 +172,16 @@ export const POST = withTiming(async (request: Request) => {
       );
     }
     
-    console.timeEnd('⏱️ DB-PARALLEL-FETCH');
+    if (process.env.NODE_ENV === 'development') console.timeEnd('⏱️ DB-PARALLEL-FETCH');
 
     if (tableId && !table) {
-      console.timeEnd('⏱️ TOTAL-ORDER-CREATION');
+      if (process.env.NODE_ENV === 'development') console.timeEnd('⏱️ TOTAL-ORDER-CREATION');
       return NextResponse.json({ error: 'Table not found or does not belong to your restaurant' }, { status: 404 });
     }
     
     // 🔥 ERROR HANDLING: Validate menuItems is array
     if (!Array.isArray(menuItems)) {
-      console.timeEnd('⏱️ TOTAL-ORDER-CREATION');
+      if (process.env.NODE_ENV === 'development') console.timeEnd('⏱️ TOTAL-ORDER-CREATION');
       return NextResponse.json(
         { error: 'Menu items data invalid' },
         { status: 500 }
@@ -238,18 +238,15 @@ export const POST = withTiming(async (request: Request) => {
     // This prevents TOCTOU race condition where multiple devices see "AVAILABLE"
     // and each create separate orders for the same table
     try {
-      console.time('⏱️ TRANSACTION');
+      if (process.env.NODE_ENV === 'development') console.time('⏱️ TRANSACTION');
       const result = await prisma.$transaction(async (tx) => {
-        // ✅ CRITICAL FIX: Lock table row with FOR UPDATE to prevent concurrent modifications
-        // This ensures only ONE transaction can proceed at a time for this table
+        // Get current table state inside transaction (ReadCommitted prevents stale reads)
         let currentTable = null;
         if (tableId) {
-          const lockedTables = await tx.$queryRaw<Array<{id: string, status: string, number: number}>>`
-            SELECT id, status, number FROM "Table"
-            WHERE id = ${tableId}
-            FOR UPDATE
-          `;
-          currentTable = lockedTables && lockedTables.length > 0 ? lockedTables[0] : null;
+          currentTable = await tx.table.findFirst({
+            where: { id: tableId },
+            select: { id: true, status: true, number: true }
+          });
           
           if (!currentTable) {
             throw new Error('Table not found');
@@ -280,7 +277,7 @@ export const POST = withTiming(async (request: Request) => {
           });
 
           // Decrement stock for items that are stock-tracked (PARALLEL)
-          console.time('⏱️ STOCK-UPDATES');
+          if (process.env.NODE_ENV === 'development') console.time('⏱️ STOCK-UPDATES');
           await Promise.all(
             orderItemsData
               .filter(item => {
@@ -299,7 +296,7 @@ export const POST = withTiming(async (request: Request) => {
                 });
               })
           );
-          console.timeEnd('⏱️ STOCK-UPDATES');
+          if (process.env.NODE_ENV === 'development') console.timeEnd('⏱️ STOCK-UPDATES');
 
           // Optimistic locking: Check version before update
           const updatedOrderCount = await tx.order.updateMany({
@@ -371,7 +368,7 @@ export const POST = withTiming(async (request: Request) => {
         }
 
         // Decrement stock for new order items (PARALLEL)
-        console.time('⏱️ STOCK-UPDATES');
+        if (process.env.NODE_ENV === 'development') console.time('⏱️ STOCK-UPDATES');
         await Promise.all(
           orderItemsData
             .filter(item => {
@@ -390,20 +387,20 @@ export const POST = withTiming(async (request: Request) => {
               });
             })
         );
-        console.timeEnd('⏱️ STOCK-UPDATES');
+        if (process.env.NODE_ENV === 'development') console.timeEnd('⏱️ STOCK-UPDATES');
 
         return { type: 'CREATE', order: newOrder };
       }, {
         isolationLevel: 'ReadCommitted',  // Replaced Serializable with ReadCommitted to prevent lock timeouts
         timeout: 10000
       });
-      console.timeEnd('⏱️ TRANSACTION');
+      if (process.env.NODE_ENV === 'development') console.timeEnd('⏱️ TRANSACTION');
 
-      console.timeEnd('⏱️ TOTAL-ORDER-CREATION');
+      if (process.env.NODE_ENV === 'development') console.timeEnd('⏱️ TOTAL-ORDER-CREATION');
       return NextResponse.json(result.order, { status: 201 });
     } catch (error: any) {
-      console.timeEnd('⏱️ TRANSACTION');
-      console.timeEnd('⏱️ TOTAL-ORDER-CREATION');
+      if (process.env.NODE_ENV === 'development') console.timeEnd('⏱️ TRANSACTION');
+      if (process.env.NODE_ENV === 'development') console.timeEnd('⏱️ TOTAL-ORDER-CREATION');
       
       if (error.message === 'VERSION_CONFLICT') {
         return NextResponse.json(
@@ -417,7 +414,7 @@ export const POST = withTiming(async (request: Request) => {
       throw error; // Re-throw other errors
     }
   } catch (error) {
-    console.timeEnd('⏱️ TOTAL-ORDER-CREATION');
+    if (process.env.NODE_ENV === 'development') console.timeEnd('⏱️ TOTAL-ORDER-CREATION');
     console.error('Order creation error:', error);
     return NextResponse.json({ error: 'Failed to create order' }, { status: 500 });
   }

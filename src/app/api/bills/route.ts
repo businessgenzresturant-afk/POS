@@ -84,17 +84,17 @@ export const GET = withTiming(async (request: Request) => {
 
 // POST create new bill
 export const POST = withTiming(async (request: Request) => {
-  console.time('⏱️ TOTAL-BILL-GENERATION');
+  if (process.env.NODE_ENV === 'development') console.time('⏱️ TOTAL-BILL-GENERATION');
   
   const rateLimit = checkRateLimit(request, RateLimitPresets.API);
   if (!rateLimit.success) {
-    console.timeEnd('⏱️ TOTAL-BILL-GENERATION');
+    if (process.env.NODE_ENV === 'development') console.timeEnd('⏱️ TOTAL-BILL-GENERATION');
     return createRateLimitResponse(rateLimit.resetAt);
   }
 
   const auth = await checkAuth(request);
   if (auth.error) {
-    console.timeEnd('⏱️ TOTAL-BILL-GENERATION');
+    if (process.env.NODE_ENV === 'development') console.timeEnd('⏱️ TOTAL-BILL-GENERATION');
     return auth.error;
   }
 
@@ -103,7 +103,7 @@ export const POST = withTiming(async (request: Request) => {
     
     const validation = createBillSchema.safeParse(body);
     if (!validation.success) {
-      console.timeEnd('⏱️ TOTAL-BILL-GENERATION');
+      if (process.env.NODE_ENV === 'development') console.timeEnd('⏱️ TOTAL-BILL-GENERATION');
       return NextResponse.json(
         { error: validation.error.issues[0].message },
         { status: 400 }
@@ -113,7 +113,7 @@ export const POST = withTiming(async (request: Request) => {
     const { orderId } = validation.data;
 
     // ⚡ PERFORMANCE BOOST: Fetch order first to get tableId
-    console.time('⏱️ DB-FETCH-ORDER');
+    if (process.env.NODE_ENV === 'development') console.time('⏱️ DB-FETCH-ORDER');
     
     // 🔒 SECURITY: Scope all queries to the authenticated user's restaurant
     const restaurantId = (auth.session.user as any).restaurantId;
@@ -134,8 +134,8 @@ export const POST = withTiming(async (request: Request) => {
         }
       });
     } catch (dbError: any) {
-      console.timeEnd('⏱️ DB-FETCH-ORDER');
-      console.timeEnd('⏱️ TOTAL-BILL-GENERATION');
+      if (process.env.NODE_ENV === 'development') console.timeEnd('⏱️ DB-FETCH-ORDER');
+      if (process.env.NODE_ENV === 'development') console.timeEnd('⏱️ TOTAL-BILL-GENERATION');
       console.error('[Bill Creation] Database error:', dbError);
       return NextResponse.json(
         { error: 'Database connection failed. Please try again.' },
@@ -143,22 +143,22 @@ export const POST = withTiming(async (request: Request) => {
       );
     }
     
-    console.timeEnd('⏱️ DB-FETCH-ORDER');
+    if (process.env.NODE_ENV === 'development') console.timeEnd('⏱️ DB-FETCH-ORDER');
 
     if (!order) {
-      console.timeEnd('⏱️ TOTAL-BILL-GENERATION');
+      if (process.env.NODE_ENV === 'development') console.timeEnd('⏱️ TOTAL-BILL-GENERATION');
       return NextResponse.json({ error: 'Order not found' }, { status: 404 });
     }
     
     // Security check: Ensure order belongs to user's restaurant
     if (order.table?.restaurantId !== restaurantId && order.items[0]?.menuItem?.restaurantId !== restaurantId) {
-      console.timeEnd('⏱️ TOTAL-BILL-GENERATION');
+      if (process.env.NODE_ENV === 'development') console.timeEnd('⏱️ TOTAL-BILL-GENERATION');
       return NextResponse.json({ error: 'Unauthorized order' }, { status: 401 });
     }
 
     let allTableOrders: any[] = [];
     if (order.tableId) {
-      console.time('⏱️ DB-FETCH-TABLE-ORDERS');
+      if (process.env.NODE_ENV === 'development') console.time('⏱️ DB-FETCH-TABLE-ORDERS');
       try {
         // Fetch ONLY unbilled orders for this SPECIFIC table
         allTableOrders = await prisma.order.findMany({
@@ -182,17 +182,17 @@ export const POST = withTiming(async (request: Request) => {
         console.error('[Bill Creation] Database error fetching table orders:', dbError);
         return NextResponse.json({ error: 'Failed to fetch table orders.' }, { status: 500 });
       }
-      console.timeEnd('⏱️ DB-FETCH-TABLE-ORDERS');
+      if (process.env.NODE_ENV === 'development') console.timeEnd('⏱️ DB-FETCH-TABLE-ORDERS');
     }
 
     if (!order) {
-      console.timeEnd('⏱️ TOTAL-BILL-GENERATION');
+      if (process.env.NODE_ENV === 'development') console.timeEnd('⏱️ TOTAL-BILL-GENERATION');
       return NextResponse.json({ error: 'Order not found' }, { status: 404 });
     }
     
     // 🔥 ERROR HANDLING: Validate order has items
     if (!order.items || order.items.length === 0) {
-      console.timeEnd('⏱️ TOTAL-BILL-GENERATION');
+      if (process.env.NODE_ENV === 'development') console.timeEnd('⏱️ TOTAL-BILL-GENERATION');
       return NextResponse.json({ error: 'Order has no items' }, { status: 400 });
     }
     
@@ -205,7 +205,7 @@ export const POST = withTiming(async (request: Request) => {
     // Allow bill generation for any active order status
     // COMPLETED orders already have bills, so reject those
     if (order.status === 'COMPLETED') {
-      console.timeEnd('⏱️ TOTAL-BILL-GENERATION');
+      if (process.env.NODE_ENV === 'development') console.timeEnd('⏱️ TOTAL-BILL-GENERATION');
       return NextResponse.json(
         { error: 'This order is already completed. Please refresh the page.' },
         { status: 400 }
@@ -214,7 +214,7 @@ export const POST = withTiming(async (request: Request) => {
     
     // CRITICAL FIX: Check if the main order already has a bill
     if (order.bill !== null && order.bill !== undefined) {
-      console.timeEnd('⏱️ TOTAL-BILL-GENERATION');
+      if (process.env.NODE_ENV === 'development') console.timeEnd('⏱️ TOTAL-BILL-GENERATION');
       return NextResponse.json(
         { error: 'This order already has a bill generated. Bill ID: ' + order.bill.id },
         { status: 400 }
@@ -246,7 +246,7 @@ export const POST = withTiming(async (request: Request) => {
     }
 
     if (finalTableOrders.length === 0) {
-      console.timeEnd('⏱️ TOTAL-BILL-GENERATION');
+      if (process.env.NODE_ENV === 'development') console.timeEnd('⏱️ TOTAL-BILL-GENERATION');
       return NextResponse.json(
         { error: 'No unbilled orders found for this table' },
         { status: 400 }
@@ -257,7 +257,7 @@ export const POST = withTiming(async (request: Request) => {
     const existingBills = finalTableOrders.filter(o => o.bill !== null);
 
     if (existingBills.length > 0) {
-      console.timeEnd('⏱️ TOTAL-BILL-GENERATION');
+      if (process.env.NODE_ENV === 'development') console.timeEnd('⏱️ TOTAL-BILL-GENERATION');
       return NextResponse.json(
         { error: 'One or more orders already have bills. Please refresh and try again.' },
         { status: 400 }
@@ -275,7 +275,7 @@ export const POST = withTiming(async (request: Request) => {
     
     // CRITICAL FIX: If subtotal is 0 (all items cancelled), reject bill generation
     if (subtotal <= 0) {
-      console.timeEnd('⏱️ TOTAL-BILL-GENERATION');
+      if (process.env.NODE_ENV === 'development') console.timeEnd('⏱️ TOTAL-BILL-GENERATION');
       return NextResponse.json(
         { error: 'Cannot generate bill: All items have been cancelled. Please add items or clear the table.' },
         { status: 400 }
@@ -295,7 +295,7 @@ export const POST = withTiming(async (request: Request) => {
 
 
     // ⚡ PERFORMANCE OPTIMIZATION: Use batch operations instead of loops
-    console.time('⏱️ DB-TRANSACTION');
+    if (process.env.NODE_ENV === 'development') console.time('⏱️ DB-TRANSACTION');
     const bill = await prisma.$transaction(async (tx) => {
       const primaryOrder = finalTableOrders[0];
       const otherOrders = finalTableOrders.slice(1);
@@ -369,7 +369,7 @@ export const POST = withTiming(async (request: Request) => {
         }
       });
     });
-    console.timeEnd('⏱️ DB-TRANSACTION');
+    if (process.env.NODE_ENV === 'development') console.timeEnd('⏱️ DB-TRANSACTION');
 
     // IMPORTANT: Manually fetch and attach ALL orders' items to the bill response
     // So frontend gets complete picture
@@ -392,10 +392,10 @@ export const POST = withTiming(async (request: Request) => {
     };
 
 
-    console.timeEnd('⏱️ TOTAL-BILL-GENERATION');
+    if (process.env.NODE_ENV === 'development') console.timeEnd('⏱️ TOTAL-BILL-GENERATION');
     return NextResponse.json(enhancedBill, { status: 201 });
   } catch (error) {
-    console.timeEnd('⏱️ TOTAL-BILL-GENERATION');
+    if (process.env.NODE_ENV === 'development') console.timeEnd('⏱️ TOTAL-BILL-GENERATION');
     console.error('[Bill Creation] Error:', error);
     return NextResponse.json(
       { error: `Failed to create bill: ${error instanceof Error ? error.message : 'Unknown error'}` },
