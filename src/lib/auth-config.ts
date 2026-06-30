@@ -45,6 +45,12 @@ export const authOptions: NextAuthOptions = {
         }
         
         try {
+          // Sanity check - log env state on first auth attempt
+          if (!process.env.DATABASE_URL) {
+            console.error('🚨 CRITICAL: DATABASE_URL is not set!');
+            return null;
+          }
+
           const user = await prisma.user.findUnique({ where: { email: credentials.email } });
 
           if (!user) {
@@ -58,7 +64,7 @@ export const authOptions: NextAuthOptions = {
             return null;
           }
 
-          console.log(`✅ Successful login: ${credentials.email}`);
+          console.log(`✅ Successful login: ${credentials.email} (role: ${user.role})`);
           return { 
             id: user.id, 
             email: user.email, 
@@ -68,8 +74,8 @@ export const authOptions: NextAuthOptions = {
             restaurantId: user.restaurantId 
           } as ExtendedUser;
         } catch (error: any) { 
-          console.error("Auth error:", error?.message || error);
-          console.error("Auth error stack:", error?.stack);
+          console.error("🚨 Auth DB error:", error?.message || error);
+          console.error("Auth error code:", error?.code);
           return null; 
         }
       }
