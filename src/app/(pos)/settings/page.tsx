@@ -673,6 +673,50 @@ export default function SettingsPage() {
         </div>
       </Card>
 
+      {/* Danger Zone */}
+      {session?.user && (session.user as any).role === 'ADMIN' && (
+        <Card className="p-6 border-red-500/30 bg-red-500/5">
+          <div className="flex items-center gap-3 mb-6">
+            <div className="w-12 h-12 rounded-xl bg-red-500/20 flex items-center justify-center text-2xl">
+              ⚠️
+            </div>
+            <div>
+              <h2 className="text-xl font-bold text-red-600 dark:text-red-400">Danger Zone</h2>
+              <p className="text-sm text-red-600/80 dark:text-red-400/80">Irreversible actions for database management</p>
+            </div>
+          </div>
+          <div className="flex flex-col gap-4">
+            <div className="flex justify-between items-center bg-background/50 p-4 rounded-xl border border-border">
+              <div>
+                <h3 className="font-semibold text-foreground">Wipe All Test Data</h3>
+                <p className="text-sm text-muted-foreground">Deletes all orders, bills, and resets tables. Menu items are preserved.</p>
+              </div>
+              <Button
+                variant="destructive"
+                onClick={async () => {
+                  if (confirm('Are you ABSOLUTELY sure? This will delete all orders and bills permanently.')) {
+                    try {
+                      const res = await fetch('/api/admin/production-cleanup', { method: 'POST' });
+                      const data = await res.json();
+                      if (res.ok) {
+                        toast.success('Database cleaned successfully!');
+                        setTimeout(() => window.location.reload(), 2000);
+                      } else {
+                        toast.error(data.error || 'Failed to clean database');
+                      }
+                    } catch (e) {
+                      toast.error('Network error occurred');
+                    }
+                  }
+                }}
+              >
+                Reset Database
+              </Button>
+            </div>
+          </div>
+        </Card>
+      )}
+
       {/* Action Buttons */}
       <div className="flex gap-4 pt-4">
         <Button
