@@ -417,9 +417,9 @@ export default function BillsPage() {
       {showBillModal && selectedBill && (
         <Portal>
           <div className="fixed inset-0 z-[150] flex items-center justify-center p-4 sm:p-6 bg-background/80 backdrop-blur-sm">
-            <div className="bg-card text-card-foreground rounded-2xl shadow-xl border border-border w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col">
+            <div className="bg-card text-card-foreground rounded-2xl shadow-xl border border-border w-full max-w-md max-h-[90vh] overflow-hidden flex flex-col">
               {/* Fixed Header */}
-              <div className="p-4 sm:p-6 flex justify-between items-center border-b border-border bg-card">
+              <div className="p-4 sm:p-5 flex justify-between items-center border-b border-border bg-card flex-shrink-0">
                 <h2 className="text-lg sm:text-xl font-bold text-foreground truncate">Bill #{selectedBill.id.slice(-8).toUpperCase()}</h2>
                 <Button
                   onClick={() => setShowBillModal(false)}
@@ -430,15 +430,17 @@ export default function BillsPage() {
                 </Button>
               </div>
 
-              {/* Scrollable Content */}
-              <div className="p-4 sm:p-6 overflow-y-auto custom-scrollbar flex-1">
-
-              {/* Use shared ReceiptPrintTemplate for consistent formatting */}
-              <div className="mb-6">
-                <ReceiptPrintTemplate bill={selectedBill} />
+              {/* Scrollable Content - Receipt Area */}
+              <div className="p-4 overflow-y-auto custom-scrollbar flex-1 bg-muted/10">
+                {/* Use shared ReceiptPrintTemplate for consistent formatting */}
+                <div className="mx-auto w-full max-w-[350px]">
+                  <ReceiptPrintTemplate bill={selectedBill} />
+                </div>
               </div>
 
-              <div className="mb-6 bg-muted/30 border border-border p-4 rounded-xl">
+              {/* Fixed Footer - Payment Information */}
+              <div className="p-4 border-t border-border bg-card flex-shrink-0">
+                <div className="mb-4 bg-muted/30 border border-border p-3 rounded-xl">
                 <h3 className="text-sm font-black text-muted-foreground uppercase tracking-wider mb-3">Payment Information</h3>
                 <div className="space-y-4">
                   <div className="flex justify-between items-center">
