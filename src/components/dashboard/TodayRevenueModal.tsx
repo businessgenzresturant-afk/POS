@@ -15,38 +15,16 @@ export function TodayRevenueModal({ isOpen, onClose, todayRevenue }: TodayRevenu
   const [bills, setBills] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [selectedBill, setSelectedBill] = useState<any | null>(null);
-  const [breakdown, setBreakdown] = useState<any>(null);
-
   useEffect(() => {
     if (isOpen) {
       fetchTodayBills();
-      fetchReportsBreakdown();
     }
   }, [isOpen]);
-
-  const fetchReportsBreakdown = async () => {
-    try {
-      const today = new Date();
-      const startDate = today.toISOString().split('T')[0];
-      const endDate = today.toISOString().split('T')[0];
-      
-      const res = await fetch(`/api/reports?startDate=${startDate}&endDate=${endDate}`);
-      if (!res.ok) throw new Error('Failed to fetch reports');
-      const data = await res.json();
-      
-      if (data.breakdown) {
-        setBreakdown(data.breakdown);
-      }
-    } catch (e) {
-      console.error('Failed to fetch breakdown:', e);
-      // Silent fail - breakdown is optional
-    }
-  };
 
   const fetchTodayBills = async () => {
     setLoading(true);
     try {
-      const res = await fetch('/api/bills');
+      const res = await fetch('/api/bills?limit=500');
       if (!res.ok) throw new Error('Failed to fetch bills');
       const data = await res.json();
       
@@ -89,6 +67,12 @@ export function TodayRevenueModal({ isOpen, onClose, todayRevenue }: TodayRevenu
     }
     return 'bg-yellow-500/10 text-yellow-600 dark:text-yellow-400 border-yellow-500/20';
   };
+
+  const totalCash = bills.reduce((acc, bill) => acc + (bill.status === 'PAID' && bill.paymentMethod === 'CASH' ? bill.total : 0), 0);
+  const totalUPI = bills.reduce((acc, bill) => acc + (bill.status === 'PAID' && bill.paymentMethod === 'UPI' ? bill.total : 0), 0);
+  const totalCard = bills.reduce((acc, bill) => acc + (bill.status === 'PAID' && bill.paymentMethod === 'CARD' ? bill.total : 0), 0);
+  const totalOnline = totalUPI + totalCard;
+  const totalRealRevenue = totalCash + totalOnline;
 
   if (!isOpen) return null;
 
@@ -147,66 +131,34 @@ export function TodayRevenueModal({ isOpen, onClose, todayRevenue }: TodayRevenu
             <div className="bg-gradient-to-br from-emerald-500/10 to-teal-500/5 border-2 border-emerald-500/30 rounded-2xl p-6 shadow-lg shadow-emerald-500/10">
               <div className="flex items-start justify-between mb-4">
                 <div>
-                  <p className="text-xs font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400 mb-2">Today&apos;s Total Revenue</p>
-                  <p className="text-4xl font-black text-emerald-950 dark:text-emerald-300">₹{todayRevenue.toLocaleString()}</p>
-                  <p className="text-xs text-muted-foreground/80 mt-1">{bills.length} {bills.length === 1 ? 'bill' : 'bills'} completed today</p>
+                  <p className="text-xs font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400 mb-2">Real Total Revenue (Paid)</p>
+                  <p className="text-4xl font-black text-emerald-950 dark:text-emerald-300">₹{totalRealRevenue.toLocaleString()}</p>
+                  <p className="text-xs text-muted-foreground/80 mt-1">{bills.length} {bills.length === 1 ? 'bill' : 'bills'} generated today</p>
                 </div>
                 <div className="p-4 bg-emerald-500/20 rounded-full text-emerald-600">
                   <Sparkles className="w-8 h-8" />
                 </div>
               </div>
               
-              {/* Payment Method Totals - Prominent Display */}
-              {breakdown && breakdown.total > 0 && (
-                <div className="mt-4 pt-4 border-t-2 border-emerald-500/20">
-                  <p className="text-xs font-bold uppercase tracking-wider text-emerald-700 dark:text-emerald-400 mb-3">Today&apos;s Collection Breakdown</p>
-                  <div className="grid grid-cols-2 gap-3">
-                    {/* Cash Collection */}
-                    {breakdown.cash > 0 && (
-                      <div className="bg-green-500/10 border border-green-500/30 rounded-xl p-3">
-                        <div className="flex items-center gap-2 mb-1">
-                          <DollarSign className="w-4 h-4 text-green-600" />
-                          <span className="text-xs font-bold text-green-700 dark:text-green-400 uppercase">Cash</span>
-                        </div>
-                        <p className="text-xl font-black text-green-950 dark:text-green-300">₹{breakdown.cash.toFixed(2)}</p>
-                      </div>
-                    )}
-                    
-                    {/* UPI Collection */}
-                    {breakdown.upi > 0 && (
-                      <div className="bg-orange-500/10 border border-orange-500/30 rounded-xl p-3">
-                        <div className="flex items-center gap-2 mb-1">
-                          <Wallet className="w-4 h-4 text-orange-600" />
-                          <span className="text-xs font-bold text-orange-700 dark:text-orange-400 uppercase">UPI</span>
-                        </div>
-                        <p className="text-xl font-black text-orange-950 dark:text-orange-300">₹{breakdown.upi.toFixed(2)}</p>
-                      </div>
-                    )}
-                    
-                    {/* Card Collection */}
-                    {breakdown.card > 0 && (
-                      <div className="bg-blue-500/10 border border-blue-500/30 rounded-xl p-3">
-                        <div className="flex items-center gap-2 mb-1">
-                          <CreditCard className="w-4 h-4 text-blue-600" />
-                          <span className="text-xs font-bold text-blue-700 dark:text-blue-400 uppercase">Card</span>
-                        </div>
-                        <p className="text-xl font-black text-blue-950 dark:text-blue-300">₹{breakdown.card.toFixed(2)}</p>
-                      </div>
-                    )}
-                    
-                    {/* Split Payment Collection */}
-                    {breakdown.split > 0 && (
-                      <div className="bg-purple-500/10 border border-purple-500/30 rounded-xl p-3">
-                        <div className="flex items-center gap-2 mb-1">
-                          <Receipt className="w-4 h-4 text-purple-600" />
-                          <span className="text-xs font-bold text-purple-700 dark:text-purple-400 uppercase">Split</span>
-                        </div>
-                        <p className="text-xl font-black text-purple-950 dark:text-purple-300">₹{breakdown.split.toFixed(2)}</p>
-                      </div>
-                    )}
+              <div className="mt-4 pt-4 border-t-2 border-emerald-500/20">
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="bg-green-500/10 border border-green-500/30 rounded-xl p-3">
+                    <div className="flex items-center gap-2 mb-1">
+                      <DollarSign className="w-4 h-4 text-green-600" />
+                      <span className="text-xs font-bold text-green-700 dark:text-green-400 uppercase">Total Cash</span>
+                    </div>
+                    <p className="text-xl font-black text-green-950 dark:text-green-300">₹{totalCash.toLocaleString()}</p>
+                  </div>
+                  
+                  <div className="bg-blue-500/10 border border-blue-500/30 rounded-xl p-3">
+                    <div className="flex items-center gap-2 mb-1">
+                      <Wallet className="w-4 h-4 text-blue-600" />
+                      <span className="text-xs font-bold text-blue-700 dark:text-blue-400 uppercase">Total Online</span>
+                    </div>
+                    <p className="text-xl font-black text-blue-950 dark:text-blue-300">₹{totalOnline.toLocaleString()}</p>
                   </div>
                 </div>
-              )}
+              </div>
             </div>
 
             {/* Bills Section */}

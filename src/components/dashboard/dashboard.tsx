@@ -535,15 +535,25 @@ export function Dashboard() {
               onClick={() => {
                 setTableSelectModalOpen(true);
               }}
-              className="p-6 rounded-2xl border-2 border-border/80 bg-card flex flex-col justify-between items-start cursor-pointer hover:border-blue-500/60 hover:bg-blue-500/5 hover:shadow-lg hover:shadow-blue-500/5 transition-all text-left group min-h-[140px]"
+              className="relative overflow-hidden p-6 rounded-3xl border border-border/60 bg-gradient-to-br from-card to-background flex flex-col justify-between items-start cursor-pointer hover:border-blue-500/50 hover:shadow-2xl hover:shadow-blue-500/10 transition-all duration-300 text-left group min-h-[200px]"
             >
-              <div className="flex justify-between items-center w-full">
-                <div className="p-3 bg-blue-500/10 text-blue-500 rounded-xl group-hover:scale-110 transition-transform">
-                  <UtensilsCrossed className="w-6 h-6" />
-                </div>
-                <span className="font-black text-3xl text-foreground group-hover:text-blue-500 transition-colors">{dineInOrders}</span>
+              {/* 3D Image Background */}
+              <div className="absolute -right-4 top-1/2 -translate-y-1/2 w-48 h-48 opacity-90 group-hover:scale-110 group-hover:opacity-100 group-hover:-translate-x-2 transition-all duration-500 mix-blend-lighten pointer-events-none">
+                <img src="/images/dashboard/dine_in.png" alt="Dine In" className="w-full h-full object-contain" />
               </div>
-              <p className="font-black text-lg text-foreground mt-4">Dine In</p>
+              
+              <div className="relative z-10 flex flex-col h-full justify-between w-full">
+                <div className="flex justify-between items-start w-full">
+                  <div className="p-3 bg-blue-500/20 text-blue-400 rounded-2xl backdrop-blur-md border border-blue-500/20 group-hover:scale-110 transition-transform">
+                    <UtensilsCrossed className="w-6 h-6" />
+                  </div>
+                  <span className="font-black text-4xl text-white drop-shadow-lg group-hover:text-blue-400 transition-colors">{dineInOrders}</span>
+                </div>
+                <div className="mt-12">
+                  <p className="font-black text-2xl text-white tracking-tight drop-shadow-md">Dine In</p>
+                  <p className="text-sm text-gray-400 font-medium mt-1">Table Service</p>
+                </div>
+              </div>
             </button>
 
             {/* Takeaway Card */}
@@ -551,15 +561,25 @@ export function Dashboard() {
               onClick={() => {
                 handleOrderTypeCardClick('TAKEAWAY');
               }}
-              className="p-6 rounded-2xl border-2 border-border/80 bg-card flex flex-col justify-between items-start cursor-pointer hover:border-amber-500/60 hover:bg-amber-500/5 hover:shadow-lg hover:shadow-amber-500/5 transition-all text-left group min-h-[140px]"
+              className="relative overflow-hidden p-6 rounded-3xl border border-border/60 bg-gradient-to-br from-card to-background flex flex-col justify-between items-start cursor-pointer hover:border-amber-500/50 hover:shadow-2xl hover:shadow-amber-500/10 transition-all duration-300 text-left group min-h-[200px]"
             >
-              <div className="flex justify-between items-center w-full">
-                <div className="p-3 bg-amber-500/10 text-amber-500 rounded-xl group-hover:scale-110 transition-transform">
-                  <ShoppingBag className="w-6 h-6" />
-                </div>
-                <span className="font-black text-3xl text-foreground group-hover:text-amber-500 transition-colors">{takeawayOrders}</span>
+              {/* 3D Image Background */}
+              <div className="absolute -right-4 top-1/2 -translate-y-1/2 w-48 h-48 opacity-90 group-hover:scale-110 group-hover:opacity-100 group-hover:-translate-x-2 transition-all duration-500 mix-blend-lighten pointer-events-none">
+                <img src="/images/dashboard/takeaway.png" alt="Takeaway" className="w-full h-full object-contain" />
               </div>
-              <p className="font-black text-lg text-foreground mt-4">Takeaway</p>
+              
+              <div className="relative z-10 flex flex-col h-full justify-between w-full">
+                <div className="flex justify-between items-start w-full">
+                  <div className="p-3 bg-amber-500/20 text-amber-400 rounded-2xl backdrop-blur-md border border-amber-500/20 group-hover:scale-110 transition-transform">
+                    <ShoppingBag className="w-6 h-6" />
+                  </div>
+                  <span className="font-black text-4xl text-white drop-shadow-lg group-hover:text-amber-400 transition-colors">{takeawayOrders}</span>
+                </div>
+                <div className="mt-12">
+                  <p className="font-black text-2xl text-white tracking-tight drop-shadow-md">Takeaway</p>
+                  <p className="text-sm text-gray-400 font-medium mt-1">Self Pickup</p>
+                </div>
+              </div>
             </button>
 
             {/* Delivery Card */}
@@ -567,15 +587,25 @@ export function Dashboard() {
               onClick={() => {
                 handleOrderTypeCardClick('DELIVERY');
               }}
-              className="p-6 rounded-2xl border-2 border-border/80 bg-card flex flex-col justify-between items-start cursor-pointer hover:border-rose-500/60 hover:bg-rose-500/5 hover:shadow-lg hover:shadow-rose-500/5 transition-all text-left group min-h-[140px]"
+              className="relative overflow-hidden p-6 rounded-3xl border border-border/60 bg-gradient-to-br from-card to-background flex flex-col justify-between items-start cursor-pointer hover:border-rose-500/50 hover:shadow-2xl hover:shadow-rose-500/10 transition-all duration-300 text-left group min-h-[200px]"
             >
-              <div className="flex justify-between items-center w-full">
-                <div className="p-3 bg-rose-500/10 text-rose-500 rounded-xl group-hover:scale-110 transition-transform">
-                  <Bike className="w-6 h-6" />
-                </div>
-                <span className="font-black text-3xl text-foreground group-hover:text-rose-500 transition-colors">{deliveryOrders}</span>
+              {/* 3D Image Background */}
+              <div className="absolute -right-4 top-1/2 -translate-y-1/2 w-48 h-48 opacity-90 group-hover:scale-110 group-hover:opacity-100 group-hover:-translate-x-2 transition-all duration-500 mix-blend-lighten pointer-events-none">
+                <img src="/images/dashboard/delivery.png" alt="Delivery" className="w-full h-full object-contain" />
               </div>
-              <p className="font-black text-lg text-foreground mt-4">Delivery</p>
+              
+              <div className="relative z-10 flex flex-col h-full justify-between w-full">
+                <div className="flex justify-between items-start w-full">
+                  <div className="p-3 bg-rose-500/20 text-rose-400 rounded-2xl backdrop-blur-md border border-rose-500/20 group-hover:scale-110 transition-transform">
+                    <Bike className="w-6 h-6" />
+                  </div>
+                  <span className="font-black text-4xl text-white drop-shadow-lg group-hover:text-rose-400 transition-colors">{deliveryOrders}</span>
+                </div>
+                <div className="mt-12">
+                  <p className="font-black text-2xl text-white tracking-tight drop-shadow-md">Delivery</p>
+                  <p className="text-sm text-gray-400 font-medium mt-1">Direct to Door</p>
+                </div>
+              </div>
             </button>
 
           </div>

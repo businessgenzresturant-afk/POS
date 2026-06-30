@@ -83,7 +83,7 @@ export default function Header() {
 
   return (
     <header className="w-full bg-background/95 backdrop-blur-md border-b border-border/50 h-[72px] flex-shrink-0 flex flex-col justify-center z-30 sticky top-0 shadow-sm">
-      <div className="w-full max-w-[1920px] mx-auto px-2 flex items-center justify-between overflow-x-auto no-scrollbar">
+      <div className="w-full max-w-[1920px] mx-auto px-2 flex items-center justify-between">
         
         {/* Left Side: Brand & Quick Search */}
         <div className="flex items-center gap-2 flex-shrink-0 mr-4">
@@ -139,10 +139,14 @@ export default function Header() {
               onClick={() => setDropdownOpen(!isDropdownOpen)}
               aria-expanded={isDropdownOpen}
               aria-label="User menu"
-              className="flex items-center gap-2 px-3 py-1.5 rounded-xl border border-border/60 bg-card hover:bg-muted/80 text-foreground transition-all duration-200 shadow-sm"
+              className="flex items-center gap-2 pl-1.5 pr-3 py-1.5 rounded-full border border-border/60 bg-card hover:bg-muted/80 text-foreground transition-all duration-200 shadow-sm"
             >
-              <div className="w-6 h-6 rounded-lg bg-primary/10 text-primary flex items-center justify-center font-bold text-xs">
-                {userInitial}
+              <div className="w-7 h-7 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold text-xs overflow-hidden">
+                {(session?.user as any)?.image ? (
+                  <img src={(session?.user as any).image} alt="Profile" className="w-full h-full object-cover" />
+                ) : (
+                  userInitial
+                )}
               </div>
               <span className="text-xs font-bold text-foreground">{userName}</span>
               <ChevronDown className={`w-3.5 h-3.5 text-muted-foreground transition-transform duration-200 ${isDropdownOpen ? 'rotate-180' : ''}`} />
@@ -165,78 +169,74 @@ export default function Header() {
                     <p className="text-[9px] font-bold text-primary uppercase tracking-wider mt-0.5">{userRole}</p>
                   </div>
                   
-                  {/* Management Options - ADMIN ONLY */}
-                  {isAdmin && (
-                    <>
-                      <button 
-                        onClick={() => {
-                          setDropdownOpen(false);
-                          setShowTablesModal(true);
-                        }}
-                        className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-bold transition-colors hover:bg-muted text-foreground"
-                      >
-                        <LayoutGrid className="w-4 h-4 text-muted-foreground" />
-                        Manage Tables
-                      </button>
-                      
-                      <button 
-                        onClick={() => {
-                          setDropdownOpen(false);
-                          setShowMenuModal(true);
-                        }}
-                        className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-bold transition-colors hover:bg-muted text-foreground"
-                      >
-                        <Utensils className="w-4 h-4 text-muted-foreground" />
-                        Manage Menu
-                      </button>
-                      
-                      <button 
-                        onClick={() => {
-                          setDropdownOpen(false);
-                          setShowRestaurantSettingsModal(true);
-                        }}
-                        className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-bold transition-colors hover:bg-muted text-foreground"
-                      >
-                        <Store className="w-4 h-4 text-muted-foreground" />
-                        Restaurant Settings
-                      </button>
-                      
-                      <button 
-                        onClick={() => {
-                          setDropdownOpen(false);
-                          setShowStaffModal(true);
-                        }}
-                        className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-bold transition-colors hover:bg-muted text-foreground"
-                      >
-                        <Users className="w-4 h-4 text-muted-foreground" />
-                        Manage Staff
-                      </button>
-                      
-                      <button 
-                        onClick={() => {
-                          setDropdownOpen(false);
-                          setShowTaxPricingModal(true);
-                        }}
-                        className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-bold transition-colors hover:bg-muted text-foreground"
-                      >
-                        <ReceiptIcon className="w-4 h-4 text-muted-foreground" />
-                        Tax & Pricing
-                      </button>
-                      
-                      <Link 
-                        href="/settings" 
-                        onClick={() => setDropdownOpen(false)} 
-                        className={`flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-bold transition-colors ${
-                          pathname === '/settings' ? 'bg-primary/10 text-primary' : 'hover:bg-muted text-foreground'
-                        }`}
-                      >
-                        <Settings className="w-4 h-4 text-muted-foreground" />
-                        System Settings
-                      </Link>
-                      
-                      <div className="border-t border-border/50 my-1" />
-                    </>
-                  )}
+                  {/* Management Options */}
+                  <button 
+                    onClick={() => {
+                      setDropdownOpen(false);
+                      setShowTablesModal(true);
+                    }}
+                    className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-bold transition-colors hover:bg-muted text-foreground"
+                  >
+                    <LayoutGrid className="w-4 h-4 text-muted-foreground" />
+                    Manage Tables
+                  </button>
+                  
+                  <button 
+                    onClick={() => {
+                      setDropdownOpen(false);
+                      setShowMenuModal(true);
+                    }}
+                    className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-bold transition-colors hover:bg-muted text-foreground"
+                  >
+                    <Utensils className="w-4 h-4 text-muted-foreground" />
+                    Manage Menu
+                  </button>
+                  
+                  <button 
+                    onClick={() => {
+                      setDropdownOpen(false);
+                      setShowRestaurantSettingsModal(true);
+                    }}
+                    className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-bold transition-colors hover:bg-muted text-foreground"
+                  >
+                    <Store className="w-4 h-4 text-muted-foreground" />
+                    Restaurant Settings
+                  </button>
+                  
+                  <button 
+                    onClick={() => {
+                      setDropdownOpen(false);
+                      setShowStaffModal(true);
+                    }}
+                    className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-bold transition-colors hover:bg-muted text-foreground"
+                  >
+                    <Users className="w-4 h-4 text-muted-foreground" />
+                    Manage Staff
+                  </button>
+                  
+                  <button 
+                    onClick={() => {
+                      setDropdownOpen(false);
+                      setShowTaxPricingModal(true);
+                    }}
+                    className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-bold transition-colors hover:bg-muted text-foreground"
+                  >
+                    <ReceiptIcon className="w-4 h-4 text-muted-foreground" />
+                    Tax & Pricing
+                  </button>
+                  
+                  <Link 
+                    href="/settings" 
+                    onClick={() => setDropdownOpen(false)} 
+                    className={`flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-bold transition-colors ${
+                      pathname === '/settings' ? 'bg-primary/10 text-primary' : 'hover:bg-muted text-foreground'
+                    }`}
+                  >
+                    <Settings className="w-4 h-4 text-muted-foreground" />
+                    System Settings
+                  </Link>
+                  
+                  <div className="border-t border-border/50 my-1" />
                   
                   <button 
                     onClick={() => {

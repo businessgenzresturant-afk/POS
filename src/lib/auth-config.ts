@@ -66,6 +66,7 @@ export const authOptions: NextAuthOptions = {
             id: user.id, 
             email: user.email, 
             name: user.name, 
+            image: user.image,
             role: user.role, 
             restaurantId: user.restaurantId 
           } as ExtendedUser;
@@ -83,13 +84,19 @@ export const authOptions: NextAuthOptions = {
   },
   pages: { signIn: "/login" },
   callbacks: {
-    jwt: ({ token, user }) => {
+    jwt: ({ token, user, trigger, session }) => {
+      // Handle session updates (e.g. from settings page when updating image)
+      if (trigger === 'update' && session?.user) {
+        if (session.user.image !== undefined) token.picture = session.user.image;
+        if (session.user.name !== undefined) token.name = session.user.name;
+      }
+      
       const extendedUser = user as ExtendedUser | undefined;
-      return extendedUser ? { ...token, role: extendedUser.role, id: extendedUser.id, restaurantId: extendedUser.restaurantId } : token;
+      return extendedUser ? { ...token, role: extendedUser.role, id: extendedUser.id, restaurantId: extendedUser.restaurantId, picture: extendedUser.image } : token;
     },
     session: ({ session, token }) => ({
       ...session,
-      user: { ...session.user, role: token.role as string, id: token.id as string, restaurantId: token.restaurantId as string }
+      user: { ...session.user, role: token.role as string, id: token.id as string, restaurantId: token.restaurantId as string, image: token.picture as string | null }
     })
   },
   secret: process.env.NEXTAUTH_SECRET,

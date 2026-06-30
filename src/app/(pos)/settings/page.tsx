@@ -13,7 +13,7 @@ import { Copy, RefreshCw, Eye, EyeOff } from 'lucide-react';
 export const dynamic = 'force-dynamic';
 
 export default function SettingsPage() {
-  const { data: session, status } = useSession();
+  const { data: session, status, update } = useSession();
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [kdsToken, setKdsToken] = useState<string | null>(null);
@@ -43,6 +43,19 @@ export default function SettingsPage() {
   const [showLogo, setShowLogo] = useState(true);
   const [showGST, setShowGST] = useState(true);
   const [printKOTAuto, setPrintKOTAuto] = useState(false);
+
+  // User Profile settings
+  const [userName, setUserName] = useState('');
+  const [userImage, setUserImage] = useState('');
+  const [updatingProfile, setUpdatingProfile] = useState(false);
+
+  // Set user profile state when session loads
+  useEffect(() => {
+    if (session?.user) {
+      setUserName(session.user.name || '');
+      setUserImage((session.user as any).image || '');
+    }
+  }, [session]);
 
   // Fetch restaurant settings and KDS token on mount
   useEffect(() => {
@@ -211,6 +224,38 @@ export default function SettingsPage() {
       console.error(error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleUpdateProfile = async () => {
+    setUpdatingProfile(true);
+    try {
+      const response = await fetch('/api/user/profile', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: userName,
+          image: userImage
+        }),
+      });
+      if (response.ok) {
+        toast.success('Profile updated successfully! ✅');
+        await update({
+          user: {
+            ...session?.user,
+            name: userName,
+            image: userImage
+          }
+        });
+      } else {
+        const err = await response.json();
+        toast.error(err.error || 'Failed to update profile');
+      }
+    } catch (error) {
+      toast.error('Failed to update profile');
+      console.error(error);
+    } finally {
+      setUpdatingProfile(false);
     }
   };
 
@@ -571,31 +616,60 @@ export default function SettingsPage() {
         </Card>
       )}
 
-      {/* User Info */}
+      {/* User Info / Profile Settings */}
       <Card className="p-6 border-border/60">
         <div className="flex items-center gap-3 mb-6">
           <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center text-2xl">
             👤
           </div>
           <div>
-            <h2 className="text-xl font-bold text-foreground">User Information</h2>
-            <p className="text-sm text-muted-foreground">Current logged in user details</p>
+            <h2 className="text-xl font-bold text-foreground">Personal Profile</h2>
+            <p className="text-sm text-muted-foreground">Manage your personal account settings</p>
           </div>
         </div>
 
-        <div className="bg-muted/50 rounded-lg p-4 space-y-2 border border-border">
-          <div className="flex justify-between">
-            <span className="text-sm font-medium text-muted-foreground">Name:</span>
-            <span className="text-sm font-bold text-foreground">{session?.user?.name || 'Admin User'}</span>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-semibold text-foreground mb-2">Email (Read-only)</label>
+            <Input
+              value={session?.user?.email || ''}
+              disabled
+              className="opacity-70 bg-muted/50"
+            />
           </div>
-          <div className="flex justify-between">
-            <span className="text-sm font-medium text-muted-foreground">Email:</span>
-            <span className="text-sm font-bold text-foreground">{session?.user?.email || 'admin@genz.com'}</span>
+          <div>
+            <label className="block text-sm font-semibold text-foreground mb-2">Role</label>
+            <Input
+              value={(session?.user as any)?.role || ''}
+              disabled
+              className="opacity-70 bg-muted/50 text-primary font-bold"
+            />
           </div>
-          <div className="flex justify-between">
-            <span className="text-sm font-medium text-muted-foreground">Role:</span>
-            <span className="text-sm font-bold text-primary">{(session?.user as any)?.role || 'ADMIN'}</span>
+          <div>
+            <label className="block text-sm font-semibold text-foreground mb-2">Full Name</label>
+            <Input
+              value={userName}
+              onChange={(e) => setUserName(e.target.value)}
+              placeholder="Your full name"
+            />
           </div>
+          <div>
+            <label className="block text-sm font-semibold text-foreground mb-2">Profile Image URL</label>
+            <Input
+              value={userImage}
+              onChange={(e) => setUserImage(e.target.value)}
+              placeholder="https://example.com/my-photo.jpg"
+            />
+          </div>
+        </div>
+        <div className="mt-6 flex justify-end">
+          <Button
+            onClick={handleUpdateProfile}
+            variant="default"
+            disabled={updatingProfile}
+          >
+            {updatingProfile ? 'Updating...' : 'Save Profile'}
+          </Button>
         </div>
       </Card>
 
