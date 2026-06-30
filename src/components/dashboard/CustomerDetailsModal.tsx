@@ -90,7 +90,7 @@ export function CustomerDetailsModal({ isOpen, onClose, orderType, onContinue }:
               <p className="text-xs text-muted-foreground">{info.desc}</p>
             </div>
           </div>
-          <button onClick={onClose} className="p-2 rounded-full hover:bg-muted transition-colors">
+          <button onClick={onClose} className="p-2 rounded-full hover:bg-muted active:scale-[0.90] transition-all">
             <X className="w-5 h-5 text-muted-foreground" />
           </button>
         </div>
@@ -136,7 +136,7 @@ export function CustomerDetailsModal({ isOpen, onClose, orderType, onContinue }:
         {/* Footer */}
         <div className="p-6 border-t border-border bg-muted/10">
           <Button 
-            className="w-full h-14 text-lg font-bold shadow-lg"
+            className="w-full h-14 text-lg font-bold shadow-lg active:scale-[0.97] transition-all"
             variant="gradient"
             onClick={handleContinue}
           >

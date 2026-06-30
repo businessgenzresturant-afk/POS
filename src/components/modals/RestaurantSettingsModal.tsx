@@ -205,14 +205,14 @@ export default function RestaurantSettingsModal({ isOpen, onClose }: RestaurantS
         <div className="flex items-center justify-end gap-3 p-6 border-t-2 border-border bg-muted/30">
           <button
             onClick={onClose}
-            className="px-4 py-2 bg-muted text-foreground rounded-lg font-bold text-sm hover:bg-muted/80 transition-colors"
+            className="px-4 py-2 bg-muted text-foreground rounded-lg font-bold text-sm hover:bg-muted/80 active:scale-[0.97] transition-all"
           >
             Cancel
           </button>
           <button
             onClick={handleSave}
             disabled={saving}
-            className="px-4 py-2 bg-primary text-primary-foreground rounded-lg font-bold text-sm hover:opacity-90 transition-opacity flex items-center gap-2 disabled:opacity-50"
+            className="px-4 py-2 bg-primary text-primary-foreground rounded-lg font-bold text-sm hover:opacity-90 active:scale-[0.97] transition-all flex items-center gap-2 disabled:opacity-50 disabled:active:scale-100"
           >
             <Save className="w-4 h-4" />
             {saving ? 'Saving...' : 'Save Changes'}

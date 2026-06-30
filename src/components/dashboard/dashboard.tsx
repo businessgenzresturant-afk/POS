@@ -561,7 +561,7 @@ export function Dashboard() {
               onClick={() => {
                 setTableSelectModalOpen(true);
               }}
-              className="relative overflow-hidden p-6 rounded-3xl border border-border/60 bg-gradient-to-br from-slate-900 to-black flex flex-col justify-between items-start cursor-pointer hover:border-blue-500/50 hover:shadow-2xl hover:shadow-blue-500/10 transition-all duration-300 text-left group min-h-[200px]"
+              className="relative overflow-hidden p-6 rounded-3xl border border-border/60 bg-gradient-to-br from-slate-900 to-black flex flex-col justify-between items-start cursor-pointer hover:border-blue-500/50 hover:shadow-2xl hover:shadow-blue-500/10 active:scale-[0.97] transition-all duration-300 text-left group min-h-[200px]"
             >
               {/* 3D Image Background */}
               <div className="absolute -right-4 top-1/2 -translate-y-1/2 w-48 h-48 opacity-90 group-hover:scale-110 group-hover:opacity-100 group-hover:-translate-x-2 transition-all duration-500 mix-blend-screen pointer-events-none">
@@ -587,7 +587,7 @@ export function Dashboard() {
               onClick={() => {
                 handleOrderTypeCardClick('TAKEAWAY');
               }}
-              className="relative overflow-hidden p-6 rounded-3xl border border-border/60 bg-gradient-to-br from-zinc-900 to-black flex flex-col justify-between items-start cursor-pointer hover:border-amber-500/50 hover:shadow-2xl hover:shadow-amber-500/10 transition-all duration-300 text-left group min-h-[200px]"
+              className="relative overflow-hidden p-6 rounded-3xl border border-border/60 bg-gradient-to-br from-zinc-900 to-black flex flex-col justify-between items-start cursor-pointer hover:border-amber-500/50 hover:shadow-2xl hover:shadow-amber-500/10 active:scale-[0.97] transition-all duration-300 text-left group min-h-[200px]"
             >
               {/* 3D Image Background */}
               <div className="absolute -right-4 top-1/2 -translate-y-1/2 w-48 h-48 opacity-90 group-hover:scale-110 group-hover:opacity-100 group-hover:-translate-x-2 transition-all duration-500 mix-blend-screen pointer-events-none">
@@ -613,7 +613,7 @@ export function Dashboard() {
               onClick={() => {
                 handleOrderTypeCardClick('DELIVERY');
               }}
-              className="relative overflow-hidden p-6 rounded-3xl border border-border/60 bg-gradient-to-br from-stone-900 to-black flex flex-col justify-between items-start cursor-pointer hover:border-rose-500/50 hover:shadow-2xl hover:shadow-rose-500/10 transition-all duration-300 text-left group min-h-[200px]"
+              className="relative overflow-hidden p-6 rounded-3xl border border-border/60 bg-gradient-to-br from-stone-900 to-black flex flex-col justify-between items-start cursor-pointer hover:border-rose-500/50 hover:shadow-2xl hover:shadow-rose-500/10 active:scale-[0.97] transition-all duration-300 text-left group min-h-[200px]"
             >
               {/* 3D Image Background */}
               <div className="absolute -right-4 top-1/2 -translate-y-1/2 w-48 h-48 opacity-90 group-hover:scale-110 group-hover:opacity-100 group-hover:-translate-x-2 transition-all duration-500 mix-blend-screen pointer-events-none">

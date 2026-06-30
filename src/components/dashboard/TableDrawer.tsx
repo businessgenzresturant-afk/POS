@@ -217,7 +217,7 @@ export function TableDrawer({ isOpen, onClose, table, activeOrder, onAddItem, on
                             <button
                               onClick={() => handleQuantityChange(item.id, item.quantity, 1)}
                               disabled={isChanging}
-                              className="w-7 h-7 rounded-lg bg-primary/10 hover:bg-primary/20 text-primary flex items-center justify-center transition-colors disabled:opacity-50"
+                              className="w-7 h-7 rounded-lg bg-primary/10 hover:bg-primary/20 text-primary flex items-center justify-center transition-all active:scale-[0.90] disabled:opacity-50"
                               title="Add one more"
                             >
                               <Plus className="w-4 h-4" />
@@ -225,7 +225,7 @@ export function TableDrawer({ isOpen, onClose, table, activeOrder, onAddItem, on
                             <button
                               onClick={() => handleCancelItem(item.id, item.menuItem?.name || 'item')}
                               disabled={isChanging}
-                              className="w-7 h-7 rounded-lg bg-red-500/10 hover:bg-red-500/20 text-red-500 flex items-center justify-center transition-colors disabled:opacity-50"
+                              className="w-7 h-7 rounded-lg bg-red-500/10 hover:bg-red-500/20 text-red-500 flex items-center justify-center transition-all active:scale-[0.90] disabled:opacity-50"
                               title="Cancel item"
                             >
                               <X className="w-4 h-4" />
@@ -245,7 +245,7 @@ export function TableDrawer({ isOpen, onClose, table, activeOrder, onAddItem, on
                         <Button 
                           variant="ghost" 
                           size="sm" 
-                          className="h-6 mt-2 px-2 text-xs font-bold text-primary hover:bg-primary/10"
+                          className="h-6 mt-2 px-2 text-xs font-bold text-primary hover:bg-primary/10 active:scale-[0.97] transition-all"
                           disabled={isReordering === item.menuItem.id}
                           onClick={async () => {
                             setIsReordering(item.menuItem.id);
@@ -397,7 +397,7 @@ export function TableDrawer({ isOpen, onClose, table, activeOrder, onAddItem, on
               <Button 
                 variant="outline" 
                 onClick={() => setShowCancelModal(false)} 
-                className="flex-1 h-11 rounded-xl"
+                className="flex-1 h-11 rounded-xl active:scale-[0.97] transition-all"
                 disabled={isCancelling}
               >
                 Keep Item
@@ -405,7 +405,7 @@ export function TableDrawer({ isOpen, onClose, table, activeOrder, onAddItem, on
               <Button 
                 onClick={confirmCancelItem} 
                 variant="destructive" 
-                className="flex-1 h-11 rounded-xl font-bold bg-red-600 hover:bg-red-700"
+                className="flex-1 h-11 rounded-xl font-bold bg-red-600 hover:bg-red-700 active:scale-[0.97] transition-all"
                 disabled={isCancelling || !cancelReason || (cancelReason === 'Other' && !cancelReasonOther.trim())}
               >
                 {isCancelling ? (

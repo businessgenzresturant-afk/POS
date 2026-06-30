@@ -21,6 +21,7 @@ export default function ManageStaffModal({ isOpen, onClose }: ManageStaffModalPr
   const [staff, setStaff] = useState<StaffMember[]>([]);
   const [loading, setLoading] = useState(false);
   const [showAddForm, setShowAddForm] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [newStaff, setNewStaff] = useState({
     name: '',
     email: '',
@@ -53,6 +54,7 @@ export default function ManageStaffModal({ isOpen, onClose }: ManageStaffModalPr
       return;
     }
 
+    setIsSubmitting(true);
     try {
       const response = await fetch('/api/staff', {
         method: 'POST',
@@ -72,6 +74,8 @@ export default function ManageStaffModal({ isOpen, onClose }: ManageStaffModalPr
     } catch (error) {
       console.error('Failed to add staff:', error);
       toast.error('Failed to add staff member');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -191,13 +195,17 @@ export default function ManageStaffModal({ isOpen, onClose }: ManageStaffModalPr
               <div className="flex gap-2">
                 <button
                   onClick={handleAddStaff}
-                  className="px-4 py-2 bg-primary text-primary-foreground rounded-lg font-bold text-sm hover:opacity-90 transition-opacity active:scale-[0.97]"
+                  disabled={isSubmitting}
+                  className="px-4 py-2 bg-primary text-primary-foreground rounded-lg font-bold text-sm hover:opacity-90 transition-all active:scale-[0.97] disabled:opacity-50 flex items-center gap-2"
                 >
-                  Add Staff
+                  {isSubmitting ? (
+                    <><div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> Adding...</>
+                  ) : 'Add Staff'}
                 </button>
                 <button
                   onClick={() => setShowAddForm(false)}
-                  className="px-4 py-2 bg-muted text-foreground rounded-lg font-bold text-sm hover:bg-muted/80 transition-colors"
+                  disabled={isSubmitting}
+                  className="px-4 py-2 bg-muted text-foreground rounded-lg font-bold text-sm hover:bg-muted/80 transition-all active:scale-[0.97] disabled:opacity-50"
                 >
                   Cancel
                 </button>
@@ -263,7 +271,7 @@ export default function ManageStaffModal({ isOpen, onClose }: ManageStaffModalPr
         <div className="flex items-center justify-end gap-3 p-6 border-t-2 border-border bg-muted/30">
           <button
             onClick={onClose}
-            className="px-4 py-2 bg-muted text-foreground rounded-lg font-bold text-sm hover:bg-muted/80 transition-colors"
+            className="px-4 py-2 bg-muted text-foreground rounded-lg font-bold text-sm hover:bg-muted/80 transition-all active:scale-[0.97]"
           >
             Close
           </button>

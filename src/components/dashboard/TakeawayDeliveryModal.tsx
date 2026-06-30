@@ -21,6 +21,7 @@ export function TakeawayDeliveryModal({
   onNewOrder,
   onGenerateBill
 }: TakeawayDeliveryModalProps) {
+  const [generatingId, setGeneratingId] = useState<string | null>(null);
   if (!isOpen) return null;
 
   const Icon = type === 'TAKEAWAY' ? ShoppingBag : Truck;
@@ -110,10 +111,22 @@ export function TakeawayDeliveryModal({
                     
                     <Button 
                       className={`w-full font-bold shadow-sm bg-${colorClass}-600 hover:bg-${colorClass}-700 active:scale-[0.97] transition-transform`}
-                      onClick={() => onGenerateBill(order.id)}
+                      disabled={generatingId === order.id}
+                      onClick={async () => {
+                        setGeneratingId(order.id);
+                        try {
+                          await onGenerateBill(order.id);
+                        } finally {
+                          setGeneratingId(null);
+                        }
+                      }}
                     >
-                      <Receipt className="w-4 h-4 mr-2" />
-                      Generate Bill
+                      {generatingId === order.id ? (
+                        <div className="w-4 h-4 mr-2 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                      ) : (
+                        <Receipt className="w-4 h-4 mr-2" />
+                      )}
+                      {generatingId === order.id ? 'Generating...' : 'Generate Bill'}
                     </Button>
                   </div>
                 </div>
