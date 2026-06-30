@@ -187,6 +187,7 @@ model User {
   name                String
   image               String?
   role                Role        @default(STAFF)
+  active              Boolean     @default(true)
   restaurantId        String?
   createdAt           DateTime    @default(now())
   cancelledOrderItems OrderItem[]
@@ -222,6 +223,9 @@ enum BillStatus {
 
 enum Role {
   ADMIN
+  MANAGER
+  WAITER
+  CHEF
   STAFF
 }
 
