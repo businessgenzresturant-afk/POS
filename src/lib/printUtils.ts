@@ -48,21 +48,24 @@ export const printReceipt = (bill: any, type: 'receipt' | 'kot' = 'receipt') => 
     padding: 2mm 1mm;
     margin: 0 auto;
   }
+  /* Custom bold that doesn't trigger thermal printer double-strike */
+  .b { -webkit-text-stroke: 0.5px black; }
+  
   .c { text-align: center; }
   .hr { border-top: 1px dashed #000; margin: 3px 0; }
   .row { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 2px; width: 100%; }
-  .item-name { flex: 1; text-align: left; padding-right: 2mm; font-size: 16px; font-weight: bold; }
-  .item-qty { font-size: 18px; font-weight: bold; min-width: 15mm; text-align: right; }
+  .item-name { flex: 1; text-align: left; padding-right: 2mm; font-size: 16px; }
+  .item-qty { font-size: 18px; min-width: 15mm; text-align: right; }
 </style>
 </head>
 <body onload="window.print(); setTimeout(function(){ window.close(); }, ${PRINTER.AUTO_PRINT_DELAY});">
-<div class="c" style="font-size:24px; font-weight:bold; letter-spacing: 1px;">KOT</div>
+<div class="c b" style="font-size:24px; letter-spacing: 1px;">KOT</div>
 <div class="c" style="font-size:14px; margin-bottom: 3px;">Kitchen Order Ticket</div>
 <div class="hr"></div>
-<div class="row"><span>Table:</span><span style="font-size:18px; font-weight:bold;">T-${bill.order?.table?.number ?? bill.table?.number ?? '?'}</span></div>
+<div class="row"><span>Table:</span><span class="b" style="font-size:18px;">T-${bill.order?.table?.number ?? bill.table?.number ?? '?'}</span></div>
 <div class="row"><span>Time:</span><span>${fmtTime(oTime)}</span></div>
 <div class="hr"></div>
-<div class="row" style="font-size:14px; font-weight:bold;"><span class="item-name" style="font-size:14px;">ITEM</span><span class="item-qty" style="font-size:14px;">QTY</span></div>
+<div class="row b" style="font-size:14px;"><span class="item-name b" style="font-size:14px;">ITEM</span><span class="item-qty b" style="font-size:14px;">QTY</span></div>
 <div class="hr"></div>
 ${merged.map(item => `
 <div class="row">
@@ -113,13 +116,15 @@ body {
   padding: 2mm 1mm;
   margin: 0 auto;
 }
+/* Custom bold that doesn't trigger thermal printer double-strike */
+.b { -webkit-text-stroke: 0.5px black; }
+
 .c { text-align: center; }
 .r { text-align: right; }
-.b { font-weight: bold; }
 .hr { border-top: 1px dashed #000; margin: 3px 0; }
 .dash { border-top: 1px dashed #000; margin: 3px 0; }
 table { width: 100%; border-collapse: collapse; }
-th { border-bottom: 1px dashed #000; padding: 2px 0; font-size: 12px; font-weight: bold; }
+th { border-bottom: 1px dashed #000; padding: 2px 0; font-size: 12px; }
 td { padding: 2px 0; font-size: 12px; }
 th:nth-child(1), td:nth-child(1) { text-align: left; }
 th:nth-child(2), td:nth-child(2) { text-align: center; width: 15%; }
@@ -142,24 +147,24 @@ Contact: ${RESTAURANT_INFO.PHONE}
 
 <div class="hr"></div>
 
-<div style="font-size:12px;"><b>Name:</b> ${customerName || 'Walk-in Customer'}</div>
+<div style="font-size:12px;"><span class="b">Name:</span> ${customerName || 'Walk-in Customer'}</div>
 <div class="row">
-<span><b>Date:</b> ${fmtDate(oTime)}</span>
-<span><b>Time:</b> ${fmtTime(oTime)}</span>
+<span><span class="b">Date:</span> ${fmtDate(oTime)}</span>
+<span><span class="b">Time:</span> ${fmtTime(oTime)}</span>
 </div>
 <div class="row">
-<span><b>Bill No:</b> ${billNo}</span>
-<span><b>Table:</b> ${tableNum ?? '-'}</span>
+<span><span class="b">Bill No:</span> ${billNo}</span>
+<span><span class="b">Table:</span> ${tableNum ?? '-'}</span>
 </div>
 <div class="row">
-<span><b>Cashier:</b> admin</span>
-${tokenNo ? `<span><b>Token:</b> ${tokenNo}</span>` : '<span></span>'}
+<span><span class="b">Cashier:</span> admin</span>
+${tokenNo ? `<span><span class="b">Token:</span> ${tokenNo}</span>` : '<span></span>'}
 </div>
 
 <div class="hr"></div>
 
 <table>
-<thead><tr><th>Item</th><th>Qty</th><th>Rate</th><th>Amt</th></tr></thead>
+<thead><tr><th class="b">Item</th><th class="b">Qty</th><th class="b">Rate</th><th class="b">Amt</th></tr></thead>
 <tbody>
 ${merged.map((item: any) => {
   const price = item.menuItem?.price ?? item.price ?? 0;
