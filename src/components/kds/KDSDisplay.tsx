@@ -282,8 +282,8 @@ export default function KDSDisplay({ restaurantId, readOnly = false, enableRecon
             item.specialInstructions && item.specialInstructions.includes('[URGENT ADDITION]')
           );
 
-          // Case 1: Completely new order
           if (!oldOrder) {
+            // Case 1: Completely new order
             if (hasUrgentInstruction) {
               hasUrgent = true;
               urgentOrderIds.push(order.id);
@@ -291,21 +291,12 @@ export default function KDSDisplay({ restaurantId, readOnly = false, enableRecon
               hasNew = true;
               newOrderIds.push(order.id);
             }
-          } 
-          // Case 2: Existing order with more items (Running Table)
-          else if (order.items.length > oldOrder.items.length) {
-            hasUrgent = true;
-            urgentOrderIds.push(order.id);
-          }
-          // Case 3: New order on same table as a recently SERVED order (within 5 mins)
-          else if (!oldOrder && order.tableId) {
-            const recentlyServedOrder = prev.find((o: any) => 
-              o.tableId === order.tableId && 
-              o.status === 'SERVED' &&
-              (new Date().getTime() - new Date(o.updatedAt || o.createdAt).getTime() < 5 * 60 * 1000)
-            );
-            
-            if (recentlyServedOrder) {
+          } else {
+            // Case 2: Existing order — check if NEW items were added (Running Table)
+            // Compare by item IDs: any item in current order not in previous snapshot = new addition
+            const oldItemIds = new Set(oldOrder.items.map((i: any) => i.id));
+            const hasNewItems = order.items.some((item: any) => !oldItemIds.has(item.id));
+            if (hasNewItems) {
               hasUrgent = true;
               urgentOrderIds.push(order.id);
             }
@@ -412,40 +403,15 @@ export default function KDSDisplay({ restaurantId, readOnly = false, enableRecon
     const normalItems: any[] = [];
     const urgentItems: any[] = [];
     
-    let orderTime: number;
-    try {
-      orderTime = new Date(order.createdAt).getTime();
-      if (isNaN(orderTime)) {
-        if (process.env.NODE_ENV === 'development') {
-          console.warn('[KDS] Invalid createdAt date for order:', order.id);
-        }
-        orderTime = Date.now();
-      }
-    } catch (e) {
-      if (process.env.NODE_ENV === 'development') {
-        console.warn('[KDS] Date parse error for order:', order.id);
-      }
-      orderTime = Date.now();
-    }
+    // Get the previous snapshot of this order (from last poll) for item comparison
+    const prevOrder = previousOrdersRef.current.find((o: any) => o.id === order.id);
+    const prevItemIds: Set<string> = prevOrder
+      ? new Set(prevOrder.items.map((i: any) => i.id))
+      : new Set();
     
-    let earliestItemTime = orderTime;
-    if (order.items.length > 0) {
-      const itemTimes = order.items
-        .map((i: any) => {
-          try {
-            const time = new Date(i.createdAt).getTime();
-            return isNaN(time) ? orderTime : time;
-          } catch (e) {
-            return orderTime;
-          }
-        })
-        .filter((t: number) => !isNaN(t));
-      
-      if (itemTimes.length > 0) {
-        earliestItemTime = Math.min(...itemTimes);
-      }
-    }
-    
+    // An item is "urgent" if:
+    // 1. It was added AFTER the order was already on the KDS (prevOrder exists but item is new)
+    // 2. OR it has [URGENT ADDITION] special instruction
     order.items.forEach((item: any) => {
       if (!item || !item.menuItem) {
         if (process.env.NODE_ENV === 'development') {
@@ -454,17 +420,9 @@ export default function KDSDisplay({ restaurantId, readOnly = false, enableRecon
         return;
       }
       
-      let itemTime: number;
-      try {
-        itemTime = new Date(item.createdAt).getTime();
-        if (isNaN(itemTime)) {
-          itemTime = orderTime;
-        }
-      } catch (e) {
-        itemTime = orderTime;
-      }
-      
-      const isUrgent = (itemTime - earliestItemTime > 120000) || (item.specialInstructions && item.specialInstructions.includes('[URGENT ADDITION]'));
+      const isNewAddition = prevOrder !== undefined && !prevItemIds.has(item.id);
+      const isUrgentInstruction = item.specialInstructions && item.specialInstructions.includes('[URGENT ADDITION]');
+      const isUrgent = isNewAddition || isUrgentInstruction;
       
       if (isUrgent) {
         urgentItems.push(item);
@@ -480,10 +438,9 @@ export default function KDSDisplay({ restaurantId, readOnly = false, enableRecon
       });
     }
 
-    return {
-      ...order,
-      items: normalItems
-    };
+    // If ALL items are urgent (first-time additions), show the order in both urgent + normal
+    // If some normal items remain, show them in normal section too
+    return normalItems.length > 0 ? { ...order, items: normalItems } : null;
   }).filter(o => o !== null && o.items.length > 0);
 
   // Count by order type

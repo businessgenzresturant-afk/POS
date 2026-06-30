@@ -54,7 +54,8 @@ export const GET = withTiming(async (request: Request) => {
         items: {
           include: {
             menuItem: { select: { id: true, name: true, category: true, dietType: true } }
-          }
+          },
+          // ⚡ createdAt needed for urgent item detection in KDS
         }
       },
       orderBy: { createdAt: 'desc' }
