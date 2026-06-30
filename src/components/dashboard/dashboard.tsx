@@ -282,7 +282,7 @@ export function Dashboard() {
     setMenuDrawerOpen(true);
   };
 
-  const handlePlaceOrder = async (items: any[]) => {
+  const handlePlaceOrder = async (items: any[], action: 'SAVE' | 'SAVE_PRINT' | 'SAVE_EBILL' = 'SAVE') => {
     const toastId = toast.loading('🔥 Saving Order...', { duration: Infinity });
     
     try {
@@ -309,8 +309,43 @@ export function Dashboard() {
         throw new Error(errorData.error || 'Failed to place order');
       }
       
+      const orderData = await response.json();
+      
       toast.success('✅ Done', { id: toastId, duration: 2000 });
       setMenuDrawerOpen(false);
+      
+      if (action === 'SAVE_PRINT') {
+        import('@/lib/printUtils').then(({ printReceipt }) => {
+          printReceipt({ ...orderData, order: orderData }, 'kot');
+        });
+      } else if (action === 'SAVE_EBILL') {
+        // Mark as served
+        await fetch(`/api/orders/${orderData.id}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ status: 'SERVED' })
+        });
+        
+        // Generate bill
+        const billResponse = await fetch('/api/bills', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ orderId: orderData.id })
+        });
+        const newBill = await billResponse.json();
+        
+        // Send eBill via WhatsApp
+        const phone = customerDetails?.customerPhone || '';
+        const name = customerDetails?.customerName || 'Customer';
+        const billTotal = newBill.total ? newBill.total.toFixed(2) : orderData.totalAmount.toFixed(2);
+        
+        const text = `Hi ${name}, thank you for your order!\n\nYour bill total is ₹${billTotal}.\n\nView your receipt here: https://pos.gen-z.online/receipt/${newBill.id || 'order-' + orderData.id}`;
+        
+        // Open WhatsApp in new tab
+        const waUrl = `https://wa.me/${phone ? '91'+phone : ''}?text=${encodeURIComponent(text)}`;
+        window.open(waUrl, '_blank');
+      }
+      
       fetchData();
     } catch (err: any) {
       toast.error('❌ Failed: ' + (err.message || 'Try again'), { id: toastId });
@@ -535,10 +570,10 @@ export function Dashboard() {
               onClick={() => {
                 setTableSelectModalOpen(true);
               }}
-              className="relative overflow-hidden p-6 rounded-3xl border border-border/60 bg-gradient-to-br from-card to-background flex flex-col justify-between items-start cursor-pointer hover:border-blue-500/50 hover:shadow-2xl hover:shadow-blue-500/10 transition-all duration-300 text-left group min-h-[200px]"
+              className="relative overflow-hidden p-6 rounded-3xl border border-border/60 bg-gradient-to-br from-slate-900 to-black flex flex-col justify-between items-start cursor-pointer hover:border-blue-500/50 hover:shadow-2xl hover:shadow-blue-500/10 transition-all duration-300 text-left group min-h-[200px]"
             >
               {/* 3D Image Background */}
-              <div className="absolute -right-4 top-1/2 -translate-y-1/2 w-48 h-48 opacity-90 group-hover:scale-110 group-hover:opacity-100 group-hover:-translate-x-2 transition-all duration-500 mix-blend-lighten pointer-events-none">
+              <div className="absolute -right-4 top-1/2 -translate-y-1/2 w-48 h-48 opacity-90 group-hover:scale-110 group-hover:opacity-100 group-hover:-translate-x-2 transition-all duration-500 mix-blend-screen pointer-events-none">
                 <img src="/images/dashboard/dine_in.png" alt="Dine In" className="w-full h-full object-contain" />
               </div>
               
@@ -561,10 +596,10 @@ export function Dashboard() {
               onClick={() => {
                 handleOrderTypeCardClick('TAKEAWAY');
               }}
-              className="relative overflow-hidden p-6 rounded-3xl border border-border/60 bg-gradient-to-br from-card to-background flex flex-col justify-between items-start cursor-pointer hover:border-amber-500/50 hover:shadow-2xl hover:shadow-amber-500/10 transition-all duration-300 text-left group min-h-[200px]"
+              className="relative overflow-hidden p-6 rounded-3xl border border-border/60 bg-gradient-to-br from-zinc-900 to-black flex flex-col justify-between items-start cursor-pointer hover:border-amber-500/50 hover:shadow-2xl hover:shadow-amber-500/10 transition-all duration-300 text-left group min-h-[200px]"
             >
               {/* 3D Image Background */}
-              <div className="absolute -right-4 top-1/2 -translate-y-1/2 w-48 h-48 opacity-90 group-hover:scale-110 group-hover:opacity-100 group-hover:-translate-x-2 transition-all duration-500 mix-blend-lighten pointer-events-none">
+              <div className="absolute -right-4 top-1/2 -translate-y-1/2 w-48 h-48 opacity-90 group-hover:scale-110 group-hover:opacity-100 group-hover:-translate-x-2 transition-all duration-500 mix-blend-screen pointer-events-none">
                 <img src="/images/dashboard/takeaway.png" alt="Takeaway" className="w-full h-full object-contain" />
               </div>
               
@@ -587,10 +622,10 @@ export function Dashboard() {
               onClick={() => {
                 handleOrderTypeCardClick('DELIVERY');
               }}
-              className="relative overflow-hidden p-6 rounded-3xl border border-border/60 bg-gradient-to-br from-card to-background flex flex-col justify-between items-start cursor-pointer hover:border-rose-500/50 hover:shadow-2xl hover:shadow-rose-500/10 transition-all duration-300 text-left group min-h-[200px]"
+              className="relative overflow-hidden p-6 rounded-3xl border border-border/60 bg-gradient-to-br from-stone-900 to-black flex flex-col justify-between items-start cursor-pointer hover:border-rose-500/50 hover:shadow-2xl hover:shadow-rose-500/10 transition-all duration-300 text-left group min-h-[200px]"
             >
               {/* 3D Image Background */}
-              <div className="absolute -right-4 top-1/2 -translate-y-1/2 w-48 h-48 opacity-90 group-hover:scale-110 group-hover:opacity-100 group-hover:-translate-x-2 transition-all duration-500 mix-blend-lighten pointer-events-none">
+              <div className="absolute -right-4 top-1/2 -translate-y-1/2 w-48 h-48 opacity-90 group-hover:scale-110 group-hover:opacity-100 group-hover:-translate-x-2 transition-all duration-500 mix-blend-screen pointer-events-none">
                 <img src="/images/dashboard/delivery.png" alt="Delivery" className="w-full h-full object-contain" />
               </div>
               
@@ -619,57 +654,77 @@ export function Dashboard() {
             {/* KDS Card */}
             <Link 
               href="/kds"
-              className="p-5 rounded-2xl border border-border bg-card flex flex-col justify-between items-start cursor-pointer hover:border-orange-500/50 hover:bg-orange-500/[0.02] hover:shadow-lg hover:shadow-orange-500/5 transition-all group min-h-[130px]"
+              className="relative overflow-hidden p-5 rounded-3xl border border-border/60 bg-gradient-to-br from-orange-950 to-black flex flex-col justify-between items-start cursor-pointer hover:border-orange-500/50 hover:shadow-2xl hover:shadow-orange-500/10 transition-all group min-h-[160px]"
             >
-              <div className="flex items-center gap-3">
-                <div className="p-2.5 bg-orange-500/10 text-orange-500 rounded-xl group-hover:scale-110 transition-transform">
+              <div className="absolute -right-4 top-1/2 -translate-y-1/2 w-32 h-32 opacity-80 group-hover:scale-110 group-hover:opacity-100 group-hover:-translate-x-1 transition-all duration-500 mix-blend-screen pointer-events-none">
+                <img src="/images/dashboard/kds.png" alt="KDS" className="w-full h-full object-contain" />
+              </div>
+              <div className="relative z-10 flex flex-col h-full justify-between w-full">
+                <div className="p-2.5 bg-orange-500/20 text-orange-400 rounded-xl backdrop-blur-md border border-orange-500/20 group-hover:scale-110 transition-transform w-fit">
                   <ChefHat className="w-5 h-5" />
                 </div>
-                <h3 className="font-bold text-foreground group-hover:text-orange-500 transition-colors">Kitchen Display (KDS)</h3>
+                <div className="mt-6 w-[70%]">
+                  <h3 className="font-black text-xl text-white drop-shadow-md">Kitchen Display</h3>
+                  <p className="text-xs text-gray-400 font-medium mt-1 leading-relaxed">Monitor kitchen orders</p>
+                </div>
               </div>
-              <p className="text-xs text-muted-foreground mt-3 leading-relaxed">Monitor and process kitchen orders in real-time</p>
             </Link>
 
             {/* Bills Card */}
             <Link 
               href="/bills"
-              className="p-5 rounded-2xl border border-border bg-card flex flex-col justify-between items-start cursor-pointer hover:border-indigo-500/50 hover:bg-indigo-500/[0.02] hover:shadow-lg hover:shadow-indigo-500/5 transition-all group min-h-[130px]"
+              className="relative overflow-hidden p-5 rounded-3xl border border-border/60 bg-gradient-to-br from-indigo-950 to-black flex flex-col justify-between items-start cursor-pointer hover:border-indigo-500/50 hover:shadow-2xl hover:shadow-indigo-500/10 transition-all group min-h-[160px]"
             >
-              <div className="flex items-center gap-3">
-                <div className="p-2.5 bg-indigo-500/10 text-indigo-500 rounded-xl group-hover:scale-110 transition-transform">
+              <div className="absolute -right-4 top-1/2 -translate-y-1/2 w-32 h-32 opacity-80 group-hover:scale-110 group-hover:opacity-100 group-hover:-translate-x-1 transition-all duration-500 mix-blend-screen pointer-events-none">
+                <img src="/images/dashboard/bills.png" alt="Bills" className="w-full h-full object-contain" />
+              </div>
+              <div className="relative z-10 flex flex-col h-full justify-between w-full">
+                <div className="p-2.5 bg-indigo-500/20 text-indigo-400 rounded-xl backdrop-blur-md border border-indigo-500/20 group-hover:scale-110 transition-transform w-fit">
                   <Receipt className="w-5 h-5" />
                 </div>
-                <h3 className="font-bold text-foreground group-hover:text-indigo-500 transition-colors">Bills & Receipts</h3>
+                <div className="mt-6 w-[70%]">
+                  <h3 className="font-black text-xl text-white drop-shadow-md">Bills & Receipts</h3>
+                  <p className="text-xs text-gray-400 font-medium mt-1 leading-relaxed">Generate guest invoices</p>
+                </div>
               </div>
-              <p className="text-xs text-muted-foreground mt-3 leading-relaxed">Generate guest invoices and track payments</p>
             </Link>
 
             {/* Orders Card */}
             <Link 
               href="/orders"
-              className="p-5 rounded-2xl border border-border bg-card flex flex-col justify-between items-start cursor-pointer hover:border-blue-500/50 hover:bg-blue-500/[0.02] hover:shadow-lg hover:shadow-blue-500/5 transition-all group min-h-[130px]"
+              className="relative overflow-hidden p-5 rounded-3xl border border-border/60 bg-gradient-to-br from-blue-950 to-black flex flex-col justify-between items-start cursor-pointer hover:border-blue-500/50 hover:shadow-2xl hover:shadow-blue-500/10 transition-all group min-h-[160px]"
             >
-              <div className="flex items-center gap-3">
-                <div className="p-2.5 bg-blue-500/10 text-blue-500 rounded-xl group-hover:scale-110 transition-transform">
+              <div className="absolute -right-4 top-1/2 -translate-y-1/2 w-32 h-32 opacity-80 group-hover:scale-110 group-hover:opacity-100 group-hover:-translate-x-1 transition-all duration-500 mix-blend-screen pointer-events-none">
+                <img src="/images/dashboard/history.png" alt="History" className="w-full h-full object-contain" />
+              </div>
+              <div className="relative z-10 flex flex-col h-full justify-between w-full">
+                <div className="p-2.5 bg-blue-500/20 text-blue-400 rounded-xl backdrop-blur-md border border-blue-500/20 group-hover:scale-110 transition-transform w-fit">
                   <ClipboardList className="w-5 h-5" />
                 </div>
-                <h3 className="font-bold text-foreground group-hover:text-blue-500 transition-colors">Order History</h3>
+                <div className="mt-6 w-[70%]">
+                  <h3 className="font-black text-xl text-white drop-shadow-md">Order History</h3>
+                  <p className="text-xs text-gray-400 font-medium mt-1 leading-relaxed">View and track orders</p>
+                </div>
               </div>
-              <p className="text-xs text-muted-foreground mt-3 leading-relaxed">View, edit, and track active and past orders</p>
             </Link>
 
             {/* Reports Card */}
             <Link 
               href="/reports"
-              className="p-5 rounded-2xl border border-border bg-card flex flex-col justify-between items-start cursor-pointer hover:border-emerald-500/50 hover:bg-emerald-500/[0.02] hover:shadow-lg hover:shadow-emerald-500/5 transition-all group min-h-[130px]"
+              className="relative overflow-hidden p-5 rounded-3xl border border-border/60 bg-gradient-to-br from-emerald-950 to-black flex flex-col justify-between items-start cursor-pointer hover:border-emerald-500/50 hover:shadow-2xl hover:shadow-emerald-500/10 transition-all group min-h-[160px]"
             >
-              <div className="flex items-center gap-3">
-                <div className="p-2.5 bg-emerald-500/10 text-emerald-500 rounded-xl group-hover:scale-110 transition-transform">
+              <div className="absolute -right-4 top-1/2 -translate-y-1/2 w-32 h-32 opacity-80 group-hover:scale-110 group-hover:opacity-100 group-hover:-translate-x-1 transition-all duration-500 mix-blend-screen pointer-events-none">
+                <img src="/images/dashboard/reports.png" alt="Reports" className="w-full h-full object-contain" />
+              </div>
+              <div className="relative z-10 flex flex-col h-full justify-between w-full">
+                <div className="p-2.5 bg-emerald-500/20 text-emerald-400 rounded-xl backdrop-blur-md border border-emerald-500/20 group-hover:scale-110 transition-transform w-fit">
                   <BarChart3 className="w-5 h-5" />
                 </div>
-                <h3 className="font-bold text-foreground group-hover:text-emerald-500 transition-colors">Reports & Analytics</h3>
+                <div className="mt-6 w-[70%]">
+                  <h3 className="font-black text-xl text-white drop-shadow-md">Reports</h3>
+                  <p className="text-xs text-gray-400 font-medium mt-1 leading-relaxed">Analyze performance</p>
+                </div>
               </div>
-              <p className="text-xs text-muted-foreground mt-3 leading-relaxed">Analyze restaurant performance and revenue metrics</p>
             </Link>
 
           </div>

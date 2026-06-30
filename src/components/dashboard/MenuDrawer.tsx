@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { X, Search, ShoppingCart, Send, ArrowLeft } from 'lucide-react';
+import { X, Search, ShoppingCart, Send, ArrowLeft, Printer, Phone } from 'lucide-react';
 import { DietIndicator } from '@/components/ui/diet-indicator';
 
 interface MenuDrawerProps {
@@ -10,7 +10,7 @@ interface MenuDrawerProps {
   onBack?: () => void;
   menuItems: any[];
   tableId: string | null;
-  onPlaceOrder: (items: any[]) => void;
+  onPlaceOrder: (items: any[], action?: 'SAVE' | 'SAVE_PRINT' | 'SAVE_EBILL') => void;
 }
 
 export function MenuDrawer({ isOpen, onClose, onBack, menuItems, tableId, onPlaceOrder }: MenuDrawerProps) {
@@ -94,7 +94,7 @@ export function MenuDrawer({ isOpen, onClose, onBack, menuItems, tableId, onPlac
 
   const totalAmount = cart.reduce((sum, item) => sum + (getMenuItemPrice(item.menuItemId, item.portionType) * item.quantity), 0);
 
-  const handleSubmit = async () => {
+  const handleSubmit = async (action: 'SAVE' | 'SAVE_PRINT' | 'SAVE_EBILL' = 'SAVE') => {
     if (cart.length > 0 && submitState === 'IDLE') {
       setSubmitState('SAVING');
       try {
@@ -104,7 +104,7 @@ export function MenuDrawer({ isOpen, onClose, onBack, menuItems, tableId, onPlac
           if (!isComplete) setSubmitState('UPDATING_KITCHEN');
         }, 400);
 
-        await onPlaceOrder(cart);
+        await onPlaceOrder(cart, action);
         isComplete = true;
         setSubmitState('DONE');
         setCart([]);
@@ -368,34 +368,43 @@ export function MenuDrawer({ isOpen, onClose, onBack, menuItems, tableId, onPlac
               <span className="font-bold text-muted-foreground">Total</span>
               <span className="font-black text-3xl text-primary">₹{totalAmount.toFixed(2)}</span>
             </div>
-            <Button 
-              className="w-full h-14 text-lg font-bold shadow-md shadow-orange-500/20 bg-orange-500 hover:bg-orange-600 active:scale-[0.97] transition-transform disabled:opacity-50 disabled:cursor-not-allowed"
-              disabled={cart.length === 0 || submitState !== 'IDLE'}
-              onClick={handleSubmit}
-            >
-              {submitState === 'IDLE' && (
-                <>
-                  <Send className="w-5 h-5 mr-2" /> Send to Kitchen
-                </>
-              )}
-              {submitState === 'SAVING' && (
-                <>
-                  <div className="w-5 h-5 mr-2 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                  Saving Order...
-                </>
-              )}
-              {submitState === 'UPDATING_KITCHEN' && (
-                <>
-                  <div className="w-5 h-5 mr-2 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                  Updating Kitchen...
-                </>
-              )}
-              {submitState === 'DONE' && (
-                <>
-                  ✅ Done
-                </>
-              )}
-            </Button>
+            {submitState === 'IDLE' ? (
+              <div className="grid grid-cols-3 gap-2">
+                <Button 
+                  className="w-full h-12 text-xs font-bold shadow-md shadow-blue-500/20 bg-blue-500 hover:bg-blue-600 active:scale-[0.97] transition-transform flex flex-col items-center justify-center px-1"
+                  disabled={cart.length === 0}
+                  onClick={() => handleSubmit('SAVE')}
+                >
+                  <Send className="w-4 h-4 mb-0.5" /> Save
+                </Button>
+                <Button 
+                  className="w-full h-12 text-xs font-bold shadow-md shadow-orange-500/20 bg-orange-500 hover:bg-orange-600 active:scale-[0.97] transition-transform flex flex-col items-center justify-center px-1"
+                  disabled={cart.length === 0}
+                  onClick={() => handleSubmit('SAVE_PRINT')}
+                >
+                  <Printer className="w-4 h-4 mb-0.5" /> Save & Print
+                </Button>
+                <Button 
+                  className="w-full h-12 text-xs font-bold shadow-md shadow-green-500/20 bg-green-500 hover:bg-green-600 active:scale-[0.97] transition-transform flex flex-col items-center justify-center px-1"
+                  disabled={cart.length === 0}
+                  onClick={() => handleSubmit('SAVE_EBILL')}
+                >
+                  <Phone className="w-4 h-4 mb-0.5" /> eBill
+                </Button>
+              </div>
+            ) : (
+              <Button className="w-full h-12 font-bold bg-muted text-muted-foreground" disabled>
+                {submitState === 'SAVING' && (
+                  <><div className="w-5 h-5 mr-2 border-2 border-muted-foreground border-t-transparent rounded-full animate-spin" /> Saving...</>
+                )}
+                {submitState === 'UPDATING_KITCHEN' && (
+                  <><div className="w-5 h-5 mr-2 border-2 border-muted-foreground border-t-transparent rounded-full animate-spin" /> Kitchen...</>
+                )}
+                {submitState === 'DONE' && (
+                  <>✅ Done</>
+                )}
+              </Button>
+            )}
           </div>
         </div>
       </div>
