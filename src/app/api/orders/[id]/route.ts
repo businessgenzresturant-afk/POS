@@ -22,16 +22,13 @@ export const GET = withTiming(async (
     const order = await prisma.order.findFirst({
       where: {
         id,
-        OR: [
-          { table: { restaurantId } },
-          { items: { some: { menuItem: { restaurantId } } } }
-        ]
+        items: { some: { menuItem: { restaurantId } } }
       },
       include: {
-        table: true,
+        table: { select: { id: true, number: true, status: true } },
         items: {
           include: {
-            menuItem: true
+            menuItem: { select: { id: true, name: true, category: true, price: true, priceHalf: true, hasHalfFullOption: true, dietType: true } }
           }
         }
       }
@@ -67,11 +64,9 @@ export const PATCH = withTiming(async (
     const existingOrder = await prisma.order.findFirst({
       where: {
         id,
-        OR: [
-          { table: { restaurantId } },
-          { items: { some: { menuItem: { restaurantId } } } }
-        ]
-      }
+        items: { some: { menuItem: { restaurantId } } }
+      },
+      select: { id: true, version: true, tableId: true, status: true }
     });
 
     if (!existingOrder) {
@@ -108,10 +103,10 @@ export const PATCH = withTiming(async (
         const order = await prisma.order.findUnique({
           where: { id },
           include: {
-            table: true,
+            table: { select: { id: true, number: true, status: true } },
             items: {
               include: {
-                menuItem: true
+                menuItem: { select: { id: true, name: true, category: true, price: true, priceHalf: true, hasHalfFullOption: true, dietType: true } }
               }
             }
           }
@@ -130,13 +125,13 @@ export const PATCH = withTiming(async (
         data: {
           ...(status && { status }),
           ...(paymentStatus && { paymentStatus }),
-          version: { increment: 1 } // Still increment version
+          version: { increment: 1 }
         },
         include: {
-          table: true,
+          table: { select: { id: true, number: true, status: true } },
           items: {
             include: {
-              menuItem: true
+              menuItem: { select: { id: true, name: true, category: true, price: true, priceHalf: true, hasHalfFullOption: true, dietType: true } }
             }
           }
         }
@@ -170,11 +165,9 @@ export async function DELETE(
     const order = await prisma.order.findFirst({
       where: {
         id,
-        OR: [
-          { table: { restaurantId } },
-          { items: { some: { menuItem: { restaurantId } } } }
-        ]
-      }
+        items: { some: { menuItem: { restaurantId } } }
+      },
+      select: { id: true, status: true, tableId: true }
     });
 
     if (!order) {

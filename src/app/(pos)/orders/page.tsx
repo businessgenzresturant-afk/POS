@@ -43,6 +43,14 @@ export default function OrdersPage() {
 
   useEffect(() => {
     fetchData();
+    // Auto-refresh every 15s to catch external changes
+    const interval = setInterval(fetchData, 15000);
+    const handleVisibility = () => { if (document.visibilityState === 'visible') fetchData(); };
+    document.addEventListener('visibilitychange', handleVisibility);
+    return () => {
+      clearInterval(interval);
+      document.removeEventListener('visibilitychange', handleVisibility);
+    };
   }, []);
 
   const fetchData = async () => {
@@ -75,51 +83,40 @@ export default function OrdersPage() {
   };
 
   const handleUpdateOrderStatus = async (orderId: string, status: string) => {
-    setLoading(true);
+    // Optimistic update: change UI immediately
+    setOrders(prev => prev.map(o => o.id === orderId ? { ...o, status } : o));
+    if (selectedOrder?.id === orderId) setSelectedOrder((prev: any) => prev ? { ...prev, status } : prev);
     try {
       const response = await fetch(`/api/orders/${orderId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status })
       });
-
-      if (!response.ok) {
-        throw new Error('Failed to update order status');
-      }
-
-      toast.success(`Order status updated to ${status}`);
-      await fetchData();
+      if (!response.ok) throw new Error('Failed to update order status');
+      toast.success(`Status updated to ${status}`);
     } catch (err) {
+      // Revert on failure
       setError('Failed to update order status. Please try again.');
-      console.error('Error updating order status:', err);
       toast.error('Failed to update order status');
-    } finally {
-      setLoading(false);
+      fetchData(); // Revert by fetching fresh data
     }
   };
 
   const handleCancelOrder = async (orderId: string) => {
     if (!window.confirm('Are you sure you want to cancel this order?')) return;
-    
-    setLoading(true);
+    // Optimistic update
+    setOrders(prev => prev.filter(o => o.id !== orderId));
+    if (selectedOrder?.id === orderId) setShowOrderDetails(false);
     try {
-      const response = await fetch(`/api/orders/${orderId}`, {
-        method: 'DELETE'
-      });
-
+      const response = await fetch(`/api/orders/${orderId}`, { method: 'DELETE' });
       if (!response.ok) {
         const errorData = await response.json();
         throw new Error(errorData.error || 'Failed to cancel order');
       }
-
       toast.success('Order cancelled successfully');
-      await fetchData();
     } catch (err: any) {
-      setError(err.message || 'Failed to cancel order. Please try again.');
-      console.error('Error cancelling order:', err);
       toast.error('Failed to cancel order');
-    } finally {
-      setLoading(false);
+      fetchData(); // Revert by fetching fresh
     }
   };
 

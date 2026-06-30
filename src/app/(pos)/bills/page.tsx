@@ -218,6 +218,9 @@ export default function BillsPage() {
     }
 
     setLoading(true);
+    // Optimistic update: mark bill as PAID in UI immediately
+    setBills(prev => prev.map(b => b.id === billId ? { ...b, status: 'PAID' } : b));
+    if (selectedBill?.id === billId) setSelectedBill((prev: any) => prev ? { ...prev, status: 'PAID' } : prev);
     try {
       const response = await fetch(`/api/bills/${billId}`, {
         method: 'PATCH',
@@ -253,11 +256,14 @@ export default function BillsPage() {
       setCashAmount('');
       setOnlineAmount('');
       setGstApplied(true);
-      await fetchBills();
+      // Refresh in background (no await - don't block UI)
+      fetchBills();
     } catch (err) {
       setError('Failed to update bill status. Please try again.');
       console.error('Error updating bill status:', err);
       toast.error('Failed to process payment');
+      // Revert optimistic update
+      fetchBills();
     } finally {
       setLoading(false);
     }

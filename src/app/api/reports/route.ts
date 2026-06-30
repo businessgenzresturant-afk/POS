@@ -51,10 +51,7 @@ export async function GET(request: Request) {
           }
         ],
         order: {
-          OR: [
-            { table: { restaurantId } },
-            { items: { some: { menuItem: { restaurantId } } } }
-          ]
+          items: { some: { menuItem: { restaurantId } } }
         }
       },
       select: {

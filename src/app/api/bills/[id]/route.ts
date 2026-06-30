@@ -27,22 +27,19 @@ export async function GET(
     const bill = await prisma.bill.findFirst({
       where: {
         id,
-        OR: [
-          { table: { restaurantId } },
-          { order: { items: { some: { menuItem: { restaurantId } } } } }
-        ]
+        order: { items: { some: { menuItem: { restaurantId } } } }
       },
       include: {
         order: {
           include: {
             items: {
               include: {
-                menuItem: true
+                menuItem: { select: { id: true, name: true, category: true, price: true } }
               }
             }
           }
         },
-        table: true
+        table: { select: { id: true, number: true } }
       }
     });
 
@@ -122,10 +119,7 @@ export async function PATCH(
     const existingBill = await prisma.bill.findFirst({
       where: {
         id,
-        OR: [
-          { table: { restaurantId } },
-          { order: { items: { some: { menuItem: { restaurantId } } } } }
-        ]
+        order: { items: { some: { menuItem: { restaurantId } } } }
       },
       include: {
         order: {
