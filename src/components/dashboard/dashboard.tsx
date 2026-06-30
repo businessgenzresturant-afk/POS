@@ -282,11 +282,12 @@ export function Dashboard() {
   const handlePlaceOrder = async (items: any[], action: 'SAVE' | 'SAVE_PRINT' | 'SAVE_EBILL' | 'SAVE_BILL' = 'SAVE') => {
     const toastId = toast.loading('🔥 Saving Order...', { duration: Infinity });
     
+    // ⚡ OPTIMISTIC UI: Instantly close the drawer for standard "SAVE" to make UI feel 0ms fast
+    if (action === 'SAVE') {
+      setMenuDrawerOpen(false);
+    }
+    
     try {
-      // Simulate multiple stages for better UX perception of speed
-      setTimeout(() => {
-        toast.loading('🍳 Updating Kitchen...', { id: toastId, duration: Infinity });
-      }, 300);
 
       const response = await fetch('/api/orders', {
         method: 'POST',
@@ -303,6 +304,8 @@ export function Dashboard() {
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
+        // 🔙 Revert optimistic UI if failed
+        if (action === 'SAVE') setMenuDrawerOpen(true);
         throw new Error(errorData.error || 'Failed to place order');
       }
       
@@ -318,7 +321,11 @@ export function Dashboard() {
       } catch (_) {}
       
       toast.success('✅ Done', { id: toastId, duration: 2000 });
-      setMenuDrawerOpen(false);
+      
+      // Close drawer if it wasn't already closed optimistically
+      if (action !== 'SAVE') {
+        setMenuDrawerOpen(false);
+      }
       
       if (action === 'SAVE_PRINT') {
         import('@/lib/printUtils').then(({ printReceipt }) => {
@@ -362,6 +369,10 @@ export function Dashboard() {
   };
 
   const handleGenerateBill = async (orderId: string) => {
+    // ⚡ OPTIMISTIC UI: Close drawers INSTANTLY so UI doesn't feel stuck
+    setTableDrawerOpen(false);
+    setTakeawayDeliveryModalOpen(false);
+    
     const toastId = toast.loading('🧾 Generating bill...', { duration: Infinity });
     
     try {
@@ -379,9 +390,6 @@ export function Dashboard() {
       const newBill = await response.json();
       toast.success('✅ Bill ready!', { id: toastId, duration: 2000 });
       
-      // Close drawer IMMEDIATELY
-      setTableDrawerOpen(false);
-      setTakeawayDeliveryModalOpen(false);
       
       // Open payment modal INSTANTLY
       setGeneratedBill(newBill);

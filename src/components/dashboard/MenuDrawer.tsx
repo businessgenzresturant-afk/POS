@@ -89,14 +89,7 @@ export function MenuDrawer({ isOpen, onClose, onBack, menuItems, tableId, onPlac
     if (cart.length > 0 && submitState === 'IDLE') {
       setSubmitState('SAVING');
       try {
-        // Create an artificial state transition for better UX visibility
-        let isComplete = false;
-        setTimeout(() => {
-          if (!isComplete) setSubmitState('UPDATING_KITCHEN');
-        }, 400);
-
         await onPlaceOrder(cart, action);
-        isComplete = true;
         setSubmitState('DONE');
         setCart([]);
         
