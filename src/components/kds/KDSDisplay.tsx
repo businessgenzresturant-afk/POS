@@ -50,7 +50,7 @@ export default function KDSDisplay({ restaurantId, readOnly = false, enableRecon
     return true;
   });
   const [now, setNow] = useState(new Date());
-  const [soundQueue, setSoundQueue] = useState<SoundNotification[]>([]);
+
   const [soundEnabled, setSoundEnabled] = useState(!autoStart); // Disable sound in TV mode
   const [hasInteracted, setHasInteracted] = useState(autoStart); // Skip interaction in TV mode
   const [isReconnecting, setIsReconnecting] = useState(false);
@@ -130,49 +130,10 @@ export default function KDSDisplay({ restaurantId, readOnly = false, enableRecon
     }
   }, [soundEnabled]);
 
-  // Add sound notification to queue with repeat logic
+  // Add sound notification (plays exactly once per order/urgent addition)
   const addSoundNotification = useCallback((type: 'new' | 'urgent', orderId: string) => {
-    const notificationId = `${type}-${orderId}-${Date.now()}`;
-    
-    const notification: SoundNotification = {
-      id: notificationId,
-      type,
-      timestamp: Date.now(),
-      repeatCount: 0
-    };
-
-    setSoundQueue(prev => [...prev, notification]);
-    
     // Play immediately
-    playSound(type, notificationId);
-    
-    // Set up repeat timer (every 30 seconds, max 4 times = 2 minutes)
-    const repeatTimer = setInterval(() => {
-      setSoundQueue(prev => {
-        const existing = prev.find(n => n.id === notificationId);
-        if (!existing) {
-          clearInterval(repeatTimer);
-          soundTimersRef.current.delete(notificationId);
-          return prev;
-        }
-        
-        if (existing.repeatCount >= 3) { // 0, 1, 2, 3 = 4 times total over 2 minutes
-          clearInterval(repeatTimer);
-          soundTimersRef.current.delete(notificationId);
-          return prev.filter(n => n.id !== notificationId);
-        }
-        
-        playSound(type, notificationId);
-        
-        return prev.map(n => 
-          n.id === notificationId 
-            ? { ...n, repeatCount: n.repeatCount + 1 }
-            : n
-        );
-      });
-    }, 30000); // 30 seconds
-    
-    soundTimersRef.current.set(notificationId, repeatTimer);
+    playSound(type);
   }, [playSound]);
 
   // Acknowledge all sounds
@@ -183,8 +144,11 @@ export default function KDSDisplay({ restaurantId, readOnly = false, enableRecon
     });
     soundTimersRef.current.clear();
     
-    // Clear queue
-    setSoundQueue([]);
+    // Clear timers
+    soundTimersRef.current.forEach((timer) => {
+      clearInterval(timer);
+    });
+    soundTimersRef.current.clear();
     
     toast.success('All notifications acknowledged');
   }, []);
@@ -725,16 +689,6 @@ export default function KDSDisplay({ restaurantId, readOnly = false, enableRecon
               {soundEnabled ? 'SOUND ON' : 'MUTED'}
             </span>
           </button>
-
-          {/* Acknowledge Button */}
-          {soundQueue.length > 0 && !readOnly && (
-            <button
-              onClick={acknowledgeAllSounds}
-              className="flex items-center gap-2 px-6 py-2 bg-amber-500 hover:bg-amber-600 text-white rounded-full border-2 border-amber-400 font-black text-sm tracking-wider uppercase shadow-lg shadow-amber-500/30 animate-pulse active:scale-[0.95] transition-transform"
-            >
-              🔔 Acknowledge ({soundQueue.length})
-            </button>
-          )}
 
           {/* Live Indicator */}
           <div className="flex items-center gap-2 px-4 py-2 bg-muted rounded-full border border-border">
