@@ -279,7 +279,7 @@ export function Dashboard() {
     setMenuDrawerOpen(true);
   };
 
-  const handlePlaceOrder = async (items: any[], action: 'SAVE' | 'SAVE_PRINT' | 'SAVE_EBILL' = 'SAVE') => {
+  const handlePlaceOrder = async (items: any[], action: 'SAVE' | 'SAVE_PRINT' | 'SAVE_EBILL' | 'SAVE_BILL' = 'SAVE') => {
     const toastId = toast.loading('🔥 Saving Order...', { duration: Infinity });
     
     try {
@@ -324,6 +324,8 @@ export function Dashboard() {
         import('@/lib/printUtils').then(({ printReceipt }) => {
           printReceipt({ ...orderData, order: orderData }, 'kot');
         });
+      } else if (action === 'SAVE_BILL') {
+        await handleGenerateBill(orderData.id);
       } else if (action === 'SAVE_EBILL') {
         // Mark as served
         await fetch(`/api/orders/${orderData.id}`, {

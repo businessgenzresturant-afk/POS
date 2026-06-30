@@ -10,7 +10,7 @@ interface MenuDrawerProps {
   onBack?: () => void;
   menuItems: any[];
   tableId: string | null;
-  onPlaceOrder: (items: any[], action?: 'SAVE' | 'SAVE_PRINT' | 'SAVE_EBILL') => void;
+  onPlaceOrder: (items: any[], action?: 'SAVE' | 'SAVE_PRINT' | 'SAVE_EBILL' | 'SAVE_BILL') => void;
 }
 
 export function MenuDrawer({ isOpen, onClose, onBack, menuItems, tableId, onPlaceOrder }: MenuDrawerProps) {
@@ -85,7 +85,7 @@ export function MenuDrawer({ isOpen, onClose, onBack, menuItems, tableId, onPlac
 
   const totalAmount = cart.reduce((sum, item) => sum + (getMenuItemPrice(item.menuItemId, item.portionType) * item.quantity), 0);
 
-  const handleSubmit = async (action: 'SAVE' | 'SAVE_PRINT' | 'SAVE_EBILL' = 'SAVE') => {
+  const handleSubmit = async (action: 'SAVE' | 'SAVE_PRINT' | 'SAVE_EBILL' | 'SAVE_BILL' = 'SAVE') => {
     if (cart.length > 0 && submitState === 'IDLE') {
       setSubmitState('SAVING');
       try {
@@ -360,21 +360,32 @@ export function MenuDrawer({ isOpen, onClose, onBack, menuItems, tableId, onPlac
               <span className="font-black text-3xl text-primary">₹{totalAmount.toFixed(2)}</span>
             </div>
             {submitState === 'IDLE' ? (
-              <div className="grid grid-cols-2 gap-2">
-                <Button 
-                  className="w-full h-12 text-xs font-bold shadow-md shadow-blue-500/20 bg-blue-500 hover:bg-blue-600 active:scale-[0.97] transition-transform flex flex-col items-center justify-center px-1"
-                  disabled={cart.length === 0}
-                  onClick={() => handleSubmit('SAVE')}
-                >
-                  <Send className="w-4 h-4 mb-0.5" /> Save
-                </Button>
-                <Button 
-                  className="w-full h-12 text-xs font-bold shadow-md shadow-orange-500/20 bg-orange-500 hover:bg-orange-600 active:scale-[0.97] transition-transform flex flex-col items-center justify-center px-1"
-                  disabled={cart.length === 0}
-                  onClick={() => handleSubmit('SAVE_PRINT')}
-                >
-                  <Printer className="w-4 h-4 mb-0.5" /> Save & Print
-                </Button>
+              <div className="flex flex-col gap-2">
+                <div className="grid grid-cols-2 gap-2">
+                  <Button 
+                    className="w-full h-12 text-xs font-bold shadow-md shadow-blue-500/20 bg-blue-500 hover:bg-blue-600 active:scale-[0.97] transition-transform flex flex-col items-center justify-center px-1"
+                    disabled={cart.length === 0}
+                    onClick={() => handleSubmit('SAVE')}
+                  >
+                    <Send className="w-4 h-4 mb-0.5" /> Save
+                  </Button>
+                  <Button 
+                    className="w-full h-12 text-xs font-bold shadow-md shadow-orange-500/20 bg-orange-500 hover:bg-orange-600 active:scale-[0.97] transition-transform flex flex-col items-center justify-center px-1"
+                    disabled={cart.length === 0}
+                    onClick={() => handleSubmit('SAVE_PRINT')}
+                  >
+                    <Printer className="w-4 h-4 mb-0.5" /> Save & Print
+                  </Button>
+                </div>
+                {!tableId && (
+                  <Button 
+                    className="w-full h-12 text-xs font-bold shadow-md shadow-emerald-500/20 bg-emerald-600 hover:bg-emerald-700 active:scale-[0.97] transition-transform flex items-center justify-center gap-2"
+                    disabled={cart.length === 0}
+                    onClick={() => handleSubmit('SAVE_BILL')}
+                  >
+                    <ShoppingCart className="w-4 h-4" /> Save & Generate Bill
+                  </Button>
+                )}
               </div>
             ) : (
               <Button className="w-full h-12 font-bold bg-muted text-muted-foreground" disabled>
