@@ -375,12 +375,20 @@ function OrdersPageContent() {
                         🍽️ Serve
                       </Button>
                     )}
-                    {order.status === 'SERVED' && (
+                    {order.status === 'SERVED' && !order.bill && (
                       <Button
                         onClick={() => handleGenerateBill(order.id)}
                         className="flex-1 bg-zinc-800 hover:bg-zinc-900 text-white font-bold rounded-xl shadow-md"
                       >
                         <Receipt className="w-4 h-4 mr-2" /> Generate Bill
+                      </Button>
+                    )}
+                    {order.status === 'SERVED' && order.bill && (
+                      <Button
+                        onClick={() => router.push('/bills')}
+                        className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl shadow-md"
+                      >
+                        <Receipt className="w-4 h-4 mr-2" /> View Bill
                       </Button>
                     )}
                     {(order.status === 'PENDING' || order.status === 'PREPARING') && (

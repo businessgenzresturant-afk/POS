@@ -274,21 +274,26 @@ export async function PATCH(
         // Update the primary order (the one the bill is linked to)
         await tx.order.update({
           where: { id: existingBill.orderId },
-          data: { paymentStatus: 'PAID' }
+          data: { 
+            paymentStatus: 'PAID',
+            status: 'COMPLETED' // Order is now fully complete
+          }
         });
 
-        // 🔒 BUG-02 FIX: For multi-order tables, also mark ALL other COMPLETED orders on this
-        // table as PAID. When bill generation runs, it marks all orders COMPLETED but only
-        // links the bill to the primary order. The remaining orders must also be marked PAID.
+        // For multi-order tables, also mark ALL other orders on this
+        // table as PAID and COMPLETED.
         if (existingBill.order.tableId) {
           await tx.order.updateMany({
             where: {
               tableId: existingBill.order.tableId,
-              status: 'COMPLETED',
+              status: { in: ['SERVED', 'COMPLETED'] },
               paymentStatus: 'PENDING',
               id: { not: existingBill.orderId } // Already updated above
             },
-            data: { paymentStatus: 'PAID' }
+            data: { 
+              paymentStatus: 'PAID',
+              status: 'COMPLETED'
+            }
           });
         }
 
