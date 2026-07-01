@@ -125,7 +125,7 @@ export function TableDrawer({ isOpen, onClose, table, activeOrder, onAddItem, on
         <div className="relative w-full max-w-lg bg-background rounded-3xl border-2 border-border shadow-2xl z-[160] flex flex-col max-h-[90vh] overflow-hidden animate-scale-in">
           
           {/* Header - Fixed at top */}
-          <div className="flex-shrink-0 p-6 border-b-2 border-border bg-gradient-to-r from-primary/5 to-primary/10">
+          <div className="flex-shrink-0 p-5 border-b-2 border-border bg-gradient-to-r from-primary/5 to-primary/10">
           <div className="flex justify-between items-start">
             <div>
               <h2 className="text-2xl font-black text-foreground capitalize">
@@ -155,7 +155,7 @@ export function TableDrawer({ isOpen, onClose, table, activeOrder, onAddItem, on
 
         {/* Customer Info */}
         {activeOrder && (activeOrder.customerName || activeOrder.guests) && (
-          <div className="px-6 py-4 border-b border-border bg-muted/10">
+          <div className="px-5 py-2.5 border-b border-border bg-muted/10">
             <div className="flex justify-between items-start">
               <div>
                 <p className="text-xs font-semibold uppercase text-muted-foreground mb-1">Customer</p>
@@ -173,7 +173,7 @@ export function TableDrawer({ isOpen, onClose, table, activeOrder, onAddItem, on
         )}
 
         {/* Order Items */}
-        <div className="flex-1 overflow-y-auto p-6 space-y-4">
+        <div className="flex-1 overflow-y-auto px-5 py-3 space-y-2">
           {!activeOrder ? (
             <div className="h-full flex flex-col items-center justify-center text-center opacity-50">
               <div className="text-5xl mb-4">🍽️</div>
@@ -273,9 +273,9 @@ export function TableDrawer({ isOpen, onClose, table, activeOrder, onAddItem, on
         </div>
 
         {/* Footer Actions */}
-        <div className="p-6 border-t border-border bg-background mt-auto">
+        <div className="p-5 border-t border-border bg-background mt-auto">
           {activeOrder && (
-            <div className="flex justify-between items-center mb-6">
+            <div className="flex justify-between items-center mb-4">
               <p className="text-muted-foreground font-bold">Total Amount</p>
               <p className="text-3xl font-black text-primary">₹{activeOrder.totalAmount?.toFixed(2) || '0.00'}</p>
             </div>
