@@ -91,12 +91,12 @@ export const printReceipt = (bill: any, type: 'receipt' | 'kot' = 'receipt') => 
   <div class="hr">----------------------------------------</div>
   
   <div class="row-table">
-    <div class="row-cell-left" style="font-size:18px; font-weight:bold;">${kotOrderInfo}</div>
-    <div class="row-cell-right" style="font-size:14px;">${fmtTime(oTime)}</div>
+    <div class="row-cell-left" style="font-size:24px; font-weight:bold;">${kotOrderInfo}</div>
+    <div class="row-cell-right" style="font-size:14px; padding-top:6px;">${fmtTime(oTime)}</div>
   </div>
   ${(oType === 'TAKEAWAY' || oType === 'DINE_IN' || oType === 'PARCEL') && tokenNo ? `
   <div class="row-table">
-    <div class="row-cell-left" style="font-size:15px;">Token: ${tokenNo}</div>
+    <div class="row-cell-left" style="font-size:18px; font-weight:bold;">Token: ${tokenNo}</div>
     <div class="row-cell-right"></div>
   </div>` : ''}
 
@@ -145,26 +145,26 @@ export const printReceipt = (bill: any, type: 'receipt' | 'kot' = 'receipt') => 
   let tableTokenRow = '';
   if (oType === 'DINE_IN' && tableNum) {
     tableTokenRow = `
-  <div class="row-table">
+  <div class="row-table" style="font-size: 16px; font-weight: bold; padding: 4px 0;">
     <div class="row-cell-left">Table: ${tableNum}</div>
     <div class="row-cell-right">Token: ${tokenNo}</div>
   </div>`;
   } else if (oType === 'TAKEAWAY' || oType === 'PARCEL') {
     tableTokenRow = `
-  <div class="row-table">
+  <div class="row-table" style="font-size: 16px; font-weight: bold; padding: 4px 0;">
     <div class="row-cell-left">Order: ${oType === 'PARCEL' ? 'Parcel' : 'Takeaway'}</div>
     <div class="row-cell-right">Token: ${tokenNo}</div>
   </div>`;
   } else if (oType === 'DELIVERY') {
     tableTokenRow = `
-  <div class="row-table">
+  <div class="row-table" style="font-size: 16px; font-weight: bold; padding: 4px 0;">
     <div class="row-cell-left">Order: Delivery</div>
     <div class="row-cell-right">ID: ${orderIdShort}</div>
   </div>`;
   } else {
     // Fallback for Dine-in with no table or generic walk-in
     tableTokenRow = `
-  <div class="row-table">
+  <div class="row-table" style="font-size: 16px; font-weight: bold; padding: 4px 0;">
     <div class="row-cell-left">Order: Walk-in</div>
     <div class="row-cell-right">Token: ${tokenNo}</div>
   </div>`;
