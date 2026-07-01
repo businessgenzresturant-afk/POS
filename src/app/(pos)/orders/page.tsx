@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState, useEffect, useMemo, Suspense } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -10,8 +10,9 @@ import { DietIndicator } from '@/components/ui/diet-indicator';
 import { Portal } from '@/components/ui/portal';
 import { Receipt, X, Clock, Search } from 'lucide-react';
 
-export default function OrdersPage() {
+function OrdersPageContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [orders, setOrders] = useState<any[]>(() => {
     if (typeof window !== 'undefined' && (window as any).__pos_orders_cache?.allOrders) {
       return (window as any).__pos_orders_cache.allOrders;
@@ -27,7 +28,7 @@ export default function OrdersPage() {
   });
   
   const [error, setError] = useState<string | null>(null);
-  const [searchQuery, setSearchQuery] = useState('');
+  const [searchQuery, setSearchQuery] = useState(searchParams.get('search') || '');
   const [statusFilter, setStatusFilter] = useState('ALL');
   
   const [showOrderDetails, setShowOrderDetails] = useState(false);
@@ -585,5 +586,13 @@ export default function OrdersPage() {
         </Portal>
       )}
     </div>
+  );
+}
+
+export default function OrdersPage() {
+  return (
+    <Suspense fallback={<div className="flex items-center justify-center h-full"><div className="w-8 h-8 rounded-full border-4 border-primary border-t-transparent animate-spin" /></div>}>
+      <OrdersPageContent />
+    </Suspense>
   );
 }

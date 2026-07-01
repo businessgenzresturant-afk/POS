@@ -53,7 +53,8 @@ export const GET = withTiming(async (request: Request) => {
           include: {
             menuItem: { select: { id: true, name: true, category: true, price: true, priceHalf: true, hasHalfFullOption: true, dietType: true } }
           }
-        }
+        },
+        bill: { select: { id: true } }
       }
     });
     

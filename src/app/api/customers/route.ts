@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { checkAuth } from '@/lib/api-auth';
 
+export const dynamic = 'force-dynamic';
+
 export async function GET(request: Request) {
   const auth = await checkAuth(request);
   if (auth.error) return auth.error;
@@ -17,7 +19,6 @@ export async function GET(request: Request) {
       orderBy: { totalSpend: 'desc' },
       include: {
         bills: {
-          where: { status: 'PAID' },
           orderBy: { createdAt: 'desc' },
           include: {
             order: {

@@ -90,7 +90,7 @@ export default function Header() {
 
   const handleKotSearch = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter' && kotSearch.trim()) {
-      router.push(`/orders?search=${encodeURIComponent(kotSearch.trim())}`);
+      router.push(`/kot?search=${encodeURIComponent(kotSearch.trim())}`);
     }
   };
 

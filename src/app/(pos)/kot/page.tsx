@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
@@ -26,7 +27,10 @@ const SkeletonCard = () => (
   </Card>
 );
 
-export default function KOTPage() {
+function KOTPageContent() {
+  const searchParams = useSearchParams();
+  const searchQuery = searchParams.get('search') || '';
+
   const [orders, setOrders] = useState<Record<number, OrderWithItems[]>>(() => {
     if (typeof window !== 'undefined' && (window as any).__pos_kot_cache?.orders) {
       return (window as any).__pos_kot_cache.orders;
@@ -168,8 +172,18 @@ export default function KOTPage() {
     );
   }
 
-  // Convert grouped orders to array for rendering
-  const orderGroups = Object.entries(orders);
+  // Convert grouped orders to array for rendering and filter by searchQuery
+  const orderGroups = Object.entries(orders)
+    .map(([tableNumber, tableOrders]): [string, any[]] => {
+      if (!searchQuery) return [tableNumber, tableOrders];
+      const filtered = tableOrders.filter((order: any) => 
+        order.id.slice(-4).toLowerCase().includes(searchQuery.toLowerCase()) || 
+        (order.bill?.id && order.bill.id.slice(-4).toLowerCase().includes(searchQuery.toLowerCase()))
+      );
+      return [tableNumber, filtered];
+    })
+    .filter(([_, tableOrders]) => tableOrders.length > 0);
+
   const showSkeletons = loading && orderGroups.length === 0;
 
   return (
@@ -212,7 +226,7 @@ export default function KOTPage() {
               </div>
 
               <div className="p-3 space-y-4">
-                {tableOrders.map((order: OrderWithItems) => (
+                {tableOrders.map((order: any) => (
                   <div key={order.id} className="bg-card rounded-xl border border-border shadow-sm relative overflow-hidden group flex flex-col max-h-[450px]">
                     {/* Status accent bar */}
                     <div className={`absolute left-0 top-0 bottom-0 w-1.5 z-10 ${
@@ -223,7 +237,10 @@ export default function KOTPage() {
                     {/* Header: sticky at top */}
                     <div className="flex justify-between items-start mb-2 pl-4 pt-4 pr-4 shrink-0 bg-card z-10">
                       <div>
-                        <h3 className="font-bold text-foreground">Ticket #{order.id.slice(-4).toUpperCase()}</h3>
+                        <h3 className="font-bold text-foreground">
+                          Ticket #{order.id.slice(-4).toUpperCase()}
+                          {order.bill?.id && <span className="ml-2 text-primary">| Bill #{order.bill.id.slice(-4).toUpperCase()}</span>}
+                        </h3>
                         <p className="text-xs font-medium text-muted-foreground flex items-center gap-1 mt-1">
                           ⏱️ {new Date(order.createdAt).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
                         </p>
@@ -305,6 +322,14 @@ export default function KOTPage() {
         </div>
       )}
     </div>
+  );
+}
+
+export default function KOTPage() {
+  return (
+    <Suspense fallback={<div className="p-8">Loading...</div>}>
+      <KOTPageContent />
+    </Suspense>
   );
 }
 
