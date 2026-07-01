@@ -22,6 +22,9 @@ model Restaurant {
   enableDelivery   Boolean    @default(true)
   minOrderAmount   Float      @default(300)
   deliveryCharge   Float      @default(0)
+  printShowLogo    Boolean    @default(true)
+  printShowGST     Boolean    @default(true)
+  printKOTAuto     Boolean    @default(false)
   kdsDisplayToken  String?    @unique
   createdAt        DateTime   @default(now())
   menuItems        MenuItem[]

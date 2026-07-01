@@ -78,6 +78,9 @@ export default function SettingsPage() {
           if (s.minOrderAmount !== undefined) setMinOrderAmount(String(s.minOrderAmount));
           if (s.deliveryCharge !== undefined) setDeliveryCharge(String(s.deliveryCharge));
           if (s.enableDelivery !== undefined) setEnableDelivery(s.enableDelivery);
+          if (s.printShowLogo !== undefined) setShowLogo(s.printShowLogo);
+          if (s.printShowGST !== undefined) setShowGST(s.printShowGST);
+          if (s.printKOTAuto !== undefined) setPrintKOTAuto(s.printKOTAuto);
         }
 
         if (kdsRes.ok) {
@@ -211,6 +214,9 @@ export default function SettingsPage() {
           enableDelivery,
           minOrderAmount,
           deliveryCharge,
+          printShowLogo: showLogo,
+          printShowGST: showGST,
+          printKOTAuto: printKOTAuto,
         }),
       });
       if (response.ok) {
@@ -260,15 +266,18 @@ export default function SettingsPage() {
   };
 
   const handleResetSettings = () => {
-    setRestaurantName('GenZ Restaurant');
-    setRestaurantAddress('L-97, Gali No 7, Near Labour Chowk, Mahipalpur, 110037');
+    setRestaurantName('Gen-Z Restaurant');
+    setRestaurantAddress('Gali No 7, L-97, near Labour Chowk, K-Block, Mahipalpur Village, New Delhi - 110037');
     setGstNumber('07AABCG1234A1Z5');
-    setPhoneNumber('+91 98765 43210');
+    setPhoneNumber('+91 8800480778');
     setTaxRate('18');
     setCurrency('INR');
     setTimeZone('Asia/Kolkata');
     setMinOrderAmount('300');
     setDeliveryCharge('0');
+    setShowLogo(true);
+    setShowGST(true);
+    setPrintKOTAuto(false);
     toast.info('Settings reset to defaults');
   };
 

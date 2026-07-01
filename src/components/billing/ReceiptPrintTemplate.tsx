@@ -1,5 +1,6 @@
 'use client';
 
+import React from 'react';
 import Image from 'next/image';
 import { mergeOrderItems } from '@/lib/orderUtils';
 import { RESTAURANT_INFO } from '@/lib/constants';
@@ -17,6 +18,27 @@ interface ReceiptPrintTemplateProps {
  * There is NO hidden print div here — we only ever print from printUtils.ts.
  */
 export function ReceiptPrintTemplate({ bill, onClose }: ReceiptPrintTemplateProps) {
+  const [settings, setSettings] = React.useState({
+    NAME: RESTAURANT_INFO.NAME,
+    ADDRESS: RESTAURANT_INFO.ADDRESS,
+    PHONE: RESTAURANT_INFO.PHONE,
+    GST_NUMBER: RESTAURANT_INFO.GST_NUMBER,
+    showLogo: true,
+    showGST: true
+  });
+
+  React.useEffect(() => {
+    fetch('/api/settings').then(res => res.json()).then(data => {
+      setSettings({
+        NAME: data.name || RESTAURANT_INFO.NAME,
+        ADDRESS: data.address || RESTAURANT_INFO.ADDRESS,
+        PHONE: data.phone || RESTAURANT_INFO.PHONE,
+        GST_NUMBER: data.gstNumber || RESTAURANT_INFO.GST_NUMBER,
+        showLogo: data.printShowLogo ?? true,
+        showGST: data.printShowGST ?? true
+      });
+    }).catch(console.error);
+  }, []);
 
   const handlePrint = () => {
     import('@/lib/printUtils').then(({ printReceipt }) => {
@@ -73,22 +95,24 @@ export function ReceiptPrintTemplate({ bill, onClose }: ReceiptPrintTemplateProp
       >
         {/* Header */}
         <div style={{ textAlign: 'center', marginBottom: '6px' }}>
-          <div style={{ display:'flex', justifyContent:'center', marginBottom:'4px' }}>
-            <Image
-              src="/images/Gen-z-logo.jpg"
-              alt="Gen-Z Logo"
-              width={50}
-              height={50}
-              style={{ objectFit: 'contain' }}
-            />
-          </div>
+          {settings.showLogo && (
+            <div style={{ display:'flex', justifyContent:'center', margin:'0 auto 4px' }}>
+              <Image
+                src="/images/Gen-z-logo.jpg"
+                alt="Gen-Z Logo"
+                width={50}
+                height={50}
+                style={{ objectFit: 'contain', margin: '0 auto' }}
+              />
+            </div>
+          )}
           <div style={{ fontSize:'16px', fontWeight:700, textTransform:'uppercase', letterSpacing:'1px' }}>
-            {RESTAURANT_INFO.NAME}
+            {settings.NAME}
           </div>
           <div style={{ fontSize:'11px', lineHeight:'1.4' }}>
-            <div>{RESTAURANT_INFO.ADDRESS}</div>
-            <div>Tel: {RESTAURANT_INFO.PHONE}</div>
-            <div>GSTIN: {RESTAURANT_INFO.GST_NUMBER}</div>
+            <div>{settings.ADDRESS}</div>
+            <div>Tel: {settings.PHONE}</div>
+            {settings.showGST && settings.GST_NUMBER && <div>GSTIN: {settings.GST_NUMBER}</div>}
           </div>
           <div style={{ fontSize:'10px', letterSpacing:'1px', textTransform:'uppercase', marginTop:'2px' }}>
             Retail Invoice

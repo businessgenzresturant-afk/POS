@@ -6,13 +6,41 @@ import { RESTAURANT_INFO, PRINTER } from './constants';
 import { mergeOrderItems } from './orderUtils';
 import { formatCurrency } from './billUtils';
 
-export const printReceipt = (bill: any, type: 'receipt' | 'kot' = 'receipt') => {
+export const printReceipt = async (bill: any, type: 'receipt' | 'kot' = 'receipt') => {
   const printWindow = window.open('', '_blank', 'width=300,height=500');
   
   if (!printWindow) {
     alert('Please allow popups for this site to enable printing.');
     return;
   }
+
+  // Write initial loading state (prevent blank screen if network is slow)
+  printWindow.document.write('Loading print template...');
+  printWindow.document.close();
+
+  // Fetch dynamic restaurant settings
+  let settings = { ...RESTAURANT_INFO, showLogo: true, showGST: true };
+  try {
+    const res = await fetch('/api/settings');
+    if (res.ok) {
+      const data = await res.json();
+      settings = {
+        NAME: data.name || RESTAURANT_INFO.NAME,
+        ADDRESS: data.address || RESTAURANT_INFO.ADDRESS,
+        PHONE: data.phone || RESTAURANT_INFO.PHONE,
+        GST_NUMBER: data.gstNumber || RESTAURANT_INFO.GST_NUMBER,
+        WEBSITE: RESTAURANT_INFO.WEBSITE, // fallback
+        showLogo: data.printShowLogo ?? true,
+        showGST: data.printShowGST ?? true,
+        CURRENCY: data.currency || RESTAURANT_INFO.CURRENCY,
+      };
+    }
+  } catch (e) {
+    console.error('Failed to fetch settings for printing', e);
+  }
+
+  // Clear loading text
+  printWindow.document.open();
 
   /* ─── helpers ────────────────────────────────────────────────────── */
 
@@ -216,14 +244,20 @@ table.items th:nth-child(4), table.items td:nth-child(4) { text-align: right; wi
 <body onload="window.print(); setTimeout(function(){ window.close(); }, ${PRINTER.AUTO_PRINT_DELAY});">
 <div class="receipt">
   
-  <div class="c">
-    <div style="font-size:18px; margin-bottom:2px; font-weight:bold; text-transform: uppercase;">${RESTAURANT_INFO.NAME}</div>
-    <div style="font-size:13px; line-height:1.4;">
-      ${RESTAURANT_INFO.ADDRESS}<br>
-      GST: ${RESTAURANT_INFO.GST_NUMBER}<br>
-      Contact: ${RESTAURANT_INFO.PHONE}
+  <div class="c" style="margin-bottom:6px;">
+    ${settings.showLogo ? `
+    <div style="display:flex; justify-content:center; margin-bottom:4px;">
+      <img src="${origin}/images/Gen-z-logo.jpg" alt="Logo" style="width:50px; height:50px; object-fit:contain;" />
+    </div>` : ''}
+    <div style="font-size:18px; margin-bottom:2px; font-weight:bold; text-transform: uppercase;">${settings.NAME}</div>
+    <div style="font-size:11px; line-height:1.4;">
+      ${settings.ADDRESS}<br>
+      ${settings.showGST && settings.GST_NUMBER ? `GSTIN: ${settings.GST_NUMBER}<br>` : ''}
+      Tel: ${settings.PHONE}
     </div>
-    <div style="font-size:14px; font-weight:bold; margin:4px 0;">RETAIL INVOICE</div>
+    <div style="font-size:11px; letter-spacing:1px; text-transform:uppercase; margin-top:2px;">
+      Retail Invoice
+    </div>
   </div>
 
   <div class="hr">----------------------------------------</div>
@@ -292,7 +326,7 @@ table.items th:nth-child(4), table.items td:nth-child(4) { text-align: right; wi
   <div class="c" style="font-size:14px; line-height:1.5; margin-top:6px; font-weight:bold;">
     <div>Thank you for ordering</div>
     <div>Please visit again 🙏</div>
-    <div style="font-size:11px; margin-top:2px; font-weight:normal;">${RESTAURANT_INFO.WEBSITE}</div>
+    <div style="font-size:11px; margin-top:2px; font-weight:normal;">${settings.WEBSITE}</div>
   </div>
 
   <div style="height:6mm;"></div>

@@ -35,6 +35,9 @@ export async function GET(request: Request) {
         enableDelivery: true,
         minOrderAmount: true,
         deliveryCharge: true,
+        printShowLogo: true,
+        printShowGST: true,
+        printKOTAuto: true,
       },
     });
 
@@ -84,6 +87,9 @@ export async function PUT(request: Request) {
       enableDelivery,
       minOrderAmount,
       deliveryCharge,
+      printShowLogo,
+      printShowGST,
+      printKOTAuto,
     } = body;
 
     // Validate required fields
@@ -103,6 +109,9 @@ export async function PUT(request: Request) {
     if (enableDelivery !== undefined) updateData.enableDelivery = Boolean(enableDelivery);
     if (minOrderAmount !== undefined) updateData.minOrderAmount = parseFloat(minOrderAmount) || 0;
     if (deliveryCharge !== undefined) updateData.deliveryCharge = parseFloat(deliveryCharge) || 0;
+    if (printShowLogo !== undefined) updateData.printShowLogo = Boolean(printShowLogo);
+    if (printShowGST !== undefined) updateData.printShowGST = Boolean(printShowGST);
+    if (printKOTAuto !== undefined) updateData.printKOTAuto = Boolean(printKOTAuto);
 
     const restaurant = await prisma.restaurant.update({
       where: { id: restaurantId },
@@ -120,6 +129,9 @@ export async function PUT(request: Request) {
         enableDelivery: true,
         minOrderAmount: true,
         deliveryCharge: true,
+        printShowLogo: true,
+        printShowGST: true,
+        printKOTAuto: true,
       },
     });
 
