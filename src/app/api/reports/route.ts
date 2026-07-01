@@ -35,7 +35,7 @@ export async function GET(request: Request) {
     // This ensures payment method breakdown shows all bills, not just paid ones
     const bills = await prisma.bill.findMany({
       where: {
-        status: { in: ['PAID', 'PENDING'] },  // ✅ Include pending bills too
+        status: 'PAID',
         OR: [
           {
             createdAt: {

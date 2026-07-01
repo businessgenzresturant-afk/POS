@@ -316,10 +316,10 @@ export const POST = withTiming(async (request: Request) => {
         });
       }
 
-      // Mark primary order as COMPLETED (handles READY→SERVED→COMPLETED in one shot)
+      // Mark primary order as SERVED (keeps it active so table stays occupied until payment)
       await tx.order.update({
         where: { id: primaryOrder.id },
-        data: { status: 'COMPLETED' }
+        data: { status: 'SERVED' }
       });
       
       // Handle double-clicks: check if bill already exists inside transaction

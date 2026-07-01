@@ -200,52 +200,52 @@ export function TableDrawer({ isOpen, onClose, table, activeOrder, onAddItem, on
                   const isChanging = quantityChanging === item.id;
                   
                   return (
-                  <div key={i} className={`flex justify-between items-start p-3 rounded-xl border ${
+                  <div key={i} className={`flex justify-between items-start p-2 rounded-lg border ${
                     isCancelled 
                       ? 'bg-red-950/20 border-red-500/30 opacity-60' 
                       : 'bg-muted/20 border-border'
                   }`}>
                     <div className="flex-1 pr-2">
-                      <div className="flex items-start justify-between gap-2 mb-2">
-                        <p className={`font-bold text-foreground flex-1 ${isCancelled ? 'line-through text-red-400' : ''}`}>
-                          <span className="text-primary mr-2">{item.quantity}×</span>
+                      <div className="flex items-center justify-between gap-2 mb-1">
+                        <p className={`text-sm font-semibold text-foreground flex-1 leading-tight ${isCancelled ? 'line-through text-red-400' : ''}`}>
+                          <span className="text-primary font-bold mr-1.5">{item.quantity}×</span>
                           {item.menuItem?.name || 'Unknown Item'}
-                          {isCancelled && <span className="ml-2 text-xs font-black text-red-400 uppercase">CANCELLED</span>}
+                          {isCancelled && <span className="ml-2 text-[10px] font-black text-red-400 uppercase">CANCELLED</span>}
                         </p>
                         {!isCancelled && activeOrder.status !== 'COMPLETED' && (
                           <div className="flex gap-1">
                             <button
                               onClick={() => handleQuantityChange(item.id, item.quantity, 1)}
                               disabled={isChanging}
-                              className="w-7 h-7 rounded-lg bg-primary/10 hover:bg-primary/20 text-primary flex items-center justify-center transition-all active:scale-[0.90] disabled:opacity-50"
+                              className="w-6 h-6 rounded-md bg-primary/10 hover:bg-primary/20 text-primary flex items-center justify-center transition-all active:scale-[0.90] disabled:opacity-50"
                               title="Add one more"
                             >
-                              <Plus className="w-4 h-4" />
+                              <Plus className="w-3.5 h-3.5" />
                             </button>
                             <button
                               onClick={() => handleCancelItem(item.id, item.menuItem?.name || 'item')}
                               disabled={isChanging}
-                              className="w-7 h-7 rounded-lg bg-red-500/10 hover:bg-red-500/20 text-red-500 flex items-center justify-center transition-all active:scale-[0.90] disabled:opacity-50"
+                              className="w-6 h-6 rounded-md bg-red-500/10 hover:bg-red-500/20 text-red-500 flex items-center justify-center transition-all active:scale-[0.90] disabled:opacity-50"
                               title="Cancel item"
                             >
-                              <X className="w-4 h-4" />
+                              <X className="w-3.5 h-3.5" />
                             </button>
                           </div>
                         )}
                       </div>
                       {isCancelled && item.cancelReason && (
-                        <p className="text-xs text-red-400 mb-1">
+                        <p className="text-[10px] text-red-400 mb-0.5 leading-tight">
                           Reason: {item.cancelReason}
                         </p>
                       )}
                       {item.cleanInstr && !isCancelled && (
-                        <p className="text-xs text-muted-foreground mt-1">📝 {item.cleanInstr}</p>
+                        <p className="text-[10px] text-muted-foreground mt-0.5 leading-tight">📝 {item.cleanInstr}</p>
                       )}
                       {!isCancelled && (
                         <Button 
                           variant="ghost" 
                           size="sm" 
-                          className="h-6 mt-2 px-2 text-xs font-bold text-primary hover:bg-primary/10 active:scale-[0.97] transition-all"
+                          className="h-5 mt-1 px-1.5 text-[10px] font-bold text-primary hover:bg-primary/10 active:scale-[0.97] transition-all"
                           disabled={isReordering === item.menuItem.id}
                           onClick={async () => {
                             setIsReordering(item.menuItem.id);
@@ -261,7 +261,7 @@ export function TableDrawer({ isOpen, onClose, table, activeOrder, onAddItem, on
                         </Button>
                       )}
                     </div>
-                    <p className={`font-semibold whitespace-nowrap ${isCancelled ? 'line-through text-red-400' : ''}`}>
+                    <p className={`text-sm font-semibold whitespace-nowrap mt-0.5 ${isCancelled ? 'line-through text-red-400' : ''}`}>
                       ₹{(item.price * item.quantity).toFixed(2)}
                     </p>
                   </div>

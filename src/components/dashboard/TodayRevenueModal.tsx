@@ -210,10 +210,17 @@ export function TodayRevenueModal({ isOpen, onClose, todayRevenue }: TodayRevenu
                       <div className="text-right flex flex-col items-end gap-1.5">
                         <p className="text-lg font-black text-foreground">₹{bill.total.toFixed(2)}</p>
                         {bill.paymentMethod && (
-                          <span className="text-[10px] font-semibold bg-muted px-2 py-0.5 rounded border border-border flex items-center gap-1">
-                            {getPaymentMethodIcon(bill.paymentMethod)}
-                            {bill.paymentMethod}
-                          </span>
+                          <div className="flex flex-col items-end gap-0.5">
+                            <span className="text-[10px] font-semibold bg-muted px-2 py-0.5 rounded border border-border flex items-center gap-1">
+                              {getPaymentMethodIcon(bill.paymentMethod)}
+                              {bill.paymentMethod}
+                            </span>
+                            {bill.paymentMethod === 'SPLIT' && (
+                              <span className="text-[9px] text-muted-foreground whitespace-nowrap">
+                                Cash: ₹{bill.cashAmount?.toFixed(0) || 0} • Online: ₹{bill.onlineAmount?.toFixed(0) || 0}
+                              </span>
+                            )}
+                          </div>
                         )}
                       </div>
                     </div>
@@ -321,7 +328,12 @@ export function TodayRevenueModal({ isOpen, onClose, todayRevenue }: TodayRevenu
 
                   {selectedBill.status === 'PAID' && (
                     <div className="mt-4 text-center font-bold border border-green-500/40 text-green-600 bg-green-500/5 py-1.5 rounded-lg text-[10px]">
-                      ✓ PAID VIA {selectedBill.paymentMethod || 'CASH'}
+                      <div>✓ PAID VIA {selectedBill.paymentMethod || 'CASH'}</div>
+                      {selectedBill.paymentMethod === 'SPLIT' && (
+                        <div className="mt-0.5 text-[9px] font-semibold opacity-80">
+                          (Cash: ₹{selectedBill.cashAmount?.toFixed(2) || '0.00'} | Online: ₹{selectedBill.onlineAmount?.toFixed(2) || '0.00'})
+                        </div>
+                      )}
                     </div>
                   )}
 

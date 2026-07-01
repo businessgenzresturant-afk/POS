@@ -486,9 +486,16 @@ export default function BillsPage() {
                   ) : (
                     <div className="flex justify-between items-center pt-2 border-t border-border/50">
                       <span className="text-sm text-muted-foreground">Payment Method:</span>
-                      <span className="text-sm font-bold text-foreground">
-                        {selectedBill.paymentMethod || 'Not specified'}
-                      </span>
+                      <div className="flex flex-col items-end gap-0.5">
+                        <span className="text-sm font-bold text-foreground">
+                          {selectedBill.paymentMethod || 'Not specified'}
+                        </span>
+                        {selectedBill.paymentMethod === 'SPLIT' && (
+                          <span className="text-[10px] text-muted-foreground whitespace-nowrap">
+                            Cash: ₹{selectedBill.cashAmount?.toFixed(0) || 0} • Online: ₹{selectedBill.onlineAmount?.toFixed(0) || 0}
+                          </span>
+                        )}
+                      </div>
                     </div>
                   )}
                 </div>
