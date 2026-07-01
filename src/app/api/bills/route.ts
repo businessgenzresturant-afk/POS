@@ -164,7 +164,6 @@ export const POST = withTiming(async (request: Request) => {
         allTableOrders = await prisma.order.findMany({
           where: {
             tableId: order.tableId,
-            bill: null, // Orders that haven't been billed yet
             status: { in: ['PENDING', 'PREPARING', 'READY', 'SERVED'] }
           },
           include: {
@@ -212,18 +211,22 @@ export const POST = withTiming(async (request: Request) => {
       );
     }
     
-    // CRITICAL FIX: Check if the main order already has a bill
-    if (order.bill !== null && order.bill !== undefined) {
-      if (order.bill.status === 'PENDING') {
-        // Just delete the old pending bill and let it regenerate with the latest items
-        await prisma.bill.delete({ where: { id: order.bill.id } });
-      } else {
-        if (process.env.NODE_ENV === 'development') console.timeEnd('⏱️ TOTAL-BILL-GENERATION');
-        return NextResponse.json(
-          { error: 'This order already has a bill generated. Bill ID: ' + order.bill.id },
-          { status: 400 }
-        );
-      }
+    // CRITICAL FIX: Delete any existing PENDING bills for the order's table to recreate them
+    if (order.tableId) {
+      await prisma.bill.deleteMany({
+        where: {
+          tableId: order.tableId,
+          status: 'PENDING'
+        }
+      });
+    } else if (order.bill !== null && order.bill !== undefined && order.bill.status === 'PENDING') {
+      await prisma.bill.delete({ where: { id: order.bill.id } });
+    } else if (order.bill !== null && order.bill !== undefined) {
+      if (process.env.NODE_ENV === 'development') console.timeEnd('⏱️ TOTAL-BILL-GENERATION');
+      return NextResponse.json(
+        { error: 'This order already has a finalized bill.' },
+        { status: 400 }
+      );
     }
 
     // (READY→SERVED update is handled inside the transaction below)
@@ -258,8 +261,8 @@ export const POST = withTiming(async (request: Request) => {
       );
     }
 
-    // ⚡ PERFORMANCE: Check for existing bills using pre-fetched data instead of new query
-    const existingBills = finalTableOrders.filter(o => o.bill !== null);
+    // ⚡ PERFORMANCE: Check for existing finalized bills
+    const existingBills = finalTableOrders.filter(o => o.bill !== null && o.bill.status !== 'PENDING');
 
     if (existingBills.length > 0) {
       if (process.env.NODE_ENV === 'development') console.timeEnd('⏱️ TOTAL-BILL-GENERATION');

@@ -217,7 +217,8 @@ export function Dashboard() {
     
     if (isOccupied) {
       setSelectedActiveOrder(null);
-      setTableDrawerOpen(true);
+      // Skip TableDrawer and generate/fetch bill immediately to open PaymentModal
+      handleGenerateBill(table.currentOrderId);
     } else {
       setSelectedActiveOrder(null);
       setSelectedOrderType('DINE_IN');
@@ -249,7 +250,20 @@ export function Dashboard() {
       setSelectedTable(null);
       setSelectedActiveOrder(order);
     }
-    setTableDrawerOpen(true);
+    // Skip TableDrawer and generate/fetch bill directly
+    handleGenerateBill(order.id);
+  };
+
+  const handleOrderCardClick = (order: any) => {
+    setSelectedActiveOrder(order);
+    if (order.table) {
+      setSelectedTable(order.table);
+      // Skip TableDrawer and go directly to PaymentModal/Bill
+      handleGenerateBill(order.id);
+    } else {
+      // For Takeaway/Delivery, go straight to Bill as well instead of TakeawayDeliveryModal which is a similar intermediate step
+      handleGenerateBill(order.id);
+    }
   };
 
   // Guest count modal removed - no longer needed
