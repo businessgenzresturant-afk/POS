@@ -28,7 +28,7 @@ export const GET = withTiming(async (request: Request) => {
 
     const restaurantId = (auth.session.user as any).restaurantId;
     let whereClause: any = {
-      items: { some: { menuItem: { restaurantId } } }
+      restaurantId,
     };
     
     // Handle multiple statuses (comma-separated)
@@ -362,6 +362,7 @@ export const POST = withTiming(async (request: Request) => {
         const newOrder = await tx.order.create({
           data: {
             tableId: tableId || null,
+            restaurantId, // ✅ CRITICAL FIX: Add multi-tenant link directly
             orderType: orderType || 'DINE_IN',
             guests: guests ? parseInt(guests) : null,
             customerName: sanitizedCustomerName,

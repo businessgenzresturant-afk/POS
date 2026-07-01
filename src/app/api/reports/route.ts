@@ -50,9 +50,7 @@ export async function GET(request: Request) {
             }
           }
         ],
-        order: {
-          items: { some: { menuItem: { restaurantId } } }
-        }
+        restaurantId
       },
       select: {
         total: true,

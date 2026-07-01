@@ -29,24 +29,14 @@ export const GET = withTiming(async (request: Request) => {
 
     const restaurantId = (auth.session.user as any).restaurantId;
     let whereClause: any = {
-      OR: [
-        { table: { restaurantId } },
-        { order: { items: { some: { menuItem: { restaurantId } } } } }
-      ]
+      restaurantId,
     };
     if (statusParam) {
       whereClause.status = statusParam.toUpperCase();
     }
 
     const bills = await prisma.bill.findMany({
-      where: {
-        order: {
-          items: {
-            some: { menuItem: { restaurantId } }
-          }
-        },
-        ...(statusParam ? { status: statusParam.toUpperCase() as any } : {})
-      },
+      where: whereClause,
       take: limit,
       orderBy: { createdAt: 'desc' },
       include: {
@@ -356,6 +346,7 @@ export const POST = withTiming(async (request: Request) => {
         data: {
           orderId: primaryOrder.id,
           tableId: order.tableId,
+          restaurantId, // ✅ CRITICAL FIX: Add multi-tenant link directly
           subtotal: billCalc.subtotal,
           tax: billCalc.tax,
           discount: billCalc.discount,

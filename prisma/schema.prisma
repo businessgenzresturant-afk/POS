@@ -27,6 +27,8 @@ model Restaurant {
   menuItems        MenuItem[]
   tables           Table[]
   users            User[]
+  orders           Order[]
+  bills            Bill[]
 }
 
 
@@ -68,6 +70,7 @@ model MenuItem {
   @@index([restaurantId])
   @@index([category])
   @@index([available])
+  @@index([restaurantId, category])
 }
 
 model Order {
@@ -83,8 +86,10 @@ model Order {
   updatedAt     DateTime      @default(now()) @updatedAt
   customerName  String?
   customerPhone String?
+  restaurantId  String?
   bill          Bill?
   table         Table?        @relation(fields: [tableId], references: [id])
+  restaurant    Restaurant?   @relation(fields: [restaurantId], references: [id])
   items         OrderItem[]
 
   @@index([tableId])
@@ -94,6 +99,8 @@ model Order {
   @@index([status, createdAt])
   @@index([customerPhone])
   @@index([tableId, status]) // ⚡ PERFORMANCE: Fast bill generation query
+  @@index([restaurantId]) // ⚡ PERFORMANCE: Multi-tenant fetching
+  @@index([restaurantId, status]) // ⚡ PERFORMANCE: Multi-tenant fetching
 }
 
 model OrderItem {
@@ -138,9 +145,11 @@ model Bill {
   pointsRedeemed    Int                @default(0)
   createdAt         DateTime           @default(now())
   paidAt            DateTime?
+  restaurantId      String?
   customer          Customer?          @relation(fields: [customerId], references: [id])
   order             Order              @relation(fields: [orderId], references: [id])
   table             Table?             @relation(fields: [tableId], references: [id])
+  restaurant        Restaurant?        @relation(fields: [restaurantId], references: [id])
   pointTransactions PointTransaction[]
 
   @@index([status])
@@ -150,6 +159,8 @@ model Bill {
   @@index([paidAt])
   @@index([tableId]) // ⚡ PERFORMANCE: Table bills lookup
   @@index([orderId, tableId]) // ⚡ PERFORMANCE: Joint lookup
+  @@index([restaurantId]) // ⚡ PERFORMANCE: Multi-tenant fetching
+  @@index([restaurantId, status]) // ⚡ PERFORMANCE: Multi-tenant fetching
 }
 
 model Customer {
