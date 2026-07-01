@@ -32,10 +32,11 @@ export default function CustomersPage() {
 
   const fetchCustomers = async () => {
     try {
-      const response = await fetch('/api/customers');
+      const response = await fetch('/api/customers?limit=100');
       if (response.ok) {
         const data = await response.json();
-        setCustomers(data);
+        // ✅ Handle new paginated response format
+        setCustomers(Array.isArray(data) ? data : (data.customers || []));
       }
     } catch (error) {
       console.error('Failed to fetch customers', error);

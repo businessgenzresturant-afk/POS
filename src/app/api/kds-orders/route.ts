@@ -32,10 +32,8 @@ export const GET = withTiming(async (request: Request) => {
       );
     }
 
-    // Build where clause - use direct items filter (faster than OR)
-    let whereClause: any = {
-      items: { some: { menuItem: { restaurantId } } }
-    };
+    // ✅ FIXED: Use direct restaurantId (indexed) — this endpoint is polled every 3 seconds!
+    let whereClause: any = { restaurantId };
     
     // Handle multiple statuses (comma-separated)
     if (status) {

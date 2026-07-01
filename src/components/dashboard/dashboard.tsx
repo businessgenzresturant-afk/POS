@@ -107,6 +107,47 @@ export function Dashboard() {
     }
   }, []);
 
+  // ⚡ PERFORMANCE FIX: Single unified API call instead of 3 separate ones
+  const fetchCoreData = useCallback(async () => {
+    try {
+      const res = await fetch('/api/dashboard', { cache: 'no-store' });
+
+      if (res.status === 401) {
+        window.location.href = '/login';
+        return;
+      }
+
+      if (!res.ok) {
+        console.error('[Dashboard] Core data fetch failed:', res.status);
+        return;
+      }
+
+      const data = await res.json();
+      const validTables = Array.isArray(data.tables) ? data.tables : [];
+      const validOrders = Array.isArray(data.activeOrders) ? data.activeOrders : [];
+
+      setTables(validTables);
+      setActiveOrders(validOrders);
+      if (data.revenue !== undefined) {
+        setRevenue(data.revenue);
+      }
+
+      if (typeof window !== 'undefined') {
+        (window as any).__pos_cache = {
+          ...(window as any).__pos_cache,
+          tables: validTables,
+          activeOrders: validOrders,
+          revenue: data.revenue ?? (window as any).__pos_cache?.revenue ?? 0,
+        };
+      }
+    } catch (error) {
+      console.error('[Dashboard] Error fetching core data:', error);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  // Keep fetchReportsData for detailed report modal (not polled, only on demand)
   const fetchReportsData = useCallback(async () => {
     if (!isAdmin) return;
     try {
@@ -125,74 +166,31 @@ export function Dashboard() {
     }
   }, [isAdmin]);
 
-  const fetchCoreData = useCallback(async () => {
-    try {
-      const fetchPromises: Promise<Response>[] = [
-        fetch('/api/tables', { cache: 'no-store' }),
-        fetch('/api/orders?status=PENDING,PREPARING,READY,SERVED', { cache: 'no-store' })
-      ];
-
-      const responses = await Promise.all(fetchPromises);
-      const [tablesRes, ordersRes] = responses;
-
-      if (tablesRes.status === 401 || ordersRes.status === 401) {
-        window.location.href = '/login';
-        return;
-      }
-
-      const t = tablesRes.ok ? await tablesRes.json() : [];
-      const o = ordersRes.ok ? await ordersRes.json() : [];
-
-      const validTables = Array.isArray(t) ? t : [];
-      const validOrders = Array.isArray(o) ? o : [];
-
-      setTables(validTables);
-      setActiveOrders(validOrders);
-
-      if (typeof window !== 'undefined') {
-        (window as any).__pos_cache = {
-          ...(window as any).__pos_cache,
-          tables: validTables,
-          activeOrders: validOrders
-        };
-      }
-    } catch (error) {
-      console.error('[Dashboard] Error fetching core data:', error);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
   const fetchData = useCallback(async () => {
     await Promise.all([
       fetchCoreData(),
-      fetchReportsData(),
       menuItems.length === 0 ? fetchMenuData() : Promise.resolve()
     ]);
-  }, [fetchCoreData, fetchReportsData, fetchMenuData, menuItems.length]);
+  }, [fetchCoreData, fetchMenuData, menuItems.length]);
 
   useEffect(() => {
     fetchData();
-    // Core operational data every 10 seconds
+    // ⚡ Single interval for ALL data — now uses unified /api/dashboard endpoint
     const coreInterval = setInterval(fetchCoreData, 10000);
-    // Reports every 60 seconds
-    const reportsInterval = setInterval(fetchReportsData, 60000);
     
-    // Also refetch when the tab becomes visible
+    // Also refetch when the tab becomes visible (user switches back to tab)
     const handleVisibility = () => {
       if (document.visibilityState === 'visible') {
         fetchCoreData();
-        fetchReportsData();
       }
     };
     document.addEventListener('visibilitychange', handleVisibility);
     
     return () => {
       clearInterval(coreInterval);
-      clearInterval(reportsInterval);
       document.removeEventListener('visibilitychange', handleVisibility);
     };
-  }, [fetchData, fetchCoreData, fetchReportsData]);
+  }, [fetchData, fetchCoreData]);
 
   // Removed dashboard click sound preloading
 
