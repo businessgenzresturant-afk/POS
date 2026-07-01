@@ -32,17 +32,6 @@ export async function POST(
       return NextResponse.json({ error: 'Order not found' }, { status: 404 });
     }
 
-    // Find or create 'Custom Charges' category
-    let category = await prisma.category.findFirst({
-      where: { name: 'Custom Charges', restaurantId }
-    });
-
-    if (!category) {
-      category = await prisma.category.create({
-        data: { name: 'Custom Charges', restaurantId }
-      });
-    }
-
     // Find or create 'Custom Charge' menuItem
     let menuItem = await prisma.menuItem.findFirst({
       where: { name: 'Custom Charge', restaurantId }
@@ -53,9 +42,10 @@ export async function POST(
         data: {
           name: 'Custom Charge',
           price: 0,
-          categoryId: category.id,
+          category: 'Custom Charges',
+          imageUrl: '',
           restaurantId,
-          type: 'VEG',
+          dietType: 'VEG',
           available: true
         }
       });
