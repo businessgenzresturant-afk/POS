@@ -12,7 +12,8 @@ import {
   Receipt, 
   BarChart3, 
   Settings,
-  Lock
+  Lock,
+  Users
 } from 'lucide-react';
 import { ThemeToggle } from '@/components/theme-toggle';
 import { useAuth } from '@/lib/useAuth';
@@ -29,6 +30,7 @@ export default function Sidebar() {
     { href: '/orders', label: 'Orders', icon: <ClipboardList size={20} />, restrict: isChef },
     { href: '/kot', label: 'KOT', icon: <ChefHat size={20} />, restrict: false },
     { href: '/bills', label: 'Bills', icon: <Receipt size={20} />, restrict: !isAdmin && !isManager },
+    { href: '/customers', label: 'Customers', icon: <Users size={20} />, restrict: !isAdmin },
     { href: '/reports', label: 'Reports', icon: <BarChart3 size={20} />, restrict: !isAdmin && !isManager },
     { href: '/settings', label: 'Settings', icon: <Settings size={20} />, restrict: !isAdmin },
   ];
