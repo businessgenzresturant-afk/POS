@@ -408,6 +408,10 @@ export function Dashboard() {
       const newBill = await response.json();
       toast.success('✅ Bill ready!', { id: toastId, duration: 2000 });
       
+      // Fix: Update selectedActiveOrder so adding items appends to existing order
+      if (newBill.order) {
+        setSelectedActiveOrder(newBill.order);
+      }
       
       // Open payment modal INSTANTLY
       setGeneratedBill(newBill);
@@ -858,8 +862,8 @@ export function Dashboard() {
                 setTableSelectModalOpen(true);
               }
             } else {
-              // Open TableDrawer if they were managing an active order
-              setTableDrawerOpen(true);
+              // Re-open PaymentModal instead of bypassed TableDrawer
+              handleGenerateBill(selectedActiveOrder.id);
             }
           }}
           menuItems={menuItems}
