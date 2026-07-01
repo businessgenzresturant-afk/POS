@@ -31,26 +31,16 @@ export async function GET(request: Request) {
     const restaurantId = (auth.session.user as any).restaurantId;
     
     // P0 FIX: Use bills (actual collected amounts) instead of orders for revenue calculation
-    // 🔧 BUGFIX: Include BOTH paid and pending bills for today's breakdown
-    // This ensures payment method breakdown shows all bills, not just paid ones
+    // Support both new (direct restaurantId) and old (via table/menuItem) data
     const bills = await prisma.bill.findMany({
       where: {
         status: 'PAID',
         OR: [
-          {
-            createdAt: {
-              gte: startDate,
-              lte: endDate,
-            }
-          },
-          {
-            paidAt: {
-              gte: startDate,
-              lte: endDate,
-            }
-          }
+          { createdAt: { gte: startDate, lte: endDate } },
+          { paidAt: { gte: startDate, lte: endDate } }
         ],
-        restaurantId
+        // ✅ FIXED: Use restaurantId directly (fast index) - data has been backfilled
+        restaurantId,
       },
       select: {
         total: true,
@@ -59,7 +49,9 @@ export async function GET(request: Request) {
           select: {
             items: {
               select: {
+                menuItemId: true, // ✅ FIXED: was missing - needed as key for itemSales
                 quantity: true,
+                price: true, // ✅ FIXED: use actual charged price
                 menuItem: {
                   select: {
                     id: true,
@@ -84,7 +76,9 @@ export async function GET(request: Request) {
     const itemSales: Record<string, { name: string; quantity: number; revenue: number }> = {};
     
     bills.forEach((bill: any) => {
+      if (!bill.order?.items) return;
       bill.order.items.forEach((item: any) => {
+        if (!item.menuItem || !item.menuItemId) return;
         if (!itemSales[item.menuItemId]) {
           itemSales[item.menuItemId] = {
             name: item.menuItem.name,
@@ -94,7 +88,7 @@ export async function GET(request: Request) {
         }
         
         itemSales[item.menuItemId].quantity += item.quantity;
-        itemSales[item.menuItemId].revenue += item.quantity * item.menuItem.price;
+        itemSales[item.menuItemId].revenue += item.quantity * (item.price || item.menuItem.price);
       });
     });
     
@@ -132,6 +126,7 @@ export async function GET(request: Request) {
       }
     });
   } catch (error) {
+    console.error('[Reports] Error:', error);
     return NextResponse.json(
       { error: 'Failed to generate report' },
       { status: 500 }

@@ -141,7 +141,9 @@ export const POST = withTiming(async (request: Request) => {
     }
     
     // Security check: Ensure order belongs to user's restaurant
-    if (order.table?.restaurantId !== restaurantId && order.items[0]?.menuItem?.restaurantId !== restaurantId) {
+    // Check direct restaurantId first (fast), then fallback to nested check for legacy data
+    const orderRestaurantId = order.restaurantId || order.table?.restaurantId || order.items[0]?.menuItem?.restaurantId;
+    if (orderRestaurantId !== restaurantId) {
       if (process.env.NODE_ENV === 'development') console.timeEnd('⏱️ TOTAL-BILL-GENERATION');
       return NextResponse.json({ error: 'Unauthorized order' }, { status: 401 });
     }
